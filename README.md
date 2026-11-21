@@ -103,6 +103,12 @@ Rode com `-ExecutionPolicy Bypass` no PowerShell:
 # Instalar Tela de Login, Loading Screens e Skin AureumRO_Obsidian no cliente
 powershell -ExecutionPolicy Bypass -File .\scripts\install-client-visuals.ps1
 
+# Instalar Chao HD 512x512 (modos: marmore | remaster | original) + Neblina limpa
+powershell -ExecutionPolicy Bypass -File .\scripts\install-hd-ground.ps1 -Mode marmore
+
+# Ativar Graficos HD globais (dgVoodoo2: DX11 + Anisotropico 16x + MSAA 4x)
+powershell -ExecutionPolicy Bypass -File .\scripts\install-dgvoodoo-hd.ps1
+
 # Ativar / Desativar Graymap (chaopreto.grf) no DATA.INI
 powershell -ExecutionPolicy Bypass -File .\scripts\toggle-graymap.ps1 on
 

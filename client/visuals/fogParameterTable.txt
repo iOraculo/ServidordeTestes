@@ -1,0 +1,72 @@
+// =============================================================================
+// AureumRO - Tabela de Neblina Limpa (fogParameterTable.txt)
+// Afasta a neblina cinzenta lavada em Prontera, Arena 4Tools, Sala MVP e cidades
+// principais para cores mais vivas e chao HD cristalino ate o horizonte.
+// Formato: mapa.rsw# / near# / far# / 0xAARRGGBB# / density#
+// =============================================================================
+
+prontera.rsw#
+0.88#
+1.75#
+0xFFFAF2DC#
+0.18#
+
+pvp_n_1-5.rsw#
+0.92#
+1.90#
+0xFF1A140A#
+0.10#
+
+guild_vs3.rsw#
+0.92#
+1.90#
+0xFF1A140A#
+0.10#
+
+prt_cas01.rsw#
+0.88#
+1.80#
+0xFFEEDDB8#
+0.15#
+
+geffen.rsw#
+0.85#
+1.70#
+0xFFDDE6F5#
+0.20#
+
+payon.rsw#
+0.85#
+1.70#
+0xFFE8F2DD#
+0.20#
+
+morocc.rsw#
+0.85#
+1.70#
+0xFFF5E6C8#
+0.20#
+
+alberta.rsw#
+0.85#
+1.70#
+0xFFDDF0FA#
+0.20#
+
+aldebaran.rsw#
+0.85#
+1.70#
+0xFFE2EEFA#
+0.20#
+
+izlude.rsw#
+0.85#
+1.70#
+0xFFDDF0FA#
+0.20#
+
+dicastes01.rsw#
+0.85#
+1.75#
+0xFFD8D0E8#
+0.22#

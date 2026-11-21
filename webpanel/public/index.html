@@ -390,14 +390,18 @@
             <li><code>@dummy</code> / <code>@cleardummy</code> — invoca/remove Dummy 5M HP na sua frente (na Arena ou Sala MVP).</li>
             <li><code>@turbo</code> / <code>@pacifico</code> / <code>@kafra</code> / <code>@reparar</code> — velocidade rápida, modo imune a aggro, armazém remoto e reparo/identificação.</li>
           </ul>
-          <h4>Visuais do Cliente &amp; Backup (PowerShell)</h4>
-          <pre class="code-block"><code># Instalar Login, Loading Screens e Skin AureumRO_Obsidian
+          <h4>Visuais HD do Cliente &amp; Backup (PowerShell)</h4>
+          <pre class="code-block"><code># Instalar Tela de Login, Loading Screens e Skin AureumRO_Obsidian
 powershell -ExecutionPolicy Bypass -File .\scripts\install-client-visuals.ps1
 
-# Alternar Graymap (chaopreto.grf) no DATA.INI
-powershell -ExecutionPolicy Bypass -File .\scripts\toggle-graymap.ps1 on
+# Chao HD 512x512 (modos: marmore | remaster | original) + Neblina limpa
+powershell -ExecutionPolicy Bypass -File .\scripts\install-hd-ground.ps1 -Mode marmore
 
-# Backup / Restore do banco MariaDB
+# Graficos HD globais (dgVoodoo2 DX11 + 16x Anisotropico + MSAA 4x)
+powershell -ExecutionPolicy Bypass -File .\scripts\install-dgvoodoo-hd.ps1
+
+# Alternar Graymap (chaopreto.grf) / Backup do banco MariaDB
+powershell -ExecutionPolicy Bypass -File .\scripts\toggle-graymap.ps1 on
 powershell -ExecutionPolicy Bypass -File .\scripts\backup-db.ps1</code></pre>
         </div>
       </div>
