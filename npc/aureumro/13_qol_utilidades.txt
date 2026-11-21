@@ -77,6 +77,10 @@ L_TopUp:
 		getitem .@id, .@target - .@have;
 	}
 	return;
+
+OnInit:
+	waitingroom "[ Kafra & QoL ]", 0;
+	end;
 }
 
 // Duplicata na Arena de Treino 4Tools

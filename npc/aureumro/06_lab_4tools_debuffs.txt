@@ -175,6 +175,10 @@ L_ElviraDebuffs:
 	default: break;
 	}
 	return;
+
+OnInit:
+	waitingroom "[ Debuffs 4Tools ]", 0;
+	end;
 }
 
 // Duplicata dentro da Arena de Treino 4Tools (fora da cidade)

@@ -63,4 +63,8 @@ prontera,162,191,3	script	Estilista AureumRO	122,{
 			close;
 		}
 	}
+
+OnInit:
+	waitingroom "[ Estilista ]", 0;
+	end;
 }

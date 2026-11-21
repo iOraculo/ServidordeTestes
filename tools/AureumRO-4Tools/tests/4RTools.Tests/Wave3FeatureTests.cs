@@ -1082,5 +1082,49 @@ namespace _4RTools.Tests
             Assert.False(AutoBuff.RequiresSelfTargetClick(EffectStatusIDs.EFST_HIDING));
             Assert.False(AutoBuff.RequiresSelfTargetClick(EffectStatusIDs.AURA_NINJA));
         }
+
+        [Fact]
+        public void MiniHudForm_UpdatesPauseBadgesAndTelemetry()
+        {
+            using (MiniHudForm hud = new MiniHudForm())
+            {
+                hud.UpdateStatus(false, false, false, false);
+                Assert.Equal("OFF", hud.StatusBadgeText);
+
+                hud.UpdateStatus(true, true, true, true);
+                Assert.Equal("CHAT", hud.StatusBadgeText);
+
+                hud.UpdateStatus(true, false, true, true);
+                Assert.Equal("CIDADE", hud.StatusBadgeText);
+
+                hud.UpdateStatus(true, false, false, true);
+                Assert.Equal("FOCO", hud.StatusBadgeText);
+
+                hud.UpdateStatus(true, false, false, false);
+                Assert.Equal("ON", hud.StatusBadgeText);
+
+                // Backwards-compatible 2-arg overload
+                hud.UpdateStatus(true, true);
+                Assert.Equal("CHAT", hud.StatusBadgeText);
+
+                hud.UpdateTelemetry("pvp_n_1-5", 7);
+                Assert.Equal("Mapa: pvp_n_1-5", hud.MapInfoText);
+                Assert.Equal("Buffs: 7", hud.BuffCountText);
+
+                hud.ClearVitals();
+                Assert.Equal("Mapa: --", hud.MapInfoText);
+                Assert.Equal("Buffs: 0", hud.BuffCountText);
+            }
+        }
+
+        [Fact]
+        public void ClientUpdaterForm_IsBuiltInTestServerName_DistinguishesTestFromOfficial()
+        {
+            Assert.True(ClientUpdaterForm.IsBuiltInTestServerName("FroggoClient"));
+            Assert.True(ClientUpdaterForm.IsBuiltInTestServerName("ragexe"));
+            Assert.False(ClientUpdaterForm.IsBuiltInTestServerName("AureumRO"));
+            Assert.False(ClientUpdaterForm.IsBuiltInTestServerName(""));
+            Assert.False(ClientUpdaterForm.IsBuiltInTestServerName(null));
+        }
     }
 }

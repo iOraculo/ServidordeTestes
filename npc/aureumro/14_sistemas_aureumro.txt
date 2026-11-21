@@ -96,6 +96,10 @@ OnNPCKillEvent:
 		dispbottom "[Caça MVP] Você abateu " + AUREUM_LAST_MVP$ + "! Total pessoal: " + AUREUM_MVP_KILLS;
 	}
 	end;
+
+OnInit:
+	waitingroom "[ MVP / ET / WoE ]", 0;
+	end;
 }
 
 guild_vs3,50,56,4	script	Controlador Sala MVP	721,{
@@ -143,5 +147,9 @@ guild_vs3,50,56,4	script	Controlador Sala MVP	721,{
 	}
 
 OnRoomMvpDead:
+	end;
+
+OnInit:
+	waitingroom "[ Invocar MVP ]", 0;
 	end;
 }

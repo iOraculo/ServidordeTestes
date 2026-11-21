@@ -84,6 +84,10 @@ prontera,156,185,4	script	Suprimentos 4Tools	86,{
 	case 8:
 		close;
 	}
+
+OnInit:
+	waitingroom "[ Suprimentos ]", 0;
+	end;
 }
 
 // Duplicata dentro da Arena de Treino 4Tools

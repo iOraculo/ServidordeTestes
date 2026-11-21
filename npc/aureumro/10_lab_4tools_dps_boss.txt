@@ -87,6 +87,10 @@ L_RunDpsTest:
 
 OnDpsDummyDead:
 	end;
+
+OnInit:
+	waitingroom "[ Medidor DPS ]", 0;
+	end;
 }
 
 pvp_n_1-5,92,98,5	script	Simulador de Combate	748,{
@@ -191,5 +195,9 @@ L_SpawnMvp:
 	return;
 
 OnArenaMvpDead:
+	end;
+
+OnInit:
+	waitingroom "[ Stress & MVPs ]", 0;
 	end;
 }

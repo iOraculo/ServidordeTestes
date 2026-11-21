@@ -508,6 +508,29 @@ namespace _4RTools.Model
             return entriesRead;
         }
 
+        public int CountActiveBuffs(byte[] rawBuffer, uint[] destination)
+        {
+            int count = ReadBuffStatusBuffer(rawBuffer, destination);
+            if (count <= 0)
+            {
+                return 0;
+            }
+
+            int active = 0;
+            for (int i = 0; i < count; i++)
+            {
+                EffectStatusIDs status = (EffectStatusIDs)destination[i];
+                if (status == EffectStatusIDs.IGNORE || status == EffectStatusIDs.IGNORE_2)
+                {
+                    continue;
+                }
+
+                active++;
+            }
+
+            return active;
+        }
+
         public static bool IsBelowPercent(uint current, uint max, int percent)
         {
             if (max == 0 || percent <= 0)

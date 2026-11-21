@@ -447,6 +447,10 @@ L_Rental:
 	}
 	mes "Você já possui seu aluguel ou não tem a habilidade necessária (Usar Carrinho, Adestrar Falcão ou Montaria).";
 	return;
+
+OnInit:
+	waitingroom "[ Classes 99/70 ]", 0;
+	end;
 }
 
 // Duplicata dentro da Arena de Treino 4Tools para trocar de classe sem sair da Arena

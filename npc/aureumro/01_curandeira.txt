@@ -46,6 +46,10 @@ prontera,152,193,5	script	Curandeira AureumRO	742,{
 	case 4:
 		close;
 	}
+
+OnInit:
+	waitingroom "[ Curandeira ]", 0;
+	end;
 }
 
 // Duplicata na Arena de Treino 4Tools

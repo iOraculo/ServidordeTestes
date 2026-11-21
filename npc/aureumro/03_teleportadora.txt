@@ -93,4 +93,8 @@ prontera,160,193,3	script	Teleportadora AureumRO	113,{
 	case 6:
 		close;
 	}
+
+OnInit:
+	waitingroom "[ Teleporte ]", 0;
+	end;
 }

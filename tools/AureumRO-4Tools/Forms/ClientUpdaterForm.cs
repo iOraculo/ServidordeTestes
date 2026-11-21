@@ -95,11 +95,15 @@ namespace _4RTools.Forms
                 && string.Equals(clientDTO.name.Trim(), EXCLUSIVE_SERVER_NAME, StringComparison.OrdinalIgnoreCase);
         }
 
+        public static bool IsBuiltInTestServerName(string processName)
+        {
+            return !string.IsNullOrWhiteSpace(processName)
+                && BuiltInTestServerNames.Contains(processName.Trim());
+        }
+
         public static bool IsBuiltInTestServer(ClientDTO clientDTO)
         {
-            return clientDTO != null
-                && !string.IsNullOrWhiteSpace(clientDTO.name)
-                && BuiltInTestServerNames.Contains(clientDTO.name.Trim());
+            return clientDTO != null && IsBuiltInTestServerName(clientDTO.name);
         }
 
         public static bool IsAllowedServer(ClientDTO clientDTO, bool isLocalOverride = false)

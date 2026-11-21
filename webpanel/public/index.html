@@ -10,7 +10,9 @@
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand">
-        <div class="crest" aria-hidden="true">✦</div>
+        <div class="crest-frame">
+          <img src="/assets/aureumro-crest.png" alt="Brasão AureumRO" class="crest-img" />
+        </div>
         <div>
           <h1 id="server-name">AureumRO Testes</h1>
           <p class="subtitle">Pré-Renewal · Ep. 13.3 El Dicastes · 99/70 · Laboratório AureumRO-4Tools</p>
@@ -18,6 +20,10 @@
       </div>
 
       <div class="topbar-actions">
+        <span class="clock-pill" id="server-clock" title="Horário do Servidor">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <span id="server-clock-time">--:--:--</span>
+        </span>
         <span class="preset-pill" id="preset-badge">Carregando preset...</span>
         <button type="button" class="btn-ghost" id="theme-toggle" title="Alternar Obsidiana / Pergaminho">
           Tema: Obsidiana
@@ -60,19 +66,39 @@
 
     <section class="stats-grid" aria-label="Estatísticas do Servidor">
       <article class="stat-card">
-        <span class="stat-label">Online Agora</span>
+        <div class="stat-head">
+          <span class="stat-label">Online Agora</span>
+          <span class="stat-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M5.6 18.4a9 9 0 0 1 0-12.8M18.4 5.6a9 9 0 0 1 0 12.8M8.5 15.5a5 5 0 0 1 0-7M15.5 8.5a5 5 0 0 1 0 7"/></svg>
+          </span>
+        </div>
         <strong class="stat-value" id="stat-online">0</strong>
       </article>
       <article class="stat-card">
-        <span class="stat-label">Contas Criadas</span>
+        <div class="stat-head">
+          <span class="stat-label">Contas Criadas</span>
+          <span class="stat-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </span>
+        </div>
         <strong class="stat-value" id="stat-accounts">0</strong>
       </article>
       <article class="stat-card">
-        <span class="stat-label">Personagens</span>
+        <div class="stat-head">
+          <span class="stat-label">Personagens</span>
+          <span class="stat-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2"/></svg>
+          </span>
+        </div>
         <strong class="stat-value" id="stat-characters">0</strong>
       </article>
       <article class="stat-card">
-        <span class="stat-label">Zeny em Circulação</span>
+        <div class="stat-head">
+          <span class="stat-label">Zeny em Circulação</span>
+          <span class="stat-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9h5l-5 6h5"/></svg>
+          </span>
+        </div>
         <strong class="stat-value" id="stat-zeny">0 z</strong>
       </article>
     </section>
@@ -82,7 +108,7 @@
       <button type="button" class="tab" data-tab="ranking" role="tab">Personagens &amp; Ranking</button>
       <button type="button" class="tab" data-tab="tools" role="tab">Integração 4Tools</button>
       <button type="button" class="tab" data-tab="admin" role="tab">Ferramentas GM &amp; Logs</button>
-      <button type="button" class="tab" data-tab="guide" role="tab">NPCs &amp; Comandos</button>
+      <button type="button" class="tab" data-tab="guide" role="tab">NPCs &amp; Mapa do Hub</button>
     </nav>
 
     <section class="tab-panel active" id="panel-register">
@@ -151,31 +177,46 @@
     </section>
 
     <section class="tab-panel" id="panel-ranking">
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <h3>Personagens Cadastrados</h3>
-            <p class="muted">Ordenados por status online e nível Base/Job.</p>
+      <div class="ranking-stack">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3>Personagens Cadastrados</h3>
+              <p class="muted">Ordenados por status online e nível Base/Job.</p>
+            </div>
+            <button type="button" class="btn-outline" id="refresh-ranking">Atualizar</button>
           </div>
-          <button type="button" class="btn-outline" id="refresh-ranking">Atualizar</button>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Personagem</th>
+                  <th>Classe</th>
+                  <th>Nível</th>
+                  <th>Mapa Atual</th>
+                  <th>Zeny</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="ranking-body">
+                <tr><td colspan="7" class="muted center">Carregando personagens...</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Personagem</th>
-                <th>Classe</th>
-                <th>Nível</th>
-                <th>Mapa Atual</th>
-                <th>Zeny</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="ranking-body">
-              <tr><td colspan="7" class="muted center">Carregando personagens...</td></tr>
-            </tbody>
-          </table>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3>Distribuição de Classes</h3>
+              <p class="muted">Proporção das classes ativas entre os personagens cadastrados.</p>
+            </div>
+            <span class="badge-soft" id="class-chart-total">0 personagens</span>
+          </div>
+          <div id="class-chart" class="class-chart">
+            <p class="muted">Atualize a aba para carregar a distribuição de classes.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -287,7 +328,41 @@
     </section>
 
     <section class="tab-panel" id="panel-guide">
-      <div class="split-grid">
+      <div class="card hub-map-card">
+        <div class="card-header">
+          <div>
+            <h3>Mapa Interativo do Hub — Prontera (156, 191)</h3>
+            <p class="muted">Passe o mouse ou clique em qualquer marcador para inspecionar as coordenadas e funções dos 16 NPCs.</p>
+          </div>
+          <div class="hub-legend">
+            <span class="legend-item"><i class="pin-dot wing-center"></i>Centro</span>
+            <span class="legend-item"><i class="pin-dot wing-west"></i>Ala Oeste (Combate)</span>
+            <span class="legend-item"><i class="pin-dot wing-east"></i>Ala Leste (Exploração)</span>
+            <span class="legend-item"><i class="pin-dot wing-south"></i>Ala Sul (4Tools)</span>
+          </div>
+        </div>
+        <div class="hub-map-layout">
+          <div class="hub-map-canvas" id="prontera-hub-map" role="region" aria-label="Mapa interativo do Hub de Prontera">
+            <div class="hub-compass">N ↑</div>
+            <div class="hub-spawn-marker" title="Spawn dos Jogadores — prontera (156, 191)">
+              <span>SPAWN</span>
+              <small>156, 191</small>
+            </div>
+          </div>
+          <aside class="hub-inspector" id="hub-inspector">
+            <span class="badge-gold" id="hub-npc-wing">Centro</span>
+            <h4 id="hub-npc-name">Guia AureumRO</h4>
+            <p class="hub-npc-coords"><code id="hub-npc-coords">prontera (156, 195)</code></p>
+            <p class="hub-npc-tag" id="hub-npc-tag">* AureumRO Hub *</p>
+            <p class="muted" id="hub-npc-desc">NPC central com mapa das alas, guia rápido do 4Tools, lista de comandos e teleporte direto para a Arena.</p>
+            <div class="callout" style="margin-top: 0.85rem;">
+              <strong>Arena 4Tools (<code>pvp_n_1-5</code>):</strong> Além dos duplicados do Hub, contém <strong>Controlador de Dummies</strong> <code>(104, 104)</code>, <strong>Medidor de DPS</strong> <code>(100, 90)</code> e <strong>Simulador de Combate &amp; MVPs</strong> <code>(92, 98)</code>.
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      <div class="split-grid" style="margin-top: 1.2rem;">
         <div class="card">
           <h3>NPCs Instalados em Prontera &amp; Arena</h3>
           <ul class="npc-list">
@@ -299,14 +374,14 @@
             <li><strong>Ferreiro &amp; Cartas MVP</strong> — <code>prontera (146, 195)</code> &amp; Arena <em>(Refino +10, Removedor e Cartas MVP grátis)</em></li>
             <li><strong>Teleportadora &amp; Estilista</strong> — <code>prontera (160, 193)</code> / <code>(162, 191)</code> <em>(Modo Seguro 0..3 &amp; Expandido)</em></li>
             <li><strong>Sistemas AureumRO</strong> — <code>prontera (164, 193)</code> <em>(Sala MVP Privada, Torre Sem Fim sem cooldown, WoE Testes)</em></li>
-            <li><strong>Roleta Poring, Visuais &amp; Homúnculos</strong> — <code>prontera (164, 195)</code></li>
+            <li><strong>Roleta Poring, Visuais &amp; Auras</strong> — <code>prontera (166, 195)</code> <em>(Costumes na aba Visual + Auras Contínuas)</em></li>
             <li><strong>Kafra &amp; Lixeira</strong> — <code>prontera (164, 189)</code> &amp; Arena</li>
             <li><strong>Laboratório 4Tools</strong> — Debuffs <code>(152, 185)</code>, Suprimentos <code>(156, 185)</code>, Arena <code>(160, 185)</code> → <strong>Medidor de DPS</strong> &amp; <strong>Simulador Stress Test</strong> em <code>pvp_n_1-5</code></li>
           </ul>
         </div>
 
         <div class="card">
-          <h3>Comandos Rápidos In-Game</h3>
+          <h3>Comandos Rápidos &amp; Scripts Visuais</h3>
           <p class="muted">Comandos customizados disponíveis para qualquer conta:</p>
           <ul class="checklist">
             <li><code>@restock</code> — reabastece Poção Branca Compacta, Azul, Yggdrasil, Panaceia, Verde, Água Benta, Doce de Elvira e Gemas.</li>
@@ -314,11 +389,15 @@
             <li><code>@arena</code> — teleporta direto para a Arena de Treino 4Tools (<code>pvp_n_1-5</code>).</li>
             <li><code>@hub</code> — volta instantaneamente para o Hub de Prontera.</li>
           </ul>
-          <h4>Backup / Restore do Banco (PowerShell)</h4>
-          <pre class="code-block"><code># Criar backup em backups/
-.\scripts\backup-db.ps1
+          <h4>Visuais do Cliente &amp; Backup (PowerShell)</h4>
+          <pre class="code-block"><code># Instalar Login, Loading Screens e Skin AureumRO_Obsidian
+.\scripts\install-client-visuals.ps1
 
-# Restaurar snapshot
+# Alternar Graymap (chaopreto.grf) no DATA.INI
+.\scripts\toggle-graymap.ps1 on
+
+# Backup / Restore do banco MariaDB
+.\scripts\backup-db.ps1
 .\scripts\restore-db.ps1 backups\aureumro_YYYYMMDD_HHMMSS.sql</code></pre>
         </div>
       </div>
@@ -329,6 +408,8 @@
     <span>AureumRO Servidor de Testes · rAthena Pré-Renewal Ep. 13.3</span>
     <span>Identidade Obsidiana &amp; Ouro Real · Desenvolvimento: Oráculo</span>
   </footer>
+
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
   <script src="app.js"></script>
 </body>

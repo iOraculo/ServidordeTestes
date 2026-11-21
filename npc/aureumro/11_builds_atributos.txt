@@ -140,6 +140,10 @@ L_LoadBuild:
 		getd("BUILD_DEX_" + .@slot),
 		getd("BUILD_LUK_" + .@slot);
 	return;
+
+OnInit:
+	waitingroom "[ Builds & Stats ]", 0;
+	end;
 }
 
 // Duplicata na Arena de Treino 4Tools

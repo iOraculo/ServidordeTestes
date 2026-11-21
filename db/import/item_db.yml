@@ -1,7 +1,7 @@
 # ==============================================================================
-# AureumRO Servidor de Testes — Itens Customizados / Portados para Pré-Renewal
-# Garante suporte ao Doce de Elvira (ID 23044) usado na Recuperação de Status
-# do AureumRO-4Tools (StatusRecovery.cs -> ElviraStatuses + cooldown).
+# AureumRO Servidor de Testes - Itens Customizados / Portados para Pré-Renewal
+# - Doce de Elvira (ID 23044): Recuperação de Status do AureumRO-4Tools
+# - Costumes Visuais (Topo / Meio / Baixo / Capa): aba Visual sem ocupar equip +10
 # ==============================================================================
 Header:
   Type: ITEM_DB
@@ -26,3 +26,66 @@ Body:
       sc_end SC_MANDRAGORA;
       sc_end SC_SLOWCAST;
       specialeffect2 EF_CURE;
+
+  - Id: 19509
+    AegisName: Butterfly_Wing_Ear
+    Name: Costume Butterfly Wing Ears
+    Type: Armor
+    Weight: 0
+    Locations:
+      Costume_Head_Mid: true
+    View: 695
+
+  - Id: 19514
+    AegisName: Charlie_Beard
+    Name: Costume Charlies Beard
+    Type: Armor
+    Weight: 0
+    Locations:
+      Costume_Head_Low: true
+    View: 700
+
+  - Id: 19574
+    AegisName: C_Lord_of_Death
+    Name: Costume Lord of Death
+    Type: Armor
+    Weight: 0
+    Locations:
+      Costume_Head_Mid: true
+    View: 742
+
+  - Id: 19608
+    AegisName: C_Chick_Hat
+    Name: Costume Baby Chick
+    Type: Armor
+    Weight: 0
+    Locations:
+      Costume_Head_Top: true
+    View: 311
+
+  - Id: 19655
+    AegisName: C_Tiraya_Bonnet
+    Name: Costume Tiraya Bonnet
+    Type: Armor
+    Weight: 0
+    Locations:
+      Costume_Head_Top: true
+    View: 398
+
+  - Id: 20504
+    AegisName: C_Cupid_Wing_Pink
+    Name: Costume Cupids Pink Wings
+    Type: Armor
+    Weight: 0
+    Locations:
+      Costume_Garment: true
+    View: 14
+
+  - Id: 20507
+    AegisName: C_Poring_Bag
+    Name: Costume Poring Bag
+    Type: Armor
+    Weight: 0
+    Locations:
+      Costume_Garment: true
+    View: 16

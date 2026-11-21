@@ -4,7 +4,7 @@
 // com cartas MVP/WoE ja encaixadas e kit dedicado para testar ATK x DEF no 4Tools.
 // =============================================================================
 
-prontera,148,193,5	script	Arsenal Divino	813,{
+prontera,148,193,5	script	Arsenal Divino	811,{
 	mes "[ ^B8860BArsenal Divino AureumRO (+10)^000000 ]";
 	mes "Receba gratuitamente kits completos com ^B8860BItens Divinos^000000, equipamentos ^0055FF+10^000000 e as ^006600melhores cartas MVP^000000 já encaixadas!";
 	next;
@@ -351,4 +351,4 @@ OnInit:
 }
 
 // Duplicata dentro da Arena de Treino 4Tools
-pvp_n_1-5,112,104,3	duplicate(Arsenal Divino)	Arsenal Divino#4tools	813
+pvp_n_1-5,112,104,3	duplicate(Arsenal Divino)	Arsenal Divino#4tools	811

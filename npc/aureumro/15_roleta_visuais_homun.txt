@@ -1,19 +1,21 @@
 // =============================================================================
-// AureumRO Servidor de Testes - Roleta Poring, Visuais & Homúnculo Express
-// Itens 8 e 9:
+// AureumRO Servidor de Testes - Roleta Poring, Visuais (Costumes), Auras & Homun
+// Itens 2, 8 e 9:
 //   - Roleta Poring interativa estilo AureumRO
-//   - Armário de Visuais / Chapéus Clássicos & Efeitos de Aura
-//   - Assistente de Homúnculos (Embrião, Lealdade Máxima, Evolução e Nível 99)
+//   - Armário de Visuais (aba Costume: Topo/Meio/Baixo/Capa) sem ocupar equip +10
+//   - Auras Contínuas persistentes (reaplicadas via timer e ao logar)
+//   - Assistente de Homúnculos (Embrião, Lealdade 1000, Evolução e Nível 99)
 // =============================================================================
 
-prontera,164,195,3	script	Roleta & Visuais	1002,{
-	mes "[ ^B8860BRoleta Poring, Visuais & Homúnculos^000000 ]";
-	mes "Explore os sistemas temáticos do ^B8860BAureumRO^000000!";
+prontera,166,195,3	script	Roleta & Visuais	1002,{
+	mes "[ ^B8860BRoleta Poring, Visuais & Auras^000000 ]";
+	mes "Explore os sistemas temáticos e visuais do ^B8860BAureumRO^000000!";
 	next;
 	switch (select(
 		"^FF6699Girar a Roleta Poring (Grátis em Testes)^000000",
-		"Armário de Chapéus & Visuais Clássicos",
-		"Testar Auras & Efeitos Visuais",
+		"^B8860BArmário de Visuais - Aba Costume (Topo/Meio/Baixo/Capa)^000000",
+		"^0055FFAuras Contínuas (Ligar / Trocar / Desligar)^000000",
+		"Chapéus Clássicos Pré-Renewal",
 		"^006600Homúnculos Express (Alquimista / Criador)^000000",
 		"Cancelar"
 	)) {
@@ -21,15 +23,18 @@ prontera,164,195,3	script	Roleta & Visuais	1002,{
 		callsub L_PoringRoulette;
 		close;
 	case 2:
-		callsub L_VisualCloset;
+		callsub L_CostumeCloset;
 		close;
 	case 3:
-		callsub L_Auras;
+		callsub L_ContinuousAuras;
 		close;
 	case 4:
-		callsub L_HomunculusExpress;
+		callsub L_ClassicHats;
 		close;
 	case 5:
+		callsub L_HomunculusExpress;
+		close;
+	case 6:
 		close;
 	}
 
@@ -40,21 +45,21 @@ L_PoringRoulette:
 	next;
 	.@roll = rand(1, 100);
 	if (.@roll <= 5) {
-		getitem 616, 1; // Velho Álbum de Cartas (OCA)
+		getitem 616, 1;
 		specialeffect2 EF_ANGEL2;
 		mes "^B8860B[JACKPOT!]^000000 Você ganhou ^0055FF1x Velho Álbum de Cartas (OCA)^000000!";
 	} else if (.@roll <= 20) {
-		getitem 607, 25; // Fruto de Yggdrasil
+		getitem 607, 25;
 		mes "^006600[PRÊMIO RARO]^000000 Você ganhou ^0055FF25x Fruto de Yggdrasil^000000!";
 	} else if (.@roll <= 40) {
-		getitem 23044, 20; // Doce de Elvira
+		getitem 23044, 20;
 		mes "^006600[PRÊMIO]^000000 Você ganhou ^B8860B20x Doce de Elvira^000000!";
 	} else if (.@roll <= 65) {
-		getitem 603, 5; // Velha Caixa Azul (OBB)
+		getitem 603, 5;
 		mes "[PRÊMIO] Você ganhou ^0055FF5x Velha Caixa Azul (OBB)^000000!";
 	} else if (.@roll <= 85) {
-		getitem 12208, 3; // Manual de Combate
-		getitem 12210, 3; // Goma de Mascar
+		getitem 12208, 3;
+		getitem 12210, 3;
 		mes "[PRÊMIO] Você ganhou ^0055FF3x Manual de Combate + 3x Goma de Mascar^000000!";
 	} else {
 		Zeny += 500000;
@@ -62,9 +67,81 @@ L_PoringRoulette:
 	}
 	return;
 
-L_VisualCloset:
-	mes "[ ^B8860BArmário de Chapéus & Visuais^000000 ]";
-	mes "Escolha um visual clássico Pré-Renewal para testar:";
+L_CostumeCloset:
+	mes "[ ^B8860BArmário de Visuais (Aba Costume)^000000 ]";
+	mes "Estes itens equipam na aba ^0055FFVisual (Costume)^000000 sem remover seus equipamentos Divinos +10!";
+	next;
+	.@pick = select(
+		"[Topo] Faixa de Penas da Valquíria (19506)",
+		"[Topo] Sol Radiante / Clear Sun (19507)",
+		"[Topo] Elmo da Esfinge Visual (19501)",
+		"[Topo] Pintinho Visual / Baby Chick (19608)",
+		"[Topo] Boina Tiraya Visual (19655)",
+		"[Meio] Orelhas de Asa de Borboleta (19509)",
+		"[Meio] Senhor dos Mortos Visual (19574)",
+		"[Baixo] Bigode Visual (19514)",
+		"[Capa] Asas do Cupido Visual (20504)",
+		"[Capa] Mochila Poring Visual (20507)",
+		"Cancelar"
+	);
+	if (.@pick == 11) return;
+	setarray .@cids[1], 19506, 19507, 19501, 19608, 19655, 19509, 19574, 19514, 20504, 20507;
+	getitem .@cids[.@pick], 1;
+	specialeffect2 EF_BEGINSPELL6;
+	mes "Visual entregue! Equipe-o pela aba Visual do inventário (Alt+E).";
+	return;
+
+L_ContinuousAuras:
+	mes "[ ^0055FFAuras Contínuas AureumRO^000000 ]";
+	mes "Aura atual: " + (AUREUM_AURA_ID ? "^006600Ativa (#" + AUREUM_AURA_ID + ")^000000" : "^777777Desligada^000000");
+	mes "Escolha uma aura que acompanha continuamente seu personagem:";
+	next;
+	.@opt = select(
+		"Aura Dourada Real (Ouro 99)",
+		"Aura Sagrada (Brilho Assumptio)",
+		"Aura de Chamas (Espírito da Fúria)",
+		"Aura Celestial (Luz Angelical)",
+		"Desligar Aura Contínua",
+		"Cancelar"
+	);
+	if (.@opt == 6) return;
+	if (.@opt == 5) {
+		AUREUM_AURA_ID = 0;
+		deltimer strnpcinfo(3) + "::OnAuraTick";
+		mes "Aura contínua desligada.";
+		return;
+	}
+	AUREUM_AURA_ID = .@opt;
+	deltimer strnpcinfo(3) + "::OnAuraTick";
+	callsub L_PlayAuraEffect, AUREUM_AURA_ID;
+	addtimer 4500, strnpcinfo(3) + "::OnAuraTick";
+	mes "Aura contínua ativada!";
+	return;
+
+L_PlayAuraEffect:
+	switch (getarg(0)) {
+	case 1: specialeffect2 EF_LEVEL99_4; break;
+	case 2: specialeffect2 EF_ASSUMPTIO; break;
+	case 3: specialeffect2 EF_EXPLOSIONSPIRITS; break;
+	case 4: specialeffect2 EF_ANGEL2; break;
+	}
+	return;
+
+OnAuraTick:
+	if (AUREUM_AURA_ID > 0) {
+		callsub L_PlayAuraEffect, AUREUM_AURA_ID;
+		addtimer 4500, strnpcinfo(3) + "::OnAuraTick";
+	}
+	end;
+
+OnPCLoginEvent:
+	if (AUREUM_AURA_ID > 0) {
+		addtimer 2500, strnpcinfo(3) + "::OnAuraTick";
+	}
+	end;
+
+L_ClassicHats:
+	mes "[ ^B8860BChapéus Clássicos Pré-Renewal^000000 ]";
 	next;
 	.@pick = select(
 		"Boina Alada (5170)",
@@ -83,21 +160,7 @@ L_VisualCloset:
 	setarray .@vids[1], 5170, 5374, 5137, 5208, 5359, 5360, 5358, 5325, 5389, 2286;
 	getitem .@vids[.@pick], 1;
 	specialeffect2 EF_BEGINSPELL6;
-	mes "Visual entregue!";
-	return;
-
-L_Auras:
-	mes "[ ^B8860BAuras & Efeitos Especiais^000000 ]";
-	mes "Aplique um efeito visual temporário no seu personagem:";
-	next;
-	switch (select("Aura Dourada (Nível 99)", "Brilho Sagrado (Assumptio)", "Chamas (Fúria)", "Estrelas (Bênção)", "Cancelar")) {
-	case 1: specialeffect2 EF_LEVEL99_4; break;
-	case 2: specialeffect2 EF_ASSUMPTIO; break;
-	case 3: specialeffect2 EF_EXPLOSIONSPIRITS; break;
-	case 4: specialeffect2 EF_ANGEL2; break;
-	default: return;
-	}
-	mes "Efeito aplicado!";
+	mes "Chapéu entregue!";
 	return;
 
 L_HomunculusExpress:
@@ -152,4 +215,8 @@ L_HomunculusExpress:
 	default:
 		return;
 	}
+
+OnInit:
+	waitingroom "[ Roleta & Visuais ]", 0;
+	end;
 }

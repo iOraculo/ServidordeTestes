@@ -110,4 +110,8 @@ L_SpawnDummy:
 
 OnDummyDead:
 	end;
+
+OnInit:
+	waitingroom "[ Dummies 4Tools ]", 0;
+	end;
 }

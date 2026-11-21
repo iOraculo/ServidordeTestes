@@ -146,6 +146,10 @@ L_CardShop:
 	default:
 		return;
 	}
+
+OnInit:
+	waitingroom "[ Refino & MVP ]", 0;
+	end;
 }
 
 // Duplicata na Arena de Treino 4Tools

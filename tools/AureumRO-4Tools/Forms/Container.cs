@@ -14,6 +14,8 @@ namespace _4RTools.Forms
         private readonly Timer clientMonitorTimer;
         private readonly Timer vitalsTimer;
         private readonly byte[] vitalsBuffer = new byte[Constants.HP_SP_BLOCK_BYTE_SIZE];
+        private readonly byte[] statusRawBuffer = new byte[Constants.STATUS_BUFFER_BYTE_SIZE];
+        private readonly uint[] statusCodeBuffer = new uint[Constants.MAX_BUFF_LIST_INDEX_SIZE];
         private readonly Dictionary<string, Form> sectionForms = new Dictionary<string, Form>(StringComparer.Ordinal);
         private readonly Dictionary<string, SidebarNavButton> navButtons = new Dictionary<string, SidebarNavButton>(StringComparer.Ordinal);
         private readonly List<Font> ownedFonts = new List<Font>();
@@ -36,6 +38,7 @@ namespace _4RTools.Forms
         private Bitmap brandLogoOnBitmap;
         private Label lblBrandTitle;
         private Label lblBrandVersion;
+        private Label lblTestServerBadge;
         private Panel panelSidebar;
         private ModernCardPanel cardQuickStatus;
         private StatusDot sessionStatusDot;
@@ -200,6 +203,21 @@ namespace _4RTools.Forms
                 this.lblProcessName.Font = uiBoldFont;
                 this.lblProcessName.Location = new Point(216, 7);
 
+                this.lblTestServerBadge = new Label
+                {
+                    AutoSize = false,
+                    BackColor = Color.FromArgb(236, 200, 97),
+                    ForeColor = Color.FromArgb(18, 12, 3),
+                    Font = TrackFont("Segoe UI", 6.75F, FontStyle.Bold),
+                    Location = new Point(326, 6),
+                    Name = "lblTestServerBadge",
+                    Size = new Size(90, 16),
+                    Text = "MODO TESTE",
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    Visible = false,
+                    Tag = ThemeManager.PRESERVE_COLORS_TAG
+                };
+
                 this.processCB.DropDownStyle = ComboBoxStyle.DropDownList;
                 this.processCB.Font = uiRegularFont;
                 this.processCB.Location = new Point(216, 25);
@@ -278,6 +296,7 @@ namespace _4RTools.Forms
                 this.panelTopBar.Controls.Add(this.lblBrandVersion);
                 this.panelTopBar.Controls.Add(CreateDivider(new Point(203, 10), new Size(1, 40)));
                 this.panelTopBar.Controls.Add(this.lblProcessName);
+                this.panelTopBar.Controls.Add(this.lblTestServerBadge);
                 this.panelTopBar.Controls.Add(this.processCB);
                 this.panelTopBar.Controls.Add(this.btnRefresh);
                 this.panelTopBar.Controls.Add(this.labelProfile);
@@ -773,6 +792,11 @@ namespace _4RTools.Forms
                 this.lblSessionProfile.Text = LocalizationManager.T("sidebar.profile_prefix", profName);
             }
 
+            if (this.lblTestServerBadge != null)
+            {
+                this.lblTestServerBadge.Visible = hasClient && ClientUpdaterForm.IsBuiltInTestServerName(activeClient.processName);
+            }
+
             if (this.lblSessionClient != null)
             {
                 if (hasClient)
@@ -949,6 +973,7 @@ namespace _4RTools.Forms
             this.appSettings.UseBuffsInTown = this.cbUseBuffsInTown.Checked;
             Client.AllowBuffsInTown = this.appSettings.UseBuffsInTown;
             UpdateSessionSummaryUi();
+            SyncMiniHudState(ClientSingleton.GetClient());
             AppSettings.Save(this.appSettings);
         }
 
@@ -964,6 +989,23 @@ namespace _4RTools.Forms
             AppSettings.Save(this.appSettings);
         }
 
+        private void SyncMiniHudState(Client client)
+        {
+            if (this.miniHud == null || this.miniHud.IsDisposed)
+            {
+                return;
+            }
+
+            bool hasLiveClient = client != null && client.HasMemorySupport && client.IsProcessAlive();
+            string currentMap = hasLiveClient ? client.ReadCurrentMap() : string.Empty;
+            int activeBuffs = hasLiveClient ? client.CountActiveBuffs(this.statusRawBuffer, this.statusCodeBuffer) : 0;
+            bool isTownPaused = hasLiveClient && client.ShouldPauseBuffsInTown();
+            bool isUnfocused = hasLiveClient && client.ShouldPauseForFocus();
+
+            this.miniHud.UpdateStatus(this.isAutomationOn, ChatPauseState.IsChatting, isTownPaused, isUnfocused);
+            this.miniHud.UpdateTelemetry(currentMap, activeBuffs);
+        }
+
         private void SetMiniHudVisible(bool visible)
         {
             if (visible)
@@ -977,14 +1019,15 @@ namespace _4RTools.Forms
                 }
 
                 this.miniHud.ApplyHudTheme(this.appSettings.DarkMode);
-                this.miniHud.UpdateStatus(this.isAutomationOn, ChatPauseState.IsChatting);
+                Client activeClient = ClientSingleton.GetClient();
                 this.miniHud.UpdateIdentity(this.currentProfile ?? ProfileSingleton.GetCurrent().Name, this.characterName.Text);
+                SyncMiniHudState(activeClient);
                 if (!this.miniHud.Visible)
                 {
                     this.miniHud.Show();
                 }
 
-                UpdateVitalsDisplay(ClientSingleton.GetClient());
+                UpdateVitalsDisplay(activeClient);
             }
             else if (this.miniHud != null && !this.miniHud.IsDisposed && this.miniHud.Visible)
             {
@@ -1024,10 +1067,7 @@ namespace _4RTools.Forms
             MethodInvoker updateUi = delegate
             {
                 UpdateSessionSummaryUi();
-                if (this.miniHud != null && !this.miniHud.IsDisposed)
-                {
-                    this.miniHud.UpdateStatus(this.isAutomationOn, ChatPauseState.IsChatting);
-                }
+                SyncMiniHudState(ClientSingleton.GetClient());
             };
 
             if (this.InvokeRequired)
@@ -1109,6 +1149,7 @@ namespace _4RTools.Forms
             }
 
             UpdateVitalsDisplay(client);
+            SyncMiniHudState(client);
 
             if (client.HasMemorySupport)
             {
@@ -1536,10 +1577,7 @@ namespace _4RTools.Forms
                     this.profileCB.Enabled = true;
                     this.processCB.Enabled = true;
                     UpdateSessionSummaryUi();
-                    if (this.miniHud != null && !this.miniHud.IsDisposed)
-                    {
-                        this.miniHud.UpdateStatus(false, false);
-                    }
+                    SyncMiniHudState(ClientSingleton.GetClient());
                     break;
                 case MessageCode.TURN_ON:
                     this.isAutomationOn = true;
@@ -1549,10 +1587,7 @@ namespace _4RTools.Forms
                     UpdateSessionSummaryUi();
                     this.clientMonitorTimer.Start();
                     this.vitalsTimer.Start();
-                    if (this.miniHud != null && !this.miniHud.IsDisposed)
-                    {
-                        this.miniHud.UpdateStatus(true, ChatPauseState.IsChatting);
-                    }
+                    SyncMiniHudState(ClientSingleton.GetClient());
                     break;
                 case MessageCode.CLIENT_DISCONNECTED:
                     UpdateSessionSummaryUi();
