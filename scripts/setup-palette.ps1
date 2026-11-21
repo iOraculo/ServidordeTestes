@@ -6,10 +6,16 @@
 #>
 param(
     [string]$SourcePaletteGrf = "",
-    [string]$ClientDir = "C:\AureumRO\Froggo2022"
+    [string]$ClientDir = ""
 )
 
 $ErrorActionPreference = "Stop"
+
+$repoRoot = Split-Path -Parent $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($ClientDir)) {
+    $unified = Join-Path $repoRoot "client\Froggo2022"
+    if (Test-Path $unified) { $ClientDir = $unified } else { $ClientDir = "C:\AureumRO\Froggo2022" }
+}
 
 if ([string]::IsNullOrWhiteSpace($SourcePaletteGrf)) {
     $candidates = @(

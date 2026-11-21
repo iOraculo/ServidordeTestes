@@ -1,0 +1,8 @@
+# Evita enviar o cliente de 4.8 GB, backups, ferramentas Windows ou .git para o contexto do Docker
+.git
+backups
+client/Froggo2022
+client/visuals
+tools
+webpanel/node_modules
+*.log

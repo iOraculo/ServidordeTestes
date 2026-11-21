@@ -7,18 +7,23 @@
     - Skin escura e dourada "AureumRO_Obsidian" em skin\AureumRO_Obsidian\
 #>
 param(
-    [string]$ClientDir = "C:\AureumRO\Froggo2022"
+    [string]$ClientDir = ""
 )
 
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
+
+$repoRoot = Split-Path -Parent $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($ClientDir)) {
+    $unified = Join-Path $repoRoot "client\Froggo2022"
+    if (Test-Path $unified) { $ClientDir = $unified } else { $ClientDir = "C:\AureumRO\Froggo2022" }
+}
 
 if (-not (Test-Path $ClientDir)) {
     Write-Host "[ERRO] Pasta do cliente nao encontrada: $ClientDir" -ForegroundColor Red
     exit 1
 }
 
-$repoRoot = Split-Path -Parent $PSScriptRoot
 $loginSrc = Join-Path $repoRoot "client\visuals\aureumro_login.jpg"
 $loadingSrc = Join-Path $repoRoot "client\visuals\aureumro_loading.jpg"
 

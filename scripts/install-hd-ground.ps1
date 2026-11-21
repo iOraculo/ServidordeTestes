@@ -1,7 +1,7 @@
 param(
     [ValidateSet("marmore", "remaster", "original")]
     [string]$Mode = "marmore",
-    [string]$ClientDir = "C:\AureumRO\Froggo2022",
+    [string]$ClientDir = "",
     [string[]]$Maps = @("prontera", "pvp_n_1-5", "guild_vs3", "prt_cas01"),
     [switch]$SkipFog
 )
@@ -9,6 +9,10 @@ param(
 $ErrorActionPreference = "Stop"
 
 $RepoRoot = Split-Path -Parent $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($ClientDir)) {
+    $unified = Join-Path $RepoRoot "client\Froggo2022"
+    if (Test-Path $unified) { $ClientDir = $unified } else { $ClientDir = "C:\AureumRO\Froggo2022" }
+}
 $HdAssetsDir = Join-Path $RepoRoot "client\visuals\hd"
 $FogSrc = Join-Path $RepoRoot "client\visuals\fogParameterTable.txt"
 $DataDir = Join-Path $ClientDir "data"

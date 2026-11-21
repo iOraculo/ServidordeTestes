@@ -12,6 +12,7 @@ webpanel/node_modules/
 webpanel/npm-debug.log*
 
 # Clientes / GRFs / binários locais (não versionar)
+client/Froggo2022/
 client/*.grf
 client/*.exe
 client/*.dll

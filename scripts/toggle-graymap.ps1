@@ -10,11 +10,17 @@
 param(
     [ValidateSet("on", "off")]
     [string]$Mode = "on",
-    [string]$ClientDir = "C:\AureumRO\Froggo2022",
+    [string]$ClientDir = "",
     [string]$SourceGraymapGrf = ""
 )
 
 $ErrorActionPreference = "Stop"
+
+$repoRoot = Split-Path -Parent $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($ClientDir)) {
+    $unified = Join-Path $repoRoot "client\Froggo2022"
+    if (Test-Path $unified) { $ClientDir = $unified } else { $ClientDir = "C:\AureumRO\Froggo2022" }
+}
 
 if (-not (Test-Path $ClientDir)) {
     Write-Host "[ERRO] Pasta do cliente nao encontrada: $ClientDir" -ForegroundColor Red

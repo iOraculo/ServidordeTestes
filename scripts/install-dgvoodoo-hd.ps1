@@ -1,5 +1,5 @@
 param(
-    [string]$ClientDir = "C:\AureumRO\Froggo2022",
+    [string]$ClientDir = "",
     [string]$ZipPath = "",
     [switch]$Uninstall
 )
@@ -7,6 +7,10 @@ param(
 $ErrorActionPreference = "Stop"
 
 $RepoRoot = Split-Path -Parent $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($ClientDir)) {
+    $unified = Join-Path $RepoRoot "client\Froggo2022"
+    if (Test-Path $unified) { $ClientDir = $unified } else { $ClientDir = "C:\AureumRO\Froggo2022" }
+}
 $ConfSrc = Join-Path $RepoRoot "client\visuals\dgVoodoo.conf"
 $FogSrc = Join-Path $RepoRoot "client\visuals\fogParameterTable.txt"
 
