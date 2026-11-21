@@ -16,7 +16,8 @@ echo   [5] Parar Servidor (Docker down)
 echo   [6] Abrir Painel Web (http://localhost:8080)
 echo   [7] Atualizar do GitHub (git pull + rebuild WebPanel + restart)
 echo   [8] Chao HD 512x512 - Modo Marmore Real / Arena Obsidiana
-echo   [9] Chao HD 512x512 - Modo Remaster Classico (ou Original)
+echo   [9] Chao HD 512x512 - Modo Remaster Classico (4x nitido)
+echo   [O] Restaurar Chao Original do kRO
 echo   [D] Graficos HD Globais (Instalar dgVoodoo2 DX11 + 16x AF + MSAA 4x)
 echo   [V] Reinstalar Tela de Login, Loading e Skin AureumRO_Obsidian
 echo   [B] Fazer Backup do Banco de Dados (backups\)
@@ -64,9 +65,12 @@ if /i "%OPT%"=="8" (
     goto MENU
 )
 if /i "%OPT%"=="9" (
-    echo.
-    set /p "HDMODE=Digite remaster (HD Classico) ou original (Padrao kRO): "
-    powershell -ExecutionPolicy Bypass -File "%~dp0scripts\install-hd-ground.ps1" -Mode %HDMODE%
+    powershell -ExecutionPolicy Bypass -File "%~dp0scripts\install-hd-ground.ps1" -Mode remaster
+    pause
+    goto MENU
+)
+if /i "%OPT%"=="O" (
+    powershell -ExecutionPolicy Bypass -File "%~dp0scripts\install-hd-ground.ps1" -Mode original
     pause
     goto MENU
 )
