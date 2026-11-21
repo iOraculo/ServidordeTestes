@@ -16,6 +16,7 @@ client/*.exe
 client/*.dll
 client/data/
 client/BGM/
+client/supported_servers.generated.json
 
 # Sistema Operacional / IDEs
 .DS_Store

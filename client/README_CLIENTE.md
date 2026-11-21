@@ -1,5 +1,20 @@
 # Guia do Cliente (Ragexe 2022-04-06) e Integração com o AureumRO-4Tools
 
+## ⚡ Atalho Automatizado no Windows (PowerShell)
+
+Você pode automatizar a montagem da pasta do cliente e a descoberta dos endereços do `AureumRO-4Tools` (sem Cheat Engine):
+
+```powershell
+# 1. Monta C:\AureumRO\ClienteTestes (copia GRFs sem anti-cheat + instala clientinfo.xml + cria lançador)
+.\scripts\setup-client.ps1
+
+# 2. Depois de entrar no jogo com seu Ragexe.exe 2022-04-06, descobre hpAddress/nameAddress/mapAddress
+#    automaticamente e gera o supported_servers.json pronto para o AureumRO-4Tools:
+.\scripts\find-4tools-addresses.ps1
+```
+
+---
+
 ## 1. Por que usar um Ragexe limpo (sem Gepard/OdinAnti-Cheat)?
 
 O cliente oficial do [AureumRO](https://aureumro.com/) utiliza **Gepard 3 + OdinAnti-Cheat**, que exige o módulo server-side licenciado para autenticar conexões.  
