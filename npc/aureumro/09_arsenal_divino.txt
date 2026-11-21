@@ -12,6 +12,7 @@ prontera,148,193,5	script	Arsenal Divino	811,{
 		"^B8860B[Automático] Kit Divino da Minha Classe Atual^000000",
 		"Escolher Kit de Transclasse (99/70)",
 		"Escolher Kit de Classe Expandida",
+		"^006600[Acessórios] Divinos, Ifrit, MVP & WoE (com Cartas)^000000",
 		"^0055FF[4Tools] Kit Troca DEF / WoE (Ghostring, Tao, Deviling, Thara, GTB)^000000",
 		"Pacote Itens Divinos (Brynhild, Asprika, Sleipnir, Megin, Bris, Mjolnir)",
 		"Cancelar"
@@ -66,12 +67,15 @@ prontera,148,193,5	script	Arsenal Divino	811,{
 		}
 		close;
 	case 4:
-		callsub L_Kit_DefSwitch;
+		callsub L_Menu_Accessories;
 		close;
 	case 5:
-		callsub L_Kit_AllGodly;
+		callsub L_Kit_DefSwitch;
 		close;
 	case 6:
+		callsub L_Kit_AllGodly;
+		close;
+	case 7:
 		close;
 	}
 
@@ -101,24 +105,32 @@ L_GiveForCurrentClass:
 		return;
 	}
 
-// Base Divina Fisica (Brynhild + Asprika + Sleipnir + 2x Megingjard + Oculos [Orc Hero] + Lenco)
+// Base Divina Fisica (Brynhild + Asprika + Sleipnir + 2x Megingjard + Diabolus [Ifrit] + Rosarios Utilidade)
 L_BaseGodlyPhysical:
 	getitem2 2383, 1, 1, 0, 0, 0, 0, 0, 0;     // Brynhild
 	getitem2 2541, 1, 1, 0, 0, 0, 0, 0, 0;     // Asprika
 	getitem2 2410, 1, 1, 0, 0, 0, 0, 0, 0;     // Sleipnir
-	getitem2 2629, 2, 1, 0, 0, 0, 0, 0, 0;     // 2x Megingjard
+	getitem2 2629, 1, 1, 0, 0, 0, 0, 0, 0;     // Megingjard #1
+	getitem2 2629, 1, 1, 0, 0, 0, 0, 0, 0;     // Megingjard #2
+	getitem2 2729, 1, 1, 0, 0, 4430, 0, 0, 0;  // Anel de Diabolus [Ifrit]
+	getitem2 2626, 1, 1, 0, 0, 4044, 0, 0, 0;  // Rosario [Fumacento / Esconderijo]
+	getitem2 2626, 1, 1, 0, 0, 4103, 0, 0, 0;  // Rosario [Horong / Chama Reveladora]
 	getitem2 2202, 1, 1, 0, 0, 4143, 0, 0, 0;  // Oculos Escuros [Orc Hero]
 	getitem2 5361, 1, 1, 0, 0, 0, 0, 0, 0;     // Gangster Scarf (ATK +5)
 	getitem2 2115, 1, 1, 10, 0, 4128, 0, 0, 0; // +10 Escudo das Valquirias [GTB]
 	return;
 
-// Base Divina Magica / Cast (Brynhild + Asprika + Sleipnir + 2x Luva Orleans [Berzebub] + Bota Diabolus [Bispo Decadente])
+// Base Divina Magica / Cast (Brynhild + Asprika + Sleipnir + 2x Luva Orleans [Berzebub] + 2x Brisingamen + Bota Diabolus [Bispo Decadente])
 L_BaseGodlyMagic:
 	getitem2 2383, 1, 1, 0, 0, 0, 0, 0, 0;     // Brynhild
 	getitem2 2541, 1, 1, 0, 0, 0, 0, 0, 0;     // Asprika
 	getitem2 2410, 1, 1, 0, 0, 0, 0, 0, 0;     // Sleipnir
-	getitem2 2701, 2, 1, 0, 0, 4145, 0, 0, 0;  // 2x Luva de Orleans [Berzebub]
-	getitem2 2630, 1, 1, 0, 0, 0, 0, 0, 0;     // Brisingamen
+	getitem2 2701, 1, 1, 0, 0, 4145, 0, 0, 0;  // Luva de Orleans [Berzebub] #1
+	getitem2 2701, 1, 1, 0, 0, 4145, 0, 0, 0;  // Luva de Orleans [Berzebub] #2
+	getitem2 2630, 1, 1, 0, 0, 0, 0, 0, 0;     // Brisingamen #1
+	getitem2 2630, 1, 1, 0, 0, 0, 0, 0, 0;     // Brisingamen #2
+	getitem2 2626, 1, 1, 0, 0, 4044, 0, 0, 0;  // Rosario [Fumacento / Esconderijo]
+	getitem2 2626, 1, 1, 0, 0, 4103, 0, 0, 0;  // Rosario [Horong / Chama Reveladora]
 	getitem2 2433, 1, 1, 10, 0, 4441, 0, 0, 0; // +10 Botas de Diabolus [Bispo Decadente]
 	getitem2 2115, 1, 1, 10, 0, 4128, 0, 0, 0; // +10 Escudo das Valquirias [GTB]
 	return;
@@ -136,7 +148,8 @@ L_Kit_LK:
 
 L_Kit_Pala:
 	callsub L_BaseGodlyPhysical;
-	getitem2 2630, 2, 1, 0, 0, 0, 0, 0, 0;           // 2x Brisingamen
+	getitem2 2630, 1, 1, 0, 0, 0, 0, 0, 0;           // Brisingamen #1
+	getitem2 2630, 1, 1, 0, 0, 0, 0, 0, 0;           // Brisingamen #2
 	getitem2 5171, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Elmo das Valquirias [Kiel-D-01]
 	getitem2 2357, 1, 1, 10, 0, 4302, 0, 0, 0;       // +10 Armadura das Valquirias [Tao Gunka]
 	getitem2 2130, 1, 1, 10, 0, 4128, 0, 0, 0;       // +10 Escudo Cruzado [GTB]
@@ -174,7 +187,11 @@ L_Kit_Sniper:
 	getitem2 2383, 1, 1, 0, 0, 0, 0, 0, 0;           // Brynhild
 	getitem2 2541, 1, 1, 0, 0, 0, 0, 0, 0;           // Asprika
 	getitem2 2410, 1, 1, 0, 0, 0, 0, 0, 0;           // Sleipnir
-	getitem2 2630, 2, 1, 0, 0, 0, 0, 0, 0;           // 2x Brisingamen
+	getitem2 2630, 1, 1, 0, 0, 0, 0, 0, 0;           // Brisingamen #1
+	getitem2 2630, 1, 1, 0, 0, 0, 0, 0, 0;           // Brisingamen #2
+	getitem2 2729, 1, 1, 0, 0, 4064, 0, 0, 0;        // Anel de Diabolus [Zerom] #1
+	getitem2 2729, 1, 1, 0, 0, 4064, 0, 0, 0;        // Anel de Diabolus [Zerom] #2
+	getitem2 2729, 1, 1, 0, 0, 4430, 0, 0, 0;        // Anel de Diabolus [Ifrit]
 	getitem2 5359, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Chapeu de Capitao [Kiel-D-01]
 	getitem2 2202, 1, 1, 0, 0, 4143, 0, 0, 0;        // Oculos Escuros [Orc Hero]
 	getitem2 5361, 1, 1, 0, 0, 0, 0, 0, 0;           // Gangster Scarf
@@ -189,7 +206,6 @@ L_Kit_Sniper:
 
 L_Kit_ClownGypsy:
 	callsub L_BaseGodlyMagic;
-	getitem2 2630, 2, 1, 0, 0, 0, 0, 0, 0;           // 2x Brisingamen
 	getitem2 5564, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Crown of Deceit [Kiel-D-01]
 	getitem2 2202, 1, 1, 0, 0, 4403, 0, 0, 0;        // Oculos Escuros [Kiel-D-01]
 	if (Sex == SEX_MALE) {
@@ -276,7 +292,8 @@ L_Kit_Stalker:
 
 L_Kit_SN:
 	callsub L_BaseGodlyMagic;
-	getitem2 2629, 2, 1, 0, 0, 0, 0, 0, 0;           // 2x Megingjard
+	getitem2 2629, 1, 1, 0, 0, 0, 0, 0, 0;           // Megingjard #1
+	getitem2 2629, 1, 1, 0, 0, 0, 0, 0, 0;           // Megingjard #2
 	getitem2 5171, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Elmo das Valquirias [Kiel-D-01]
 	getitem2 1231, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Bazerald
 	getitem2 1524, 1, 1, 10, 0, 4305, 0, 0, 0;       // +10 Golden Mace [TG]
@@ -288,7 +305,11 @@ L_Kit_GS:
 	getitem2 2383, 1, 1, 0, 0, 0, 0, 0, 0;           // Brynhild
 	getitem2 2541, 1, 1, 0, 0, 0, 0, 0, 0;           // Asprika
 	getitem2 2410, 1, 1, 0, 0, 0, 0, 0, 0;           // Sleipnir
-	getitem2 2630, 2, 1, 0, 0, 0, 0, 0, 0;           // 2x Brisingamen
+	getitem2 2630, 1, 1, 0, 0, 0, 0, 0, 0;           // Brisingamen #1
+	getitem2 2630, 1, 1, 0, 0, 0, 0, 0, 0;           // Brisingamen #2
+	getitem2 2729, 1, 1, 0, 0, 4064, 0, 0, 0;        // Anel de Diabolus [Zerom] #1
+	getitem2 2729, 1, 1, 0, 0, 4064, 0, 0, 0;        // Anel de Diabolus [Zerom] #2
+	getitem2 2729, 1, 1, 0, 0, 4430, 0, 0, 0;        // Anel de Diabolus [Ifrit]
 	getitem2 5359, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Chapeu de Capitao [Kiel-D-01]
 	getitem2 2202, 1, 1, 0, 0, 4143, 0, 0, 0;        // Oculos Escuros [Orc Hero]
 	getitem2 13107, 1, 1, 10, 0, 4399, 4305, 0, 0;   // +10 Wasteland's Outlaw [Thanatos + TG]
@@ -301,7 +322,8 @@ L_Kit_GS:
 
 L_Kit_Ninja:
 	callsub L_BaseGodlyMagic;
-	getitem2 2629, 2, 1, 0, 0, 0, 0, 0, 0;           // 2x Megingjard
+	getitem2 2629, 1, 1, 0, 0, 0, 0, 0, 0;           // Megingjard #1
+	getitem2 2629, 1, 1, 0, 0, 0, 0, 0, 0;           // Megingjard #2
 	getitem2 5564, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Crown of Deceit [Kiel-D-01]
 	getitem2 1231, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Bazerald
 	getitem2 13304, 1, 1, 10, 0, 4305, 4305, 0, 0;   // +10 Huuma Calm Mind [2x TG]
@@ -311,12 +333,107 @@ L_Kit_Ninja:
 
 L_Kit_TKSL:
 	callsub L_BaseGodlyMagic;
-	getitem2 2629, 2, 1, 0, 0, 0, 0, 0, 0;           // 2x Megingjard
+	getitem2 2629, 1, 1, 0, 0, 0, 0, 0, 0;           // Megingjard #1
+	getitem2 2629, 1, 1, 0, 0, 0, 0, 0, 0;           // Megingjard #2
 	getitem2 5171, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Elmo das Valquirias [Kiel-D-01]
 	getitem2 1565, 1, 1, 10, 0, 4305, 4305, 0, 0;    // +10 Livro da Morte [2x TG]
 	getitem2 1636, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Cajado de Espinhos da Escuridao
 	specialeffect2 EF_REFINEOK;
 	mes "Kit Divino +10 de ^B8860BMestre Taekwon / Espiritualista^000000 entregue!";
+	return;
+
+L_Menu_Accessories:
+	mes "[ ^00660BAcessórios Divinos, MVP & WoE^000000 ]";
+	mes "Escolha o pacote de acessórios (todos entregues em par com as melhores cartas):";
+	next;
+	switch (select(
+		"^B8860B[Divinos] 2x Megingjard + 2x Brisingamen^000000",
+		"^FF5500[Combo Ifrit] Anel do Senhor das Chamas + Anel da Ressonância^000000",
+		"[Físico / Crítico] Diabolus [Ifrit], [Mantis] e [Kobold] (pares)",
+		"[Mágico / Cast] Luva de Orleans & Diabolus [Berzebub], [Zerom] e [Fen]",
+		"^0055FF[WoE / DEF / Utilidade] Rosários [Jacaré], [Fumacento], [Horong], [Yoyo], [Esporo]^000000",
+		"^006600Pegar TODOS os Acessórios acima^000000",
+		"Cancelar"
+	)) {
+	case 1:
+		callsub L_Acc_Godly;
+		mes "Acessórios Divinos (2x Megingjard + 2x Brisingamen) entregues!";
+		return;
+	case 2:
+		callsub L_Acc_Ifrit;
+		mes "Combo Ifrit (Anel do Senhor das Chamas + Anel da Ressonância) entregue!";
+		return;
+	case 3:
+		callsub L_Acc_Physical;
+		mes "Pacote de Acessórios Físicos / Crítico (Diabolus + Cartas) entregue!";
+		return;
+	case 4:
+		callsub L_Acc_Magic;
+		mes "Pacote de Acessórios Mágicos / Cast (Orleans & Diabolus + Berzebub/Zerom/Fen) entregue!";
+		return;
+	case 5:
+		callsub L_Acc_WoE;
+		mes "Pacote de Acessórios WoE / DEF / Utilidade (Rosários com cartas) entregue!";
+		return;
+	case 6:
+		callsub L_Acc_Godly;
+		callsub L_Acc_Ifrit;
+		callsub L_Acc_Physical;
+		callsub L_Acc_Magic;
+		callsub L_Acc_WoE;
+		mes "Coleção COMPLETA de Acessórios Divinos, MVP, Ifrit e WoE entregue!";
+		return;
+	default:
+		return;
+	}
+
+L_Acc_Godly:
+	getitem2 2629, 1, 1, 0, 0, 0, 0, 0, 0;           // Megingjard #1
+	getitem2 2629, 1, 1, 0, 0, 0, 0, 0, 0;           // Megingjard #2
+	getitem2 2630, 1, 1, 0, 0, 0, 0, 0, 0;           // Brisingamen #1
+	getitem2 2630, 1, 1, 0, 0, 0, 0, 0, 0;           // Brisingamen #2
+	specialeffect2 EF_REFINEOK;
+	return;
+
+L_Acc_Ifrit:
+	getitem2 2678, 1, 1, 0, 0, 0, 0, 0, 0;           // Anel do Senhor das Chamas
+	getitem2 2679, 1, 1, 0, 0, 0, 0, 0, 0;           // Anel da Ressonancia
+	specialeffect2 EF_REFINEOK;
+	return;
+
+L_Acc_Physical:
+	getitem2 2729, 1, 1, 0, 0, 4430, 0, 0, 0;        // Diabolus Ring [Ifrit] #1
+	getitem2 2729, 1, 1, 0, 0, 4430, 0, 0, 0;        // Diabolus Ring [Ifrit] #2
+	getitem2 2729, 1, 1, 0, 0, 4079, 0, 0, 0;        // Diabolus Ring [Mantis +3 STR] #1
+	getitem2 2729, 1, 1, 0, 0, 4079, 0, 0, 0;        // Diabolus Ring [Mantis +3 STR] #2
+	getitem2 2729, 1, 1, 0, 0, 4091, 0, 0, 0;        // Diabolus Ring [Kobold +4 CRIT] #1
+	getitem2 2729, 1, 1, 0, 0, 4091, 0, 0, 0;        // Diabolus Ring [Kobold +4 CRIT] #2
+	getitem2 2729, 1, 1, 0, 0, 4027, 0, 0, 0;        // Diabolus Ring [Kukre +2 AGI] #1
+	getitem2 2729, 1, 1, 0, 0, 4027, 0, 0, 0;        // Diabolus Ring [Kukre +2 AGI] #2
+	specialeffect2 EF_REFINEOK;
+	return;
+
+L_Acc_Magic:
+	getitem2 2701, 1, 1, 0, 0, 4145, 0, 0, 0;        // Luva de Orleans [Berzebub] #1
+	getitem2 2701, 1, 1, 0, 0, 4145, 0, 0, 0;        // Luva de Orleans [Berzebub] #2
+	getitem2 2701, 1, 1, 0, 0, 4064, 0, 0, 0;        // Luva de Orleans [Zerom +3 DEX] #1
+	getitem2 2701, 1, 1, 0, 0, 4064, 0, 0, 0;        // Luva de Orleans [Zerom +3 DEX] #2
+	getitem2 2701, 1, 1, 0, 0, 4077, 0, 0, 0;        // Luva de Orleans [Fen]
+	getitem2 2729, 1, 1, 0, 0, 4145, 0, 0, 0;        // Diabolus Ring [Berzebub] #1
+	getitem2 2729, 1, 1, 0, 0, 4145, 0, 0, 0;        // Diabolus Ring [Berzebub] #2
+	specialeffect2 EF_REFINEOK;
+	return;
+
+L_Acc_WoE:
+	getitem2 2626, 1, 1, 0, 0, 4252, 0, 0, 0;        // Rosario [Jacare -5% Dano Dist] #1
+	getitem2 2626, 1, 1, 0, 0, 4252, 0, 0, 0;        // Rosario [Jacare -5% Dano Dist] #2
+	getitem2 2626, 1, 1, 0, 0, 4044, 0, 0, 0;        // Rosario [Fumacento / Esconderijo]
+	getitem2 2626, 1, 1, 0, 0, 4103, 0, 0, 0;        // Rosario [Horong / Chama Reveladora]
+	getitem2 2626, 1, 1, 0, 0, 4051, 0, 0, 0;        // Rosario [Yoyo +5 Esquiva Perfeita] #1
+	getitem2 2626, 1, 1, 0, 0, 4051, 0, 0, 0;        // Rosario [Yoyo +5 Esquiva Perfeita] #2
+	getitem2 2626, 1, 1, 0, 0, 4022, 0, 0, 0;        // Rosario [Esporo +2 VIT] #1
+	getitem2 2626, 1, 1, 0, 0, 4022, 0, 0, 0;        // Rosario [Esporo +2 VIT] #2
+	specialeffect2 EF_REFINEOK;
 	return;
 
 L_Kit_DefSwitch:
@@ -330,19 +447,27 @@ L_Kit_DefSwitch:
 	getitem2 2357, 1, 1, 10, 0, 4054, 0, 0, 0;       // +10 Armadura das Valquirias [Angeling]
 	getitem2 2524, 1, 1, 10, 0, 4174, 0, 0, 0;       // +10 Manto das Valquirias [Deviling]
 	getitem2 2524, 1, 1, 10, 0, 4133, 0, 0, 0;       // +10 Manto das Valquirias [Raydric]
+	getitem2 2626, 1, 1, 0, 0, 4252, 0, 0, 0;        // Rosario [Jacare] #1
+	getitem2 2626, 1, 1, 0, 0, 4252, 0, 0, 0;        // Rosario [Jacare] #2
+	getitem2 2626, 1, 1, 0, 0, 4044, 0, 0, 0;        // Rosario [Fumacento]
+	getitem2 2626, 1, 1, 0, 0, 4103, 0, 0, 0;        // Rosario [Horong]
 	specialeffect2 EF_REFINEOK;
-	mes "Kit de Troca DEF / WoE (+10) entregue! Ideal para testar o modo ^0055FFATK x DEF^000000 no AureumRO-4Tools.";
+	mes "Kit de Troca DEF / WoE (+10 + Rosários com cartas) entregue! Ideal para testar o modo ^0055FFATK x DEF^000000 no AureumRO-4Tools.";
 	return;
 
 L_Kit_AllGodly:
 	getitem2 2383, 1, 1, 0, 0, 0, 0, 0, 0;           // Brynhild
 	getitem2 2541, 1, 1, 0, 0, 0, 0, 0, 0;           // Asprika
 	getitem2 2410, 1, 1, 0, 0, 0, 0, 0, 0;           // Sleipnir
-	getitem2 2629, 2, 1, 0, 0, 0, 0, 0, 0;           // 2x Megingjard
-	getitem2 2630, 2, 1, 0, 0, 0, 0, 0, 0;           // 2x Brisingamen
+	getitem2 2629, 1, 1, 0, 0, 0, 0, 0, 0;           // Megingjard #1
+	getitem2 2629, 1, 1, 0, 0, 0, 0, 0, 0;           // Megingjard #2
+	getitem2 2630, 1, 1, 0, 0, 0, 0, 0, 0;           // Brisingamen #1
+	getitem2 2630, 1, 1, 0, 0, 0, 0, 0, 0;           // Brisingamen #2
+	getitem2 2678, 1, 1, 0, 0, 0, 0, 0, 0;           // Anel do Senhor das Chamas
+	getitem2 2679, 1, 1, 0, 0, 0, 0, 0, 0;           // Anel da Ressonancia
 	getitem2 1530, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Mjolnir
 	specialeffect2 EF_REFINEOK;
-	mes "Pacote completo de ^B8860BItens Divinos^000000 entregue!";
+	mes "Pacote completo de ^B8860BItens Divinos + Combo Ifrit^000000 entregue!";
 	return;
 
 OnInit:
