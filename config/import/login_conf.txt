@@ -1,0 +1,18 @@
+// AureumRO Servidor de Testes — Login Server
+login_port: 6900
+
+// Permite criar conta rapidamente direto no cliente usando sufixo _M ou _F
+new_account: yes
+
+// Desabilita verificação de hash MD5 do cliente para facilitar Ragexe de testes
+client_hash_check: off
+
+// Desativa banimento dinâmico agressivo durante testes locais
+ipban_enable: no
+ipban_dynamic_pass_failure_ban: no
+
+// Senha em texto plano no banco para facilitar criação/inspeção em ambiente de testes
+use_MD5_passwords: no
+
+// Grupo VIP conforme Wiki AureumRO
+vip_group: 5

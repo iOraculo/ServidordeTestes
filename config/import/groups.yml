@@ -1,0 +1,69 @@
+# ==============================================================================
+# AureumRO Servidor de Testes — Sobreposição de Grupos e Comandos (@commands)
+# ==============================================================================
+Header:
+  Type: PLAYER_GROUP_DB
+  Version: 1
+
+Body:
+  - Id: 0
+    Name: Player
+    Level: 0
+    Commands:
+      # Comandos de utilidade estilo AureumRO
+      commands: true
+      rates: true
+      uptime: true
+      servertime: true
+      exp: true
+      showexp: true
+      showzeny: true
+      showdelay: true
+      mobinfo: true
+      iteminfo: true
+      whodrops: true
+      whereis: true
+      refresh: true
+      noks: true
+      noask: true
+      autoloot: true
+      alootid: true
+      autoloottype: true
+      autotrade: true
+      go: true
+      storage: true
+      changedress: true
+      resurrect: true
+    Permissions:
+      can_trade: true
+      can_party: true
+      attendance: true
+
+  - Id: 1
+    Name: Super Player
+    Inherit:
+      Player: true
+    Level: 0
+    Commands:
+      # Comandos adicionais liberados para a conta 'tester'
+      warp: true
+      heal: true
+      blvl: true
+      jlvl: true
+      jobchange: true
+      allskill: true
+      allstats: true
+      item: true
+      zeny: true
+      monster: true
+      killmonster2: true
+      speed: true
+      repairall: true
+      identify: true
+      refine: true
+      cleanmap: true
+      reloadscript: false
+    Permissions:
+      can_trade: true
+      can_party: true
+      attendance: true

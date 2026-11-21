@@ -1,0 +1,6 @@
+============================================================
+  ✦ AureumRO — Servidor de Testes (Pré-Renewal Ep. 13.3) ✦
+  Cap: 99/70 | Compatível com AureumRO-4Tools
+  NPCs do Hub e Laboratório 4Tools disponíveis em Prontera!
+  Comandos: @commands | @rates | @go | @autoloot | @mi | @ii
+============================================================

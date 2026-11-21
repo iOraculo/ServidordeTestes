@@ -1,0 +1,181 @@
+// =============================================================================
+// AureumRO Servidor de Testes — Laboratório 4Tools: Instrutor de Debuffs & Dano
+// Projetado para testar todas as rotinas do AureumRO-4Tools:
+//   - Autopot Normal (HP / SP) e Yggdrasil (dano único e dano contínuo)
+//   - Recuperação de Status / Debuffs (DebuffsRecovery.cs)
+//   - Cooldown de Doce de Elvira (StatusRecovery.cs -> ElviraStatuses)
+//   - Pausa na Cidade vs Fora da Cidade (duplicado em Prontera e na Arena)
+// =============================================================================
+
+prontera,152,185,5	script	Instrutor de Debuffs	748,{
+	mes "[ ^0055FFLaboratório 4Tools — Debuffs & Dano^000000 ]";
+	if (strcharinfo(3) == "prontera") {
+		mes "^FF6600Aviso:^000000 Você está em ^FF0000Prontera^000000 (cidade).";
+		mes "Se 'Usar buffs na cidade?' estiver DESLIGADO no 4Tools, as automações ficarão pausadas aqui — ideal para testar a pausa de cidade!";
+		mes "Para testar a recuperação ativa, use a ^0055FFArena de Treino 4Tools^000000.";
+	} else {
+		mes "Você está na ^006600Arena de Treino (Fora da Cidade)^000000.";
+		mes "Todas as automações do ^0055FFAureumRO-4Tools^000000 devem responder imediatamente aqui!";
+	}
+	next;
+	switch (select(
+		"Testar Autopot HP/SP & Yggdrasil (Dano Único)",
+		"Testar Autopot Contínuo (5 pulsos de dano)",
+		"Aplicar Debuffs Clássicos (Panaceia / Poção Verde / Água Benta)",
+		"Aplicar Status Elvira (Testar Doce de Elvira & Cooldown)",
+		"Aplicar Combo de Debuffs (Veneno + Silêncio + Maldição)",
+		"Limpar todos os Debuffs e Curar 100%",
+		"Cancelar"
+	)) {
+	case 1:
+		callsub L_SingleDamage;
+		close;
+	case 2:
+		callsub L_ContinuousDamage;
+		end;
+	case 3:
+		callsub L_ClassicDebuffs;
+		close;
+	case 4:
+		callsub L_ElviraDebuffs;
+		close;
+	case 5:
+		sc_start SC_POISON, 30000, 1;
+		sc_start SC_SILENCE, 30000, 1;
+		sc_start SC_CURSE, 30000, 1;
+		specialeffect2 EF_POISONHIT;
+		message strcharinfo(0), "[4Tools Lab] Aplicado combo: Veneno + Silêncio + Maldição (30s).";
+		close;
+	case 6:
+		sc_end SC_ALL;
+		percentheal 100, 100;
+		specialeffect2 EF_CURE;
+		message strcharinfo(0), "[4Tools Lab] Status limpos e HP/SP restaurados em 100%.";
+		close;
+	case 7:
+		close;
+	}
+
+L_SingleDamage:
+	switch (select(
+		"Reduzir HP em 35% (testar limiar alto de Autopot)",
+		"Reduzir HP em 65% (testar Autopot + Yggdrasil)",
+		"Deixar com 15% de HP (emergência Yggdrasil)",
+		"Reduzir SP em 50% (testar Autopot de SP)",
+		"Reduzir HP em 50% e SP em 50%",
+		"Voltar"
+	)) {
+	case 1:
+		percentheal -35, 0;
+		specialeffect2 EF_HIT2;
+		message strcharinfo(0), "[4Tools Lab] -35% HP aplicado.";
+		break;
+	case 2:
+		percentheal -65, 0;
+		specialeffect2 EF_HIT4;
+		message strcharinfo(0), "[4Tools Lab] -65% HP aplicado.";
+		break;
+	case 3:
+		.@target = MaxHp * 15 / 100;
+		if (.@target < 1) .@target = 1;
+		if (Hp > .@target) {
+			heal - (Hp - .@target), 0;
+		}
+		specialeffect2 EF_HIT6;
+		message strcharinfo(0), "[4Tools Lab] HP reduzido para ~15% (" + Hp + "/" + MaxHp + ").";
+		break;
+	case 4:
+		percentheal 0, -50;
+		specialeffect2 EF_SPCOST;
+		message strcharinfo(0), "[4Tools Lab] -50% SP aplicado.";
+		break;
+	case 5:
+		percentheal -50, -50;
+		specialeffect2 EF_HIT4;
+		message strcharinfo(0), "[4Tools Lab] -50% HP e -50% SP aplicados.";
+		break;
+	default:
+		break;
+	}
+	return;
+
+L_ContinuousDamage:
+	mes "[ ^0055FFLaboratório 4Tools^000000 ]";
+	mes "Iniciando simulação de combate: ^FF00005 pulsos de -25% HP e -15% SP^000000 a cada 1.2s.";
+	mes "Feche esta caixa e observe o ^0055FFAutopot^000000 atuando!";
+	close2;
+	for (.@i = 1; .@i <= 5; .@i++) {
+		sleep2 1200;
+		if (Hp <= 1) break;
+		.@dmg_hp = MaxHp * 25 / 100;
+		if (Hp - .@dmg_hp < 1) .@dmg_hp = Hp - 1;
+		if (.@dmg_hp > 0) {
+			heal - .@dmg_hp, 0;
+		}
+		percentheal 0, -15;
+		specialeffect2 EF_HIT3;
+		dispbottom "[4Tools Lab] Pulso " + .@i + "/5 — HP: " + Hp + "/" + MaxHp + " | SP: " + Sp + "/" + MaxSp;
+	}
+	dispbottom "[4Tools Lab] Simulação contínua finalizada.";
+	return;
+
+L_ClassicDebuffs:
+	switch (select(
+		"Veneno (SC_POISON — 30s)",
+		"Silêncio (SC_SILENCE — 30s)",
+		"Cegueira (SC_BLIND — 30s)",
+		"Maldição (SC_CURSE — 30s)",
+		"Confusão / Caos (SC_CONFUSION — 30s)",
+		"Sangramento (SC_BLEEDING — 30s)",
+		"Sono (SC_SLEEP — 15s)",
+		"Atordoamento (SC_STUN — 8s)",
+		"Congelamento (SC_FREEZE — 10s)",
+		"Petrificação (SC_STONE — 10s)",
+		"Diminuir Agilidade (SC_DECREASEAGI — 30s)",
+		"Alucinação (SC_HALLUCINATION — 20s)",
+		"Voltar"
+	)) {
+	case 1: sc_start SC_POISON, 30000, 1; message strcharinfo(0), "[4Tools Lab] Aplicado: Veneno (SC_POISON)."; break;
+	case 2: sc_start SC_SILENCE, 30000, 1; message strcharinfo(0), "[4Tools Lab] Aplicado: Silêncio (SC_SILENCE)."; break;
+	case 3: sc_start SC_BLIND, 30000, 1; message strcharinfo(0), "[4Tools Lab] Aplicado: Cegueira (SC_BLIND)."; break;
+	case 4: sc_start SC_CURSE, 30000, 1; message strcharinfo(0), "[4Tools Lab] Aplicado: Maldição (SC_CURSE)."; break;
+	case 5: sc_start SC_CONFUSION, 30000, 1; message strcharinfo(0), "[4Tools Lab] Aplicado: Confusão (SC_CONFUSION)."; break;
+	case 6: sc_start SC_BLEEDING, 30000, 1; message strcharinfo(0), "[4Tools Lab] Aplicado: Sangramento (SC_BLEEDING)."; break;
+	case 7: sc_start SC_SLEEP, 15000, 1; message strcharinfo(0), "[4Tools Lab] Aplicado: Sono (SC_SLEEP)."; break;
+	case 8: sc_start SC_STUN, 8000, 1; message strcharinfo(0), "[4Tools Lab] Aplicado: Atordoamento (SC_STUN)."; break;
+	case 9: sc_start SC_FREEZE, 10000, 1; message strcharinfo(0), "[4Tools Lab] Aplicado: Congelamento (SC_FREEZE)."; break;
+	case 10: sc_start SC_STONE, 10000, 1; message strcharinfo(0), "[4Tools Lab] Aplicado: Petrificação (SC_STONE)."; break;
+	case 11: sc_start SC_DECREASEAGI, 30000, 10; message strcharinfo(0), "[4Tools Lab] Aplicado: Diminuir Agilidade (SC_DECREASEAGI)."; break;
+	case 12: sc_start SC_HALLUCINATION, 20000, 1; message strcharinfo(0), "[4Tools Lab] Aplicado: Alucinação (SC_HALLUCINATION)."; break;
+	default: break;
+	}
+	return;
+
+L_ElviraDebuffs:
+	mes "[ ^0055FFLaboratório 4Tools — Status Elvira^000000 ]";
+	mes "Estes status são monitorados pelo cooldown de ^B8860BDoce de Elvira (ID 23044)^000000 no AureumRO-4Tools:";
+	next;
+	switch (select(
+		"Ferimento Crítico (SC_CRITICALWOUND — 30s)",
+		"Propriedade Morto-Vivo (SC_CHANGEUNDEAD — 30s)",
+		"Queimadura (SC_BURNING — 20s)",
+		"Congelamento Profundo (SC_FREEZING — 20s)",
+		"Superaquecimento (SC_OVERHEAT — 20s)",
+		"Grito da Mandrágora (SC_MANDRAGORA — 20s)",
+		"Conjuração Lenta (SC_SLOWCAST — 20s)",
+		"Voltar"
+	)) {
+	case 1: sc_start SC_CRITICALWOUND, 30000, 3; message strcharinfo(0), "[4Tools Lab] Aplicado: Ferimento Crítico (SC_CRITICALWOUND)."; break;
+	case 2: sc_start SC_CHANGEUNDEAD, 30000, 1; message strcharinfo(0), "[4Tools Lab] Aplicado: Morto-Vivo (SC_CHANGEUNDEAD)."; break;
+	case 3: sc_start SC_BURNING, 20000, 1; message strcharinfo(0), "[4Tools Lab] Aplicado: Queimadura (SC_BURNING)."; break;
+	case 4: sc_start SC_FREEZING, 20000, 1; message strcharinfo(0), "[4Tools Lab] Aplicado: Congelamento Profundo (SC_FREEZING)."; break;
+	case 5: sc_start SC_OVERHEAT, 20000, 1; message strcharinfo(0), "[4Tools Lab] Aplicado: Superaquecimento (SC_OVERHEAT)."; break;
+	case 6: sc_start SC_MANDRAGORA, 20000, 1; message strcharinfo(0), "[4Tools Lab] Aplicado: Mandrágora (SC_MANDRAGORA)."; break;
+	case 7: sc_start SC_SLOWCAST, 20000, 1; message strcharinfo(0), "[4Tools Lab] Aplicado: Conjuração Lenta (SC_SLOWCAST)."; break;
+	default: break;
+	}
+	return;
+}
+
+// Duplicata dentro da Arena de Treino 4Tools (fora da cidade)
+pvp_n_1-5,96,104,5	duplicate(Instrutor de Debuffs)	Instrutor de Debuffs#4tools	748

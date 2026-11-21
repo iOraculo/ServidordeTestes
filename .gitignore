@@ -1,0 +1,25 @@
+# Variáveis de ambiente locais
+.env
+
+# Dados persistidos do banco / logs locais
+data/
+logs/
+*.log
+
+# Node / Painel Web
+webpanel/node_modules/
+webpanel/npm-debug.log*
+
+# Clientes / GRFs / binários locais (não versionar)
+client/*.grf
+client/*.exe
+client/*.dll
+client/data/
+client/BGM/
+
+# Sistema Operacional / IDEs
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

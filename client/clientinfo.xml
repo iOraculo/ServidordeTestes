@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="euc-kr" ?>
+<clientinfo>
+  <desc>AureumRO Servidor de Testes (Pré-Renewal Ep. 13.3)</desc>
+  <servicetype>korea</servicetype>
+  <servertype>primary</servertype>
+  <connection>
+    <display>AureumRO Testes</display>
+    <desc>Servidor de Testes Pré-Renewal 99/70 — Compatível com AureumRO-4Tools</desc>
+    <address>127.0.0.1</address>
+    <port>6900</port>
+    <version>55</version>
+    <langtype>1</langtype>
+    <registrationweb>http://127.0.0.1:8080</registrationweb>
+    <loading>
+      <image>loading00.jpg</image>
+    </loading>
+  </connection>
+</clientinfo>

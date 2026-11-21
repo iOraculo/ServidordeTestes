@@ -1,0 +1,14 @@
+[
+  {
+    "name": "AureumRO",
+    "description": "AureumRO — O goldtimes que você sempre sonhou",
+    "hpAddress": "0x015FF908",
+    "nameAddress": "0x01602568"
+  },
+  {
+    "name": "Ragexe",
+    "description": "AureumRO Servidor de Testes (rAthena Pré-Renewal 13.3 · PACKETVER 20220406)",
+    "hpAddress": "0x015FF908",
+    "nameAddress": "0x01602568"
+  }
+]

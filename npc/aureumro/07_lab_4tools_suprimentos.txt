@@ -1,0 +1,90 @@
+// =============================================================================
+// AureumRO Servidor de Testes — Laboratório 4Tools: Suprimentos Grátis
+// Entrega todos os consumíveis usados no Autopot, Autobuff Itens e Debuffs
+// =============================================================================
+
+prontera,156,185,4	script	Suprimentos 4Tools	86,{
+	mes "[ ^0055FFSuprimentos 4Tools (Grátis)^000000 ]";
+	mes "Selecione o pacote de consumíveis que deseja receber para testar o ^0055FFAureumRO-4Tools^000000:";
+	next;
+	switch (select(
+		"Kit Autopot (Branca Compacta, Azul, Fruto/Semente Ygg)",
+		"Kit Cura de Status (Panaceia, Verde, Água Benta, Doce de Elvira)",
+		"Kit Buffs & ASPD (Fúria, Despertar, Concentração, Caixas)",
+		"Kit Conversores Elementais (Fogo, Água, Terra, Vento, Amaldiçoada)",
+		"Kit Comidas +10 (FOR, AGI, VIT, INT, DES, SOR)",
+		"Kit Gemas, Veneno Mortal, AD & Munição",
+		"Receber +10.000.000 Zeny para Testes",
+		"Cancelar"
+	)) {
+	case 1:
+		getitem 547, 200;   // Poção Branca Compacta
+		getitem 504, 100;   // Poção Branca
+		getitem 505, 100;   // Poção Azul
+		getitem 607, 50;    // Fruto de Yggdrasil
+		getitem 608, 50;    // Semente de Yggdrasil
+		mes "Kit Autopot entregue!";
+		close;
+	case 2:
+		getitem 506, 100;   // Poção Verde
+		getitem 525, 100;   // Panaceia
+		getitem 523, 50;    // Água Benta
+		getitem 526, 50;    // Geleia Real
+		getitem 23044, 50;  // Doce de Elvira
+		mes "Kit Cura de Status (incluindo Doce de Elvira) entregue!";
+		close;
+	case 3:
+		getitem 645, 30;    // Poção da Concentração
+		getitem 656, 30;    // Poção do Despertar
+		getitem 657, 30;    // Poção da Fúria Selvagem
+		getitem 605, 30;    // Anódino (Vigor)
+		getitem 606, 30;    // Aloé Vera (Provocar)
+		getitem 12028, 30;  // Caixa do Trovão
+		getitem 12031, 30;  // Caixa da Tempestade
+		getitem 12033, 30;  // Caixa da Luz do Sol
+		mes "Kit Buffs & ASPD entregue!";
+		close;
+	case 4:
+		getitem 12114, 30;  // Conversor Elemental de Fogo
+		getitem 12115, 30;  // Conversor Elemental de Água
+		getitem 12116, 30;  // Conversor Elemental de Terra
+		getitem 12117, 30;  // Conversor Elemental de Vento
+		getitem 12020, 30;  // Água Amaldiçoada
+		mes "Kit Conversores Elementais entregue!";
+		close;
+	case 5:
+		getitem 12075, 10;  // Língua no Vapor (FOR +10)
+		getitem 12080, 10;  // Coquetel Sopro do Dragão (INT +10)
+		getitem 12085, 10;  // Cozido Imortal (VIT +10)
+		getitem 12090, 10;  // Escorpiões do Deserto no Vapor (AGI +10)
+		getitem 12095, 10;  // Tônico de Hwergelmir (DES +10)
+		getitem 12100, 10;  // Nove Caudas Cozidas (SOR +10)
+		mes "Kit Comidas +10 entregue!";
+		close;
+	case 6:
+		getitem 715, 100;   // Gema Amarela
+		getitem 716, 100;   // Gema Vermelha
+		getitem 717, 100;   // Gema Azul
+		getitem 678, 50;    // Garrafa de Veneno Mortal (EDP)
+		getitem 7135, 100;  // Frasco de Fogo Grego
+		getitem 7136, 100;  // Frasco de Ácido
+		getitem 1751, 500;  // Flecha de Prata
+		getitem 13201, 500; // Projétil de Prata
+		mes "Kit Gemas, Veneno Mortal, AD e Munição entregue!";
+		close;
+	case 7:
+		if (Zeny > 1000000000) {
+			mes "Você já possui mais de 1 bilhão de Zeny!";
+			close;
+		}
+		Zeny += 10000000;
+		specialeffect2 EF_COIN;
+		mes "+10.000.000 Zeny adicionados!";
+		close;
+	case 8:
+		close;
+	}
+}
+
+// Duplicata dentro da Arena de Treino 4Tools
+pvp_n_1-5,100,104,4	duplicate(Suprimentos 4Tools)	Suprimentos 4Tools#arena	86

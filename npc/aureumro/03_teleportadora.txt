@@ -1,0 +1,96 @@
+// =============================================================================
+// AureumRO Servidor de Testes — Teleportadora AureumRO
+// Inclui Cidades (com El Dicastes Ep. 13.3), Campos, Calabouços, MVP e Arena 4Tools
+// =============================================================================
+
+prontera,160,193,3	script	Teleportadora AureumRO	113,{
+	mes "[ ^B8860BTeleportadora AureumRO^000000 ]";
+	mes "Para onde deseja viajar hoje?";
+	next;
+	switch (select(
+		"^0055FF[4Tools] Arena de Treino & Dummies (Fora de Cidade)^000000",
+		"Cidades (incl. El Dicastes 13.3)",
+		"Campos de Caça",
+		"Calabouços Clássicos",
+		"Mapas de MVP / Bio4 / Torre Sem Fim",
+		"Cancelar"
+	)) {
+	case 1:
+		close2;
+		warp "pvp_n_1-5", 100, 100;
+		end;
+	case 2:
+		switch (select(
+			"Prontera", "Geffen", "Payon", "Morroc", "Alberta", "Izlude",
+			"Al De Baran", "Juno", "Lighthalzen", "Rachel", "Veins",
+			"Acampamento da Expedição (Midgard)", "El Dicastes (Ep. 13.3)", "Cancelar"
+		)) {
+		case 1: warp "prontera", 156, 191; end;
+		case 2: warp "geffen", 119, 59; end;
+		case 3: warp "payon", 179, 100; end;
+		case 4: warp "morocc", 156, 93; end;
+		case 5: warp "alberta", 117, 56; end;
+		case 6: warp "izlude", 128, 114; end;
+		case 7: warp "aldebaran", 140, 131; end;
+		case 8: warp "yuno", 157, 51; end;
+		case 9: warp "lighthalzen", 158, 92; end;
+		case 10: warp "rachel", 130, 110; end;
+		case 11: warp "veins", 216, 123; end;
+		case 12: warp "mid_camp", 180, 240; end;
+		case 13: warp "dicastes01", 198, 187; end;
+		default: close;
+		}
+	case 3:
+		switch (select(
+			"Campo de Prontera Sul (prt_fild08)",
+			"Deserto de Sograt (moc_fild12)",
+			"Floresta de Payon (pay_fild08)",
+			"Campo de El Dicastes (dic_fild01)",
+			"Montanhas Kamidal (dic_fild02)",
+			"Cancelar"
+		)) {
+		case 1: warp "prt_fild08", 170, 368; end;
+		case 2: warp "moc_fild12", 156, 187; end;
+		case 3: warp "pay_fild08", 211, 200; end;
+		case 4: warp "dic_fild01", 215, 190; end;
+		case 5: warp "dic_fild02", 230, 170; end;
+		default: close;
+		}
+	case 4:
+		switch (select(
+			"Esgoto de Prontera 4", "Caverna de Payon 4", "Glast Heim Cavalaria",
+			"Torre do Relógio (Alarme)", "Caverna de Magma 2", "Ilha Esquecida (Abbey 2)",
+			"Vulcão de Thor 1", "Túnel Kamidal 1 (Ep. 13.3)", "Cancelar"
+		)) {
+		case 1: warp "prt_sewb4", 100, 92; end;
+		case 2: warp "pay_dun03", 155, 159; end;
+		case 3: warp "gl_knt01", 150, 15; end;
+		case 4: warp "c_tower3", 65, 147; end;
+		case 5: warp "mag_dun02", 47, 30; end;
+		case 6: warp "abbey02", 149, 11; end;
+		case 7: warp "thor_v01", 21, 228; end;
+		case 8: warp "dic_dun01", 36, 200; end;
+		default: close;
+		}
+	case 5:
+		switch (select(
+			"Laboratório de Somatologia 3 (Bio3)",
+			"Santuário de Rachel 5 (Kiel/Gloom)",
+			"Torre de Thanatos 12",
+			"Templo de Odin 3 (Valkyrie)",
+			"Ilha da Torre Sem Fim (e_tower)",
+			"Salão da Rainha Scaraba (dic_dun02)",
+			"Cancelar"
+		)) {
+		case 1: warp "lhz_dun03", 140, 134; end;
+		case 2: warp "ra_san05", 150, 180; end;
+		case 3: warp "tha_t12", 130, 52; end;
+		case 4: warp "odin_tem03", 240, 230; end;
+		case 5: warp "e_tower", 75, 108; end;
+		case 6: warp "dic_dun02", 102, 141; end;
+		default: close;
+		}
+	case 6:
+		close;
+	}
+}

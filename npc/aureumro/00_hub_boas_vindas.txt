@@ -1,0 +1,58 @@
+// =============================================================================
+// AureumRO Servidor de Testes — Guia do Hub (Prontera)
+// =============================================================================
+
+prontera,156,195,4	script	Guia AureumRO	105,{
+	mes "[ ^B8860BGuia AureumRO^000000 ]";
+	mes "Bem-vindo ao ^B8860BAureumRO — Servidor de Testes^000000!";
+	mes "Ambiente Pré-Renewal (Ep. 13.3 El Dicastes, 99/70) preparado para testes de builds e do utilitário ^0055FFAureumRO-4Tools^000000.";
+	next;
+	switch (select(
+		"Mapa dos NPCs em Prontera",
+		"Guia Rápido para Testar o AureumRO-4Tools",
+		"Ver Comandos Disponíveis",
+		"Ir direto para a Arena de Treino 4Tools",
+		"Fechar"
+	)) {
+	case 1:
+		mes "[ ^B8860BGuia AureumRO^000000 ]";
+		mes "^B8860BHub AureumRO (norte da praça):^000000";
+		mes "- Curandeira (152, 193)";
+		mes "- Mestra das Classes & Reset (150, 191)";
+		mes "- Teleportadora (160, 193)";
+		mes "- Estilista (162, 191)";
+		mes "- Caixa do Iniciante (148, 189)";
+		next;
+		mes "[ ^B8860BGuia AureumRO^000000 ]";
+		mes "^0055FFLaboratório 4Tools (sul da praça e na Arena):^000000";
+		mes "- Instrutor de Debuffs & Dano (152, 185)";
+		mes "- Suprimentos 4Tools Grátis (156, 185)";
+		mes "- Arena de Treino & Dummies (160, 185)";
+		close;
+	case 2:
+		mes "[ ^B8860BGuia AureumRO^000000 ]";
+		mes "1. Pegue consumíveis grátis em ^0055FFSuprimentos 4Tools^000000.";
+		mes "2. Lembre-se: em ^FF0000Prontera^000000, o 4Tools pausa buffs/autopot se 'Usar buffs na cidade?' estiver desligado.";
+		mes "3. Entre na ^0055FFArena de Treino 4Tools^000000 (mapa fora de cidade) para testar Autopot, Autobuff, Pausa ao Sentar, Debuffs, Elvira, Macros e ATK x DEF!";
+		close;
+	case 3:
+		mes "[ ^B8860BGuia AureumRO^000000 ]";
+		mes "Comandos de Jogador:";
+		mes "^006600@commands, @rates, @go, @autoloot, @alootid, @mi, @ii, @whodrops, @whereis, @refresh, @noks, @showexp, @storage^000000";
+		next;
+		mes "[ ^B8860BGuia AureumRO^000000 ]";
+		mes "Conta ^B8860Btester^000000 (Grupo 1) e ^FF0000admin^000000 (GM 99) também possuem:";
+		mes "^0055FF@blvl, @jlvl, @jobchange, @allskill, @item, @zeny, @heal, @warp, @monster, @refine^000000";
+		close;
+	case 4:
+		close2;
+		warp "pvp_n_1-5", 100, 100;
+		end;
+	case 5:
+		close;
+	}
+
+OnInit:
+	waitingroom "✦ AureumRO Testes ✦", 0;
+	end;
+}

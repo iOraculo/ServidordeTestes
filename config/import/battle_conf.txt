@@ -1,0 +1,32 @@
+// =============================================================================
+// AureumRO Servidor de Testes — Regras Base Pré-Renewal / Gold Times
+// Referência: https://aureumro.com/wiki/ (Episódio 13.3 El Dicastes | 99/70)
+// =============================================================================
+
+// Cap de nível Pré-Renewal (99/70) e aura no nível 99
+max_lv: 99
+aura_lv: 99
+
+// Mecânicas clássicas Pré-Renewal / Gold Times
+max_aspd: 190
+max_parameter: 99
+max_baby_parameter: 80
+max_cart_weight: 8000
+
+// Conjuração instantânea clássica Pré-Renewal com 150 DES
+castrate_dex_scale: 150
+
+// Exibe EXP e Zeny ganhos para facilitar testes de farm e balanceamento
+disp_experience: yes
+disp_zeny: yes
+
+// Permite testar buffs e habilidades sem bloqueios desnecessários de cliente
+display_status_timers: yes
+show_mob_info: 3
+
+// Grupo/Party compartilhamento amplo (15 níveis)
+party_share_level: 15
+
+// Armazém e inventário confortáveis para testes
+item_check: no
+multi_level_up: yes

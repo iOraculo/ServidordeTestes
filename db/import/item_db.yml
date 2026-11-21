@@ -1,0 +1,28 @@
+# ==============================================================================
+# AureumRO Servidor de Testes — Itens Customizados / Portados para Pré-Renewal
+# Garante suporte ao Doce de Elvira (ID 23044) usado na Recuperação de Status
+# do AureumRO-4Tools (StatusRecovery.cs -> ElviraStatuses + cooldown).
+# ==============================================================================
+Header:
+  Type: ITEM_DB
+  Version: 3
+
+Body:
+  - Id: 23044
+    AegisName: Elvira_Candy
+    Name: Doce de Elvira
+    Type: Usable
+    Buy: 10
+    Weight: 10
+    Delay:
+      Duration: 60000
+    Script: |
+      sc_end SC_CRITICALWOUND;
+      sc_end SC_CHANGEUNDEAD;
+      sc_end SC_BLEEDING;
+      sc_end SC_FREEZING;
+      sc_end SC_BURNING;
+      sc_end SC_OVERHEAT;
+      sc_end SC_MANDRAGORA;
+      sc_end SC_SLOWCAST;
+      specialeffect2 EF_CURE;

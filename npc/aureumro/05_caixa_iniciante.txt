@@ -1,0 +1,48 @@
+// =============================================================================
+// AureumRO Servidor de Testes — Caixa do Iniciante AureumRO
+// Entrega pacote inicial de sobrevivência e mobilidade (reutilizável em testes)
+// =============================================================================
+
+prontera,148,189,5	script	Caixa do Iniciante	1324,{
+	mes "[ ^B8860BCaixa do Iniciante AureumRO^000000 ]";
+	if (AUREUM_STARTER_KIT) {
+		mes "Você já recebeu sua Caixa do Iniciante neste personagem.";
+		mes "Como estamos no ^0055FFServidor de Testes^000000, deseja receber outro kit básico?";
+	} else {
+		mes "Bem-vindo ao ^B8860BAureumRO^000000!";
+		mes "Deseja abrir sua ^B8860BCaixa do Iniciante^000000?";
+		mes "Conteúdo:";
+		mes "- 100x Poção Branca Compacta";
+		mes "- 50x Poção Azul";
+		mes "- 50x Asa de Mosca & 20x Asa de Borboleta";
+		mes "- 20x Lupa (Identificar Itens)";
+		mes "- 10x Poção do Despertar";
+		mes "- 5x Manual de Combate & 5x Goma de Mascar";
+		mes "- 100.000 Zeny iniciais";
+	}
+	next;
+	if (select("Receber Caixa do Iniciante", "Cancelar") == 2) {
+		close;
+	}
+	if (!checkweight(547, 100)) {
+		mes "[ ^B8860BCaixa do Iniciante AureumRO^000000 ]";
+		mes "Você está muito pesado! Guarde alguns itens no @storage e tente novamente.";
+		close;
+	}
+	getitem 547, 100;   // Poção Branca Compacta
+	getitem 505, 50;    // Poção Azul
+	getitem 601, 50;    // Asa de Mosca
+	getitem 602, 20;    // Asa de Borboleta
+	getitem 611, 20;    // Lupa
+	getitem 656, 10;    // Poção do Despertar
+	getitem 12208, 5;   // Manual de Combate
+	getitem 12210, 5;   // Goma de Mascar
+	if (!AUREUM_STARTER_KIT) {
+		Zeny += 100000;
+		AUREUM_STARTER_KIT = 1;
+	}
+	specialeffect2 EF_COIN;
+	mes "[ ^B8860BCaixa do Iniciante AureumRO^000000 ]";
+	mes "Kit entregue com sucesso! Boa jornada de testes.";
+	close;
+}

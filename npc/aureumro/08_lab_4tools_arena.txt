@@ -1,0 +1,113 @@
+// =============================================================================
+// AureumRO Servidor de Testes — Laboratório 4Tools: Arena de Treino & Dummies
+// Mapa pvp_n_1-5 (NÃO está na lista TownMaps do AureumRO-4Tools)
+// Permite testar:
+//   - AHK Skill Spammer, Macro Switch/Chain e ATK x DEF contra Dummies
+//   - Diferença entre dentro da cidade (Prontera) e fora da cidade (Arena)
+//   - Pausa ao Sentar (EFST_SIT) fora da cidade
+// =============================================================================
+
+pvp_n_1-5	mapflag	nosave	SavePoint
+pvp_n_1-5	mapflag	nomemo
+pvp_n_1-5	mapflag	noteleport
+pvp_n_1-5	mapflag	nobranch
+pvp_n_1-5	mapflag	pvp	off
+
+prontera,160,185,3	script	Arena de Treino 4Tools	705,{
+	mes "[ ^0055FFArena de Treino 4Tools^000000 ]";
+	mes "A Arena fica em um mapa ^006600fora da lista de cidades^000000 do AureumRO-4Tools.";
+	mes "Lá você encontra:";
+	mes "- Dummies de 5.000.000 HP (vários elementos, tamanhos e DEF)";
+	mes "- Instrutor de Debuffs & Dano Contínuo";
+	mes "- Suprimentos Grátis e Curandeira";
+	next;
+	if (select("Entrar na Arena de Treino 4Tools", "Cancelar") == 1) {
+		close2;
+		warp "pvp_n_1-5", 100, 100;
+		end;
+	}
+	close;
+
+OnInit:
+	waitingroom "⚔ Arena 4Tools ⚔", 0;
+	end;
+}
+
+pvp_n_1-5,104,104,3	script	Controlador de Dummies	705,{
+	mes "[ ^0055FFControlador de Dummies — Arena 4Tools^000000 ]";
+	mes "Invoque alvos estacionários de ^B8860B5.000.000 HP^000000 para testar DPS, Skill Spammer, Macros e troca ATK x DEF.";
+	next;
+	switch (select(
+		"Invocar Dummy Padrão (Neutro / Médio / DEF 0)",
+		"Invocar Dummy Tanque (Neutro / Grande / DEF 60 / MDEF 40)",
+		"Invocar Dummy Elemental (escolher elemento)",
+		"Invocar Dummy Humanoide (Demi-Human / Médio / DEF 20)",
+		"Invocar 3 Dummies em Área (testar AoE)",
+		"Limpar todos os Dummies da Arena",
+		"Voltar para Prontera (Testar Pausa na Cidade)",
+		"Cancelar"
+	)) {
+	case 1:
+		callsub L_SpawnDummy, "Dummy Padrão (DEF 0)", 100, 95, 1, Ele_Neutral, 1, RC_Formless, 0, 0;
+		close;
+	case 2:
+		callsub L_SpawnDummy, "Dummy Tanque (DEF 60)", 100, 95, 2, Ele_Neutral, 1, RC_Formless, 60, 40;
+		close;
+	case 3:
+		.@ele_opt = select("Fogo Nv.3", "Água Nv.3", "Terra Nv.3", "Vento Nv.3", "Sombrio Nv.3", "Sagrado Nv.3", "Morto-Vivo Nv.3", "Fantasma Nv.3", "Cancelar");
+		if (.@ele_opt == 9) close;
+		setarray .@eles[1], Ele_Fire, Ele_Water, Ele_Earth, Ele_Wind, Ele_Dark, Ele_Holy, Ele_Undead, Ele_Ghost;
+		setarray .@names$[1], "Dummy Fogo 3", "Dummy Água 3", "Dummy Terra 3", "Dummy Vento 3", "Dummy Sombrio 3", "Dummy Sagrado 3", "Dummy Morto-Vivo 3", "Dummy Fantasma 3";
+		callsub L_SpawnDummy, .@names$[.@ele_opt], 100, 95, 1, .@eles[.@ele_opt], 3, RC_Formless, 15, 15;
+		close;
+	case 4:
+		callsub L_SpawnDummy, "Dummy Humanoide (WoE/PvP)", 100, 95, 1, Ele_Neutral, 1, RC_DemiHuman, 20, 20;
+		close;
+	case 5:
+		callsub L_SpawnDummy, "Dummy AoE #1", 98, 95, 1, Ele_Neutral, 1, RC_Formless, 10, 10;
+		callsub L_SpawnDummy, "Dummy AoE #2", 100, 95, 1, Ele_Neutral, 1, RC_Formless, 10, 10;
+		callsub L_SpawnDummy, "Dummy AoE #3", 102, 95, 1, Ele_Neutral, 1, RC_Formless, 10, 10;
+		close;
+	case 6:
+		killmonster "pvp_n_1-5", "Controlador de Dummies::OnDummyDead";
+		message strcharinfo(0), "[4Tools Lab] Todos os dummies foram removidos.";
+		close;
+	case 7:
+		close2;
+		warp "prontera", 156, 191;
+		end;
+	case 8:
+		close;
+	}
+
+L_SpawnDummy:
+	.@label$ = getarg(0);
+	.@x = getarg(1);
+	.@y = getarg(2);
+	.@size = getarg(3);
+	.@ele = getarg(4);
+	.@elelv = getarg(5);
+	.@race = getarg(6);
+	.@def = getarg(7);
+	.@mdef = getarg(8);
+
+	// 1905 = BARRICADE (alvo imóvel que não ataca de volta)
+	.@gid = monster("pvp_n_1-5", .@x, .@y, .@label$, 1905, 1, "Controlador de Dummies::OnDummyDead");
+	if (.@gid > 0) {
+		setunitdata .@gid, UMOB_MAXHP, 5000000;
+		setunitdata .@gid, UMOB_HP, 5000000;
+		setunitdata .@gid, UMOB_SIZE, .@size;
+		setunitdata .@gid, UMOB_ELETYPE, .@ele;
+		setunitdata .@gid, UMOB_ELELEVEL, .@elelv;
+		setunitdata .@gid, UMOB_RACE, .@race;
+		setunitdata .@gid, UMOB_DEF, .@def;
+		setunitdata .@gid, UMOB_MDEF, .@mdef;
+		setunitdata .@gid, UMOB_ATKMIN, 0;
+		setunitdata .@gid, UMOB_ATKMAX, 0;
+		message strcharinfo(0), "[4Tools Lab] Invocado: " + .@label$ + " em (" + .@x + ", " + .@y + ").";
+	}
+	return;
+
+OnDummyDead:
+	end;
+}

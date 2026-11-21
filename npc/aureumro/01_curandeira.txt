@@ -1,0 +1,52 @@
+// =============================================================================
+// AureumRO Servidor de Testes — Curandeira AureumRO
+// Inclui opção de cura SEM buffs para facilitar testes de Autobuff do 4Tools
+// =============================================================================
+
+prontera,152,193,5	script	Curandeira AureumRO	742,{
+	mes "[ ^B8860BCurandeira AureumRO^000000 ]";
+	mes "Olá, aventureiro! Como deseja ser restaurado?";
+	next;
+	switch (select(
+		"Curar HP/SP + Bênção e Agilidade",
+		"Somente Curar HP/SP (sem buffs — ideal para testar 4Tools)",
+		"Remover todos os Status/Buffs (Dispell)",
+		"Cancelar"
+	)) {
+	case 1:
+		percentheal 100, 100;
+		sc_end SC_POISON;
+		sc_end SC_SILENCE;
+		sc_end SC_BLIND;
+		sc_end SC_CURSE;
+		sc_end SC_CONFUSION;
+		sc_end SC_BLEEDING;
+		sc_end SC_CRITICALWOUND;
+		sc_end SC_DECREASEAGI;
+		sc_start SC_BLESSING, 600000, 10;
+		sc_start SC_INCREASEAGI, 600000, 10;
+		specialeffect2 EF_HEAL2;
+		specialeffect2 EF_BLESSING;
+		specialeffect2 EF_INCAGILITY;
+		mes "[ ^B8860BCurandeira AureumRO^000000 ]";
+		mes "Você foi restaurado e abençoado por 10 minutos!";
+		close;
+	case 2:
+		percentheal 100, 100;
+		specialeffect2 EF_HEAL2;
+		mes "[ ^B8860BCurandeira AureumRO^000000 ]";
+		mes "HP e SP restaurados em 100% (nenhum buff aplicado).";
+		close;
+	case 3:
+		sc_end SC_ALL;
+		specialeffect2 EF_DISPELL;
+		mes "[ ^B8860BCurandeira AureumRO^000000 ]";
+		mes "Todos os buffs e debuffs foram removidos!";
+		close;
+	case 4:
+		close;
+	}
+}
+
+// Duplicata na Arena de Treino 4Tools
+pvp_n_1-5,92,104,5	duplicate(Curandeira AureumRO)	Curandeira#4tools	742

@@ -1,0 +1,33 @@
+// =============================================================================
+// AureumRO Servidor de Testes — Estilista AureumRO
+// =============================================================================
+
+prontera,162,191,3	script	Estilista AureumRO	122,{
+	mes "[ ^B8860BEstilista AureumRO^000000 ]";
+	mes "Personalize seu visual gratuitamente!";
+	next;
+	setarray .@styles[1], getbattleflag("max_cloth_color"), getbattleflag("max_hair_style"), getbattleflag("max_hair_color");
+	setarray .@look[1], LOOK_CLOTHES_COLOR, LOOK_HAIR, LOOK_HAIR_COLOR;
+	.@s = select("Cor da Roupa", "Estilo do Cabelo", "Cor do Cabelo", "Cancelar");
+	if (.@s == 4) close;
+
+	.@style = getlook(.@look[.@s]);
+	.@max = .@styles[.@s];
+	if (.@max <= 0) .@max = 30;
+
+	while (1) {
+		setlook .@look[.@s], .@style;
+		message strcharinfo(0), "Estilo atual: #" + .@style + " (de 0 até " + .@max + ")";
+		.@menu = select("Próximo (+1)", "Anterior (-1)", "Digitar número", "Confirmar e Sair");
+		if (.@menu == 1) {
+			.@style = (.@style >= .@max) ? 0 : .@style + 1;
+		} else if (.@menu == 2) {
+			.@style = (.@style <= 0) ? .@max : .@style - 1;
+		} else if (.@menu == 3) {
+			input .@num, 0, .@max;
+			.@style = .@num;
+		} else {
+			close;
+		}
+	}
+}

@@ -1,0 +1,5 @@
+// AureumRO Servidor de Testes — Regras de Socket (amigável a reconexões de testes)
+enable_ip_rules: no
+ddos_interval: 500
+ddos_count: 50
+ddos_autoreset: 60000

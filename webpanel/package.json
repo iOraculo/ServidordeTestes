@@ -1,0 +1,14 @@
+{
+  "name": "aureumro-test-webpanel",
+  "version": "1.0.0",
+  "description": "Painel Web Obsidiana & Ouro Real para o Servidor de Testes AureumRO (rAthena Pré-Renewal 13.3)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test tests/panel.test.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "mysql2": "^3.12.0"
+  }
+}
