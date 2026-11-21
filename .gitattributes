@@ -1,0 +1,18 @@
+# Mantém quebras de linha LF (Unix) em scripts e arquivos de configuração
+# mesmo quando clonado no Windows com core.autocrlf=true
+* text=auto eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.conf text eol=lf
+*.txt text eol=lf
+*.tmpl text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sql text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.xml text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+Dockerfile text eol=lf
+Makefile text eol=lf

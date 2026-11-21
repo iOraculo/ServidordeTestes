@@ -67,7 +67,8 @@ COPY --from=builder /rathena /rathena
 COPY docker/rathena/entrypoint.sh /usr/local/bin/rathena-entrypoint.sh
 COPY docker/rathena/healthcheck.sh /usr/local/bin/rathena-healthcheck.sh
 
-RUN chmod +x /usr/local/bin/rathena-entrypoint.sh /usr/local/bin/rathena-healthcheck.sh \
+RUN sed -i 's/\r$//' /usr/local/bin/rathena-entrypoint.sh /usr/local/bin/rathena-healthcheck.sh \
+    && chmod +x /usr/local/bin/rathena-entrypoint.sh /usr/local/bin/rathena-healthcheck.sh \
     && mkdir -p /rathena/log /rathena/conf/import /rathena/db/import /aureumro/state
 
 EXPOSE 6900 6121 5121

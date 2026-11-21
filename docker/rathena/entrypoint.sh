@@ -122,15 +122,20 @@ cp /aureumro/config/import/motd.txt /rathena/conf/motd.txt
   cat "${PRESET_FILE}"
 } > /rathena/conf/import/battle_conf.txt
 
+# Normaliza possíveis quebras de linha CRLF (Windows) nas configs
+sed -i 's/\r$//' /rathena/conf/import/* /rathena/conf/motd.txt
+
 # Copia DB customizada (Doce de Elvira etc.) para /rathena/db/import
 if [ -d /aureumro/db/import ]; then
   cp -r /aureumro/db/import/* /rathena/db/import/
+  sed -i 's/\r$//' /rathena/db/import/*
 fi
 
 # Instala NPCs customizados AureumRO + Laboratório 4Tools
 rm -rf /rathena/npc/aureumro
 cp -r /aureumro/npc/aureumro /rathena/npc/aureumro
 cp /aureumro/npc/scripts_aureumro.conf /rathena/npc/scripts_aureumro.conf
+sed -i 's/\r$//' /rathena/npc/aureumro/*.txt /rathena/npc/scripts_aureumro.conf
 
 if ! grep -q "npc/scripts_aureumro.conf" /rathena/npc/scripts_custom.conf; then
   printf '\n// AureumRO Test Server & Laboratório 4Tools\nimport: npc/scripts_aureumro.conf\n' >> /rathena/npc/scripts_custom.conf
