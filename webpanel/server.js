@@ -489,9 +489,18 @@ if (require.main === module) {
   });
 
   const app = createApp({ pool, config });
-  app.listen(config.port, '0.0.0.0', () => {
+  const server = app.listen(config.port, '0.0.0.0', () => {
     console.log(`[AureumRO-WebPanel] Painel disponível na porta ${config.port} (${config.serverName})`);
   });
+
+  const shutdown = () => {
+    server.close(() => {
+      pool.end().catch(() => {}).finally(() => process.exit(0));
+    });
+    setTimeout(() => process.exit(0), 2000).unref();
+  };
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 }
 
 module.exports = {

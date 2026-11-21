@@ -82,6 +82,7 @@ services:
       dockerfile: Dockerfile
     container_name: aureumro-webpanel
     restart: unless-stopped
+    stop_grace_period: 3s
     depends_on:
       db:
         condition: service_healthy
