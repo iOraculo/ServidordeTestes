@@ -8,6 +8,7 @@ FROM debian:bookworm-slim AS builder
 ARG RATHENA_GIT_REF=master
 ARG RATHENA_PACKETVER=20220406
 ARG RATHENA_DISABLE_OBFUSCATION=1
+ARG RATHENA_MAKE_JOBS=2
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -31,12 +32,16 @@ RUN if [ "${RATHENA_DISABLE_OBFUSCATION}" = "1" ]; then \
       printf '\n// AureumRO Test Server: desativa ofuscação para Ragexe de teste\n#undef PACKET_OBFUSCATION\n' >> src/custom/defines_post.hpp; \
     fi
 
-# Compila login-server, char-server e map-server em modo Pré-Renewal com VIP
+# Compila apenas login-server, char-server e map-server (sem web-server/httplib pesado)
+# Usa RATHENA_MAKE_JOBS=2 e -g0 para evitar OOM (cannot allocate memory) no Docker Desktop / WSL2
 RUN ./configure \
       --enable-prere=yes \
       --enable-packetver="${RATHENA_PACKETVER}" \
       --enable-vip=yes \
-    && make -j"$(nproc)" server \
+      --enable-debug=no \
+      CFLAGS="-O2 -g0" \
+      CXXFLAGS="-O2 -g0" \
+    && make -j"${RATHENA_MAKE_JOBS}" common login char map import \
     && rm -rf .git src/obj* 3rdparty/*/obj*
 
 # ------------------------------------------------------------------------------

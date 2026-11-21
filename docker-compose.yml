@@ -32,6 +32,7 @@ services:
         RATHENA_GIT_REF: ${RATHENA_GIT_REF:-master}
         RATHENA_PACKETVER: ${RATHENA_PACKETVER:-20220406}
         RATHENA_DISABLE_OBFUSCATION: ${RATHENA_DISABLE_OBFUSCATION:-1}
+        RATHENA_MAKE_JOBS: ${RATHENA_MAKE_JOBS:-2}
     container_name: aureumro-rathena
     restart: unless-stopped
     depends_on:
