@@ -1,19 +1,14 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Localiza automaticamente os endereços estáticos (hpAddress, nameAddress e mapAddress)
-    do processo Ragexe.exe em execução e gera o supported_servers.json para o AureumRO-4Tools,
+    Localiza automaticamente os enderecos estaticos (hpAddress, nameAddress e mapAddress)
+    do processo Ragexe.exe em execucao e gera o supported_servers.json para o AureumRO-4Tools,
     sem precisar abrir o Cheat Engine.
-
-.EXAMPLE
-    .\scripts\find-4tools-addresses.ps1
-.EXAMPLE
-    .\scripts\find-4tools-addresses.ps1 -ProcessName Ragexe -OutputJson "C:\AureumRO-4Tools\supported_servers.json"
 #>
 param(
     [string]$ProcessName = "Ragexe",
     [string]$OutputJson = "",
-    [string]$ServerDescription = "AureumRO Servidor de Testes (rAthena Pré-Renewal 13.3 · PACKETVER 20220406)"
+    [string]$ServerDescription = "AureumRO Servidor de Testes (rAthena Pre-Renewal 13.3 - PACKETVER 20220406)"
 )
 
 $ErrorActionPreference = "Stop"
@@ -48,7 +43,7 @@ public static class RoMemoryScanner
         IntPtr handle = OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, false, proc.Id);
         if (handle == IntPtr.Zero)
         {
-            throw new InvalidOperationException("Não foi possível abrir o processo. Execute o PowerShell como Administrador.");
+            throw new InvalidOperationException("Nao foi possivel abrir o processo. Execute o PowerShell como Administrador.");
         }
 
         try
@@ -117,7 +112,6 @@ public static class RoMemoryScanner
             }
             if (ok && data[i + needle.Length] == 0)
             {
-                // Garante início de string (byte anterior 0 ou início de bloco)
                 if (i == 0 || data[i - 1] == 0)
                 {
                     matches.Add(baseAddr + i);
@@ -130,14 +124,14 @@ public static class RoMemoryScanner
 "@
 
 Write-Host "============================================================" -ForegroundColor Yellow
-Write-Host "  ✦ AureumRO-4Tools — Scanner Automático de Endereços" -ForegroundColor Yellow
+Write-Host "  AureumRO-4Tools - Scanner Automatico de Enderecos" -ForegroundColor Yellow
 Write-Host "============================================================" -ForegroundColor Yellow
 
 $cleanProc = $ProcessName -replace '\.exe$', ''
 $procs = Get-Process -Name $cleanProc -ErrorAction SilentlyContinue
 if (-not $procs) {
-    Write-Host "[ERRO] Processo '$cleanProc.exe' não está rodando." -ForegroundColor Red
-    Write-Host "Abra o jogo, faça login com seu personagem em Prontera e rode este script novamente." -ForegroundColor Yellow
+    Write-Host "[ERRO] Processo '$cleanProc.exe' nao esta rodando." -ForegroundColor Red
+    Write-Host "Abra o jogo, faca login com seu personagem em Prontera e rode este script novamente." -ForegroundColor Yellow
     exit 1
 }
 $targetProc = $procs | Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero } | Select-Object -First 1
@@ -148,13 +142,13 @@ Write-Host "Informe os valores EXATOS exibidos no jogo agora:" -ForegroundColor 
 
 $charName = (Read-Host "Nome exato do personagem").Trim()
 [uint32]$curHp = [uint32](Read-Host "HP Atual (ex.: 1540)")
-[uint32]$maxHp = [uint32](Read-Host "HP Máximo (ex.: 1540)")
+[uint32]$maxHp = [uint32](Read-Host "HP Maximo (ex.: 1540)")
 [uint32]$curSp = [uint32](Read-Host "SP Atual (ex.: 220)")
-[uint32]$maxSp = [uint32](Read-Host "SP Máximo (ex.: 220)")
+[uint32]$maxSp = [uint32](Read-Host "SP Maximo (ex.: 220)")
 $currentMap = (Read-Host "Mapa atual (Enter para 'prontera.rsw')").Trim()
 if ([string]::IsNullOrWhiteSpace($currentMap)) { $currentMap = "prontera.rsw" }
 
-Write-Host "`nEscaneando módulo estático de $cleanProc.exe..." -ForegroundColor Yellow
+Write-Host "`nEscaneando modulo estatico de $cleanProc.exe..." -ForegroundColor Yellow
 
 $hpMatches = [RoMemoryScanner]::FindVitalsAddresses($targetProc, $curHp, $maxHp, $curSp, $maxSp)
 $nameMatches = [RoMemoryScanner]::FindAsciiStringAddresses($targetProc, $charName)
@@ -166,7 +160,7 @@ function Format-Hex([long]$addr) {
 
 if ($hpMatches.Count -eq 0) {
     Write-Host "[AVISO] Nenhum hpAddress encontrado para HP=$curHp/$maxHp SP=$curSp/$maxSp." -ForegroundColor Red
-    Write-Host "Dica: verifique se digitou os valores exatos e se o PowerShell está aberto como Administrador." -ForegroundColor Yellow
+    Write-Host "Dica: verifique se digitou os valores exatos e se o PowerShell esta aberto como Administrador." -ForegroundColor Yellow
     exit 1
 }
 
@@ -179,7 +173,7 @@ $bestHp = Format-Hex $hpMatches[0]
 $bestName = Format-Hex $nameMatches[0]
 $bestMap = if ($mapMatches.Count -gt 0) { Format-Hex $mapMatches[0] } else { $null }
 
-Write-Host "`nEndereços estáticos encontrados:" -ForegroundColor Green
+Write-Host "`nEnderecos estaticos encontrados:" -ForegroundColor Green
 Write-Host "  hpAddress   : $bestHp  (total candidatos: $($hpMatches.Count))" -ForegroundColor White
 if ($hpMatches.Count -gt 1) {
     Write-Host "    outros HP : $(($hpMatches | Select-Object -Skip 1 | ForEach-Object { Format-Hex $_ }) -join ', ')" -ForegroundColor DarkGray
@@ -191,7 +185,7 @@ if ($nameMatches.Count -gt 1) {
 if ($bestMap) {
     Write-Host "  mapAddress  : $bestMap  (total candidatos: $($mapMatches.Count))" -ForegroundColor White
 } else {
-    Write-Host "  mapAddress  : (não encontrado para '$currentMap' — opcional)" -ForegroundColor DarkYellow
+    Write-Host "  mapAddress  : (nao encontrado para '$currentMap' - opcional)" -ForegroundColor DarkYellow
 }
 
 $entry = [ordered]@{
@@ -207,7 +201,7 @@ if ($bestMap) {
 $servers = @(
     [ordered]@{
         name        = "AureumRO"
-        description = "AureumRO — O goldtimes que você sempre sonhou"
+        description = "AureumRO - O goldtimes que voce sempre sonhou"
         hpAddress   = "0x015FF908"
         nameAddress = "0x01602568"
     },
@@ -224,4 +218,4 @@ Set-Content -Path $OutputJson -Value $jsonText -Encoding UTF8
 Write-Host "`nArquivo gerado com sucesso em:" -ForegroundColor Green
 Write-Host "  $((Resolve-Path $OutputJson).Path)" -ForegroundColor Cyan
 Write-Host "`nCopie esse arquivo como 'supported_servers.json' na pasta do AureumRO 4Tools.exe" -ForegroundColor White
-Write-Host "ou cadastre os endereços acima diretamente na aba Servidores -> Testar Endereços!" -ForegroundColor White
+Write-Host "ou cadastre os enderecos acima diretamente na aba Servidores -> Testar Enderecos!" -ForegroundColor White
