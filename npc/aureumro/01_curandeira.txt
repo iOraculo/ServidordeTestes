@@ -9,7 +9,7 @@ prontera,152,193,5	script	Curandeira AureumRO	742,{
 	next;
 	switch (select(
 		"Curar HP/SP + Bênção e Agilidade",
-		"Somente Curar HP/SP (sem buffs — ideal para testar 4Tools)",
+		"Somente Curar HP/SP (sem buffs - ideal para testar 4Tools)",
 		"Remover todos os Status/Buffs (Dispell)",
 		"Cancelar"
 	)) {

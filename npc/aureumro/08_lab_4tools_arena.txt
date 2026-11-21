@@ -29,12 +29,12 @@ prontera,160,185,3	script	Arena de Treino 4Tools	705,{
 	close;
 
 OnInit:
-	waitingroom "⚔ Arena 4Tools ⚔", 0;
+	waitingroom "[ Arena 4Tools ]", 0;
 	end;
 }
 
 pvp_n_1-5,104,104,3	script	Controlador de Dummies	705,{
-	mes "[ ^0055FFControlador de Dummies — Arena 4Tools^000000 ]";
+	mes "[ ^0055FFControlador de Dummies - Arena 4Tools^000000 ]";
 	mes "Invoque alvos estacionários de ^B8860B5.000.000 HP^000000 para testar DPS, Skill Spammer, Macros e troca ATK x DEF.";
 	next;
 	switch (select(

@@ -8,10 +8,10 @@
 // =============================================================================
 
 prontera,152,185,5	script	Instrutor de Debuffs	748,{
-	mes "[ ^0055FFLaboratório 4Tools — Debuffs & Dano^000000 ]";
+	mes "[ ^0055FFLaboratório 4Tools - Debuffs & Dano^000000 ]";
 	if (strcharinfo(3) == "prontera") {
 		mes "^FF6600Aviso:^000000 Você está em ^FF0000Prontera^000000 (cidade).";
-		mes "Se 'Usar buffs na cidade?' estiver DESLIGADO no 4Tools, as automações ficarão pausadas aqui — ideal para testar a pausa de cidade!";
+		mes "Se 'Usar buffs na cidade?' estiver DESLIGADO no 4Tools, as automações ficarão pausadas aqui - ideal para testar a pausa de cidade!";
 		mes "Para testar a recuperação ativa, use a ^0055FFArena de Treino 4Tools^000000.";
 	} else {
 		mes "Você está na ^006600Arena de Treino (Fora da Cidade)^000000.";
@@ -114,25 +114,25 @@ L_ContinuousDamage:
 		}
 		percentheal 0, -15;
 		specialeffect2 EF_HIT3;
-		dispbottom "[4Tools Lab] Pulso " + .@i + "/5 — HP: " + Hp + "/" + MaxHp + " | SP: " + Sp + "/" + MaxSp;
+		dispbottom "[4Tools Lab] Pulso " + .@i + "/5 - HP: " + Hp + "/" + MaxHp + " | SP: " + Sp + "/" + MaxSp;
 	}
 	dispbottom "[4Tools Lab] Simulação contínua finalizada.";
 	return;
 
 L_ClassicDebuffs:
 	switch (select(
-		"Veneno (SC_POISON — 30s)",
-		"Silêncio (SC_SILENCE — 30s)",
-		"Cegueira (SC_BLIND — 30s)",
-		"Maldição (SC_CURSE — 30s)",
-		"Confusão / Caos (SC_CONFUSION — 30s)",
-		"Sangramento (SC_BLEEDING — 30s)",
-		"Sono (SC_SLEEP — 15s)",
-		"Atordoamento (SC_STUN — 8s)",
-		"Congelamento (SC_FREEZE — 10s)",
-		"Petrificação (SC_STONE — 10s)",
-		"Diminuir Agilidade (SC_DECREASEAGI — 30s)",
-		"Alucinação (SC_HALLUCINATION — 20s)",
+		"Veneno (SC_POISON - 30s)",
+		"Silêncio (SC_SILENCE - 30s)",
+		"Cegueira (SC_BLIND - 30s)",
+		"Maldição (SC_CURSE - 30s)",
+		"Confusão / Caos (SC_CONFUSION - 30s)",
+		"Sangramento (SC_BLEEDING - 30s)",
+		"Sono (SC_SLEEP - 15s)",
+		"Atordoamento (SC_STUN - 8s)",
+		"Congelamento (SC_FREEZE - 10s)",
+		"Petrificação (SC_STONE - 10s)",
+		"Diminuir Agilidade (SC_DECREASEAGI - 30s)",
+		"Alucinação (SC_HALLUCINATION - 20s)",
 		"Voltar"
 	)) {
 	case 1: sc_start SC_POISON, 30000, 1; message strcharinfo(0), "[4Tools Lab] Aplicado: Veneno (SC_POISON)."; break;
@@ -152,17 +152,17 @@ L_ClassicDebuffs:
 	return;
 
 L_ElviraDebuffs:
-	mes "[ ^0055FFLaboratório 4Tools — Status Elvira^000000 ]";
+	mes "[ ^0055FFLaboratório 4Tools - Status Elvira^000000 ]";
 	mes "Estes status são monitorados pelo cooldown de ^B8860BDoce de Elvira (ID 23044)^000000 no AureumRO-4Tools:";
 	next;
 	switch (select(
-		"Ferimento Crítico (SC_CRITICALWOUND — 30s)",
-		"Propriedade Morto-Vivo (SC_CHANGEUNDEAD — 30s)",
-		"Queimadura (SC_BURNING — 20s)",
-		"Congelamento Profundo (SC_FREEZING — 20s)",
-		"Superaquecimento (SC_OVERHEAT — 20s)",
-		"Grito da Mandrágora (SC_MANDRAGORA — 20s)",
-		"Conjuração Lenta (SC_SLOWCAST — 20s)",
+		"Ferimento Crítico (SC_CRITICALWOUND - 30s)",
+		"Propriedade Morto-Vivo (SC_CHANGEUNDEAD - 30s)",
+		"Queimadura (SC_BURNING - 20s)",
+		"Congelamento Profundo (SC_FREEZING - 20s)",
+		"Superaquecimento (SC_OVERHEAT - 20s)",
+		"Grito da Mandrágora (SC_MANDRAGORA - 20s)",
+		"Conjuração Lenta (SC_SLOWCAST - 20s)",
 		"Voltar"
 	)) {
 	case 1: sc_start SC_CRITICALWOUND, 30000, 3; message strcharinfo(0), "[4Tools Lab] Aplicado: Ferimento Crítico (SC_CRITICALWOUND)."; break;

@@ -4,7 +4,7 @@
 
 prontera,156,195,4	script	Guia AureumRO	105,{
 	mes "[ ^B8860BGuia AureumRO^000000 ]";
-	mes "Bem-vindo ao ^B8860BAureumRO — Servidor de Testes^000000!";
+	mes "Bem-vindo ao ^B8860BAureumRO - Servidor de Testes^000000!";
 	mes "Ambiente Pré-Renewal (Ep. 13.3 El Dicastes, 99/70) preparado para testes de builds e do utilitário ^0055FFAureumRO-4Tools^000000.";
 	next;
 	switch (select(
@@ -53,6 +53,6 @@ prontera,156,195,4	script	Guia AureumRO	105,{
 	}
 
 OnInit:
-	waitingroom "✦ AureumRO Testes ✦", 0;
+	waitingroom "* AureumRO Testes *", 0;
 	end;
 }

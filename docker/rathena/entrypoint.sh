@@ -125,6 +125,13 @@ cp /aureumro/config/import/motd.txt /rathena/conf/motd.txt
 # Normaliza possíveis quebras de linha CRLF (Windows) nas configs
 sed -i 's/\r$//' /rathena/conf/import/* /rathena/conf/motd.txt
 
+# Converte MOTD de UTF-8 para Windows-1252 (encoding esperado pelo cliente Ragnarok)
+if iconv -f UTF-8 -t WINDOWS-1252//TRANSLIT /rathena/conf/motd.txt > /rathena/conf/motd.txt.cp1252 2>/dev/null; then
+  mv /rathena/conf/motd.txt.cp1252 /rathena/conf/motd.txt
+else
+  rm -f /rathena/conf/motd.txt.cp1252
+fi
+
 # Copia DB customizada (Doce de Elvira etc.) para /rathena/db/import
 if [ -d /aureumro/db/import ]; then
   cp -r /aureumro/db/import/* /rathena/db/import/
@@ -136,6 +143,15 @@ rm -rf /rathena/npc/aureumro
 cp -r /aureumro/npc/aureumro /rathena/npc/aureumro
 cp /aureumro/npc/scripts_aureumro.conf /rathena/npc/scripts_aureumro.conf
 sed -i 's/\r$//' /rathena/npc/aureumro/*.txt /rathena/npc/scripts_aureumro.conf
+
+# Converte scripts NPC de UTF-8 para Windows-1252 para exibir acentos PT-BR corretamente no cliente
+for npc_file in /rathena/npc/aureumro/*.txt; do
+  if iconv -f UTF-8 -t WINDOWS-1252//TRANSLIT "${npc_file}" > "${npc_file}.cp1252" 2>/dev/null; then
+    mv "${npc_file}.cp1252" "${npc_file}"
+  else
+    rm -f "${npc_file}.cp1252"
+  fi
+done
 
 if ! grep -q "npc/scripts_aureumro.conf" /rathena/npc/scripts_custom.conf; then
   printf '\n// AureumRO Test Server & Laboratório 4Tools\nimport: npc/scripts_aureumro.conf\n' >> /rathena/npc/scripts_custom.conf
