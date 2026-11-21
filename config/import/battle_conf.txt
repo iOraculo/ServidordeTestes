@@ -30,3 +30,8 @@ party_share_level: 15
 // Armazém e inventário confortáveis para testes
 item_check: no
 multi_level_up: yes
+
+// Limites seguros de paletas para data.grf oficial kRO (evita crash CPaletteRes por .pal ausente)
+max_cloth_color: 3
+max_hair_style: 30
+max_hair_color: 8

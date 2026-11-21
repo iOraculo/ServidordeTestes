@@ -6,25 +6,37 @@ prontera,162,191,3	script	Estilista AureumRO	122,{
 	mes "[ ^B8860BEstilista AureumRO^000000 ]";
 	mes "Personalize seu visual gratuitamente!";
 	next;
-	setarray .@styles[1], getbattleflag("max_cloth_color"), getbattleflag("max_hair_style"), getbattleflag("max_hair_color");
-	setarray .@look[1], LOOK_CLOTHES_COLOR, LOOK_HAIR, LOOK_HAIR_COLOR;
-	.@s = select("Cor da Roupa", "Estilo do Cabelo", "Cor do Cabelo", "Cancelar");
-	if (.@s == 4) close;
+	.@max_cloth = getbattleflag("max_cloth_color");
+	.@max_hair = getbattleflag("max_hair_style");
+	.@max_hcolor = getbattleflag("max_hair_color");
+	if (.@max_cloth <= 0 || .@max_cloth > 3) .@max_cloth = 3;
+	if (.@max_hair <= 0) .@max_hair = 30;
+	if (.@max_hcolor <= 0) .@max_hcolor = 8;
 
+	setarray .@styles[1], .@max_cloth, .@max_hair, .@max_hcolor;
+	setarray .@look[1], LOOK_CLOTHES_COLOR, LOOK_HAIR, LOOK_HAIR_COLOR;
+	.@s = select("Cor da Roupa (0.." + .@max_cloth + ")", "Estilo do Cabelo (1.." + .@max_hair + ")", "Cor do Cabelo (0.." + .@max_hcolor + ")", "Resetar Cor da Roupa para Padrão (0)", "Cancelar");
+	if (.@s == 5) close;
+	if (.@s == 4) {
+		setlook LOOK_CLOTHES_COLOR, 0;
+		mes "Cor da roupa restaurada para o padrão (0)!";
+		close;
+	}
+
+	.@min = (.@s == 2) ? 1 : 0;
 	.@style = getlook(.@look[.@s]);
 	.@max = .@styles[.@s];
-	if (.@max <= 0) .@max = 30;
 
 	while (1) {
 		setlook .@look[.@s], .@style;
-		message strcharinfo(0), "Estilo atual: #" + .@style + " (de 0 até " + .@max + ")";
+		message strcharinfo(0), "Estilo atual: #" + .@style + " (de " + .@min + " até " + .@max + ")";
 		.@menu = select("Próximo (+1)", "Anterior (-1)", "Digitar número", "Confirmar e Sair");
 		if (.@menu == 1) {
-			.@style = (.@style >= .@max) ? 0 : .@style + 1;
+			.@style = (.@style >= .@max) ? .@min : .@style + 1;
 		} else if (.@menu == 2) {
-			.@style = (.@style <= 0) ? .@max : .@style - 1;
+			.@style = (.@style <= .@min) ? .@max : .@style - 1;
 		} else if (.@menu == 3) {
-			input .@num, 0, .@max;
+			input .@num, .@min, .@max;
 			.@style = .@num;
 		} else {
 			close;
