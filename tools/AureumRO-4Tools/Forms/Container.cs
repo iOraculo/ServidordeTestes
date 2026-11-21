@@ -999,7 +999,7 @@ namespace _4RTools.Forms
             bool hasLiveClient = client != null && client.HasMemorySupport && client.IsProcessAlive();
             string currentMap = hasLiveClient ? client.ReadCurrentMap() : string.Empty;
             int activeBuffs = hasLiveClient ? client.CountActiveBuffs(this.statusRawBuffer, this.statusCodeBuffer) : 0;
-            bool isTownPaused = hasLiveClient && client.ShouldPauseBuffsInTown();
+            bool isTownPaused = hasLiveClient && client.ShouldPauseForTown();
             bool isUnfocused = hasLiveClient && client.ShouldPauseForFocus();
 
             this.miniHud.UpdateStatus(this.isAutomationOn, ChatPauseState.IsChatting, isTownPaused, isUnfocused);
