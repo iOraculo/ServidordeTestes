@@ -81,7 +81,8 @@
       <button type="button" class="tab active" data-tab="register" role="tab">Criar Conta</button>
       <button type="button" class="tab" data-tab="ranking" role="tab">Personagens &amp; Ranking</button>
       <button type="button" class="tab" data-tab="tools" role="tab">Integração 4Tools</button>
-      <button type="button" class="tab" data-tab="guide" role="tab">NPCs &amp; Presets</button>
+      <button type="button" class="tab" data-tab="admin" role="tab">Ferramentas GM &amp; Logs</button>
+      <button type="button" class="tab" data-tab="guide" role="tab">NPCs &amp; Comandos</button>
     </nav>
 
     <section class="tab-panel active" id="panel-register">
@@ -226,33 +227,99 @@
       </div>
     </section>
 
+    <section class="tab-panel" id="panel-admin">
+      <div class="split-grid">
+        <div class="card">
+          <h3>Ferramentas de GM &amp; Preset</h3>
+          <p class="muted">Destrave personagens (cor de roupa <code>0</code> + Prontera), envie Zeny ou alterne os rates do servidor:</p>
+
+          <form id="unstuck-form" class="form-stack">
+            <label>
+              Destravar Personagem (deixe vazio para destravar TODOS)
+              <input type="text" id="admin-unstuck-name" placeholder="ex.: Oraculo (ou vazio = todos)" />
+            </label>
+            <button type="submit" class="btn-gold">Destravar Personagem (Cor 0 + Prontera)</button>
+          </form>
+
+          <form id="zeny-form" class="form-stack">
+            <div class="form-row">
+              <label>
+                Personagem
+                <input type="text" id="admin-zeny-name" placeholder="ex.: Oraculo" required />
+              </label>
+              <label>
+                Quantidade de Zeny
+                <input type="number" id="admin-zeny-amount" value="50000000" min="1" max="1000000000" required />
+              </label>
+            </div>
+            <button type="submit" class="btn-outline">Enviar Zeny</button>
+          </form>
+
+          <div class="form-stack">
+            <span class="muted">Alternar Preset de Rates (aplique com <code>docker compose restart rathena</code>):</span>
+            <div class="hero-links">
+              <button type="button" class="btn-gold" id="btn-preset-sandbox">Preset Sandbox (100x/100x/50x)</button>
+              <button type="button" class="btn-outline" id="btn-preset-aureumro">Preset AureumRO (5x/3x/1x)</button>
+            </div>
+          </div>
+
+          <div id="admin-feedback" class="feedback" role="status" aria-live="polite"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3>Visualizador de Logs rAthena</h3>
+              <p class="muted">Acompanhe os logs de console em tempo real sem abrir o terminal.</p>
+            </div>
+            <div class="hero-links">
+              <select id="log-service-select">
+                <option value="map">map-server</option>
+                <option value="char">char-server</option>
+                <option value="login">login-server</option>
+              </select>
+              <button type="button" class="btn-outline" id="refresh-logs">Atualizar</button>
+            </div>
+          </div>
+          <pre class="code-block" id="logs-output" style="max-height: 360px; overflow-y: auto; font-size: 0.78rem;">Clique em Atualizar para carregar os logs...</pre>
+        </div>
+      </div>
+    </section>
+
     <section class="tab-panel" id="panel-guide">
       <div class="split-grid">
         <div class="card">
-          <h3>NPCs Instalados em Prontera</h3>
+          <h3>NPCs Instalados em Prontera &amp; Arena</h3>
           <ul class="npc-list">
             <li><strong>Guia AureumRO</strong> — <code>prontera (156, 195)</code></li>
-            <li><strong>Curandeira AureumRO</strong> — <code>prontera (152, 193)</code> <em>(com modo sem buffs)</em></li>
-            <li><strong>Mestra das Classes &amp; Reset</strong> — <code>prontera (150, 191)</code> <em>(Reborn 99/70 + atalho 99/70)</em></li>
-            <li><strong>Teleportadora AureumRO</strong> — <code>prontera (160, 193)</code> <em>(incl. El Dicastes 13.3)</em></li>
-            <li><strong>Estilista AureumRO</strong> — <code>prontera (162, 191)</code></li>
-            <li><strong>Caixa do Iniciante</strong> — <code>prontera (148, 189)</code></li>
-            <li><strong>Instrutor de Debuffs &amp; Dano</strong> — <code>prontera (152, 185)</code> &amp; <code>pvp_n_1-5 (96, 104)</code></li>
-            <li><strong>Suprimentos 4Tools (Grátis)</strong> — <code>prontera (156, 185)</code> &amp; <code>pvp_n_1-5 (100, 104)</code></li>
-            <li><strong>Arena de Treino &amp; Dummies</strong> — <code>prontera (160, 185)</code> → <code>pvp_n_1-5 (104, 104)</code></li>
+            <li><strong>Curandeira AureumRO</strong> — <code>prontera (152, 193)</code> &amp; Arena <em>(com modo sem buffs)</em></li>
+            <li><strong>Mestra das Classes</strong> — <code>prontera (150, 191)</code> &amp; Arena <em>(Transclasse direta 99/70 + todas skills max)</em></li>
+            <li><strong>Arsenal Divino (+10)</strong> — <code>prontera (148, 193)</code> &amp; Arena <em>(Itens Divinos, +10, cartas MVP e kit ATK × DEF)</em></li>
+            <li><strong>Mestre das Builds</strong> — <code>prontera (146, 191)</code> &amp; Arena <em>(Atributos 1 clique + salvar/carregar 3 builds)</em></li>
+            <li><strong>Ferreiro &amp; Cartas MVP</strong> — <code>prontera (146, 195)</code> &amp; Arena <em>(Refino +10, Removedor e Cartas MVP grátis)</em></li>
+            <li><strong>Teleportadora &amp; Estilista</strong> — <code>prontera (160, 193)</code> / <code>(162, 191)</code> <em>(Modo Seguro 0..3 &amp; Expandido)</em></li>
+            <li><strong>Sistemas AureumRO</strong> — <code>prontera (164, 193)</code> <em>(Sala MVP Privada, Torre Sem Fim sem cooldown, WoE Testes)</em></li>
+            <li><strong>Roleta Poring, Visuais &amp; Homúnculos</strong> — <code>prontera (164, 195)</code></li>
+            <li><strong>Kafra &amp; Lixeira</strong> — <code>prontera (164, 189)</code> &amp; Arena</li>
+            <li><strong>Laboratório 4Tools</strong> — Debuffs <code>(152, 185)</code>, Suprimentos <code>(156, 185)</code>, Arena <code>(160, 185)</code> → <strong>Medidor de DPS</strong> &amp; <strong>Simulador Stress Test</strong> em <code>pvp_n_1-5</code></li>
           </ul>
         </div>
 
         <div class="card">
-          <h3>Alternância de Presets de Rates</h3>
-          <p class="muted">Alterne entre o modo Sandbox e os rates oficiais do AureumRO sem perder o banco de dados:</p>
-          <pre class="code-block"><code># Modo Sandbox (100x Base / 100x Job / 50x Drop)
-make preset-sandbox
+          <h3>Comandos Rápidos In-Game</h3>
+          <p class="muted">Comandos customizados disponíveis para qualquer conta:</p>
+          <ul class="checklist">
+            <li><code>@restock</code> — reabastece Poção Branca Compacta, Azul, Yggdrasil, Panaceia, Verde, Água Benta, Doce de Elvira e Gemas.</li>
+            <li><code>@buff</code> — cura 100% + remove debuffs + Bênção + Agilidade + Assumptio.</li>
+            <li><code>@arena</code> — teleporta direto para a Arena de Treino 4Tools (<code>pvp_n_1-5</code>).</li>
+            <li><code>@hub</code> — volta instantaneamente para o Hub de Prontera.</li>
+          </ul>
+          <h4>Backup / Restore do Banco (PowerShell)</h4>
+          <pre class="code-block"><code># Criar backup em backups/
+.\scripts\backup-db.ps1
 
-# Modo AureumRO Oficial (5x Base / 3x Job / 1x Drop)
-make preset-aureumro</code></pre>
-          <h4>Comandos úteis in-game</h4>
-          <p class="muted"><code>@commands</code> · <code>@rates</code> · <code>@go</code> · <code>@autoloot</code> · <code>@alootid</code> · <code>@mi</code> · <code>@ii</code> · <code>@whodrops</code> · <code>@storage</code> · <code>@refresh</code> · <code>@noks</code></p>
+# Restaurar snapshot
+.\scripts\restore-db.ps1 backups\aureumro_YYYYMMDD_HHMMSS.sql</code></pre>
         </div>
       </div>
     </section>

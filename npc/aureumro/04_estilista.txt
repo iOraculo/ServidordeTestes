@@ -1,34 +1,55 @@
 // =============================================================================
-// AureumRO Servidor de Testes — Estilista AureumRO
+// AureumRO Servidor de Testes - Estilista AureumRO (Modo Seguro kRO & Expandido)
+// Item 13:
+//   - Modo Seguro kRO (0..3) funciona sem palette.grf (zero crash CPaletteRes)
+//   - Modo Expandido (0..553) para clientes que instalaram palette.grf via
+//     scripts/setup-palette.ps1
 // =============================================================================
 
 prontera,162,191,3	script	Estilista AureumRO	122,{
 	mes "[ ^B8860BEstilista AureumRO^000000 ]";
 	mes "Personalize seu visual gratuitamente!";
+	mes "Dica: use ^006600Modo Seguro (0..3)^000000 no kRO padrão ou ^0055FFModo Expandido^000000 se já instalou ^B8860Bpalette.grf^000000.";
 	next;
-	.@max_cloth = getbattleflag("max_cloth_color");
 	.@max_hair = getbattleflag("max_hair_style");
 	.@max_hcolor = getbattleflag("max_hair_color");
-	if (.@max_cloth <= 0 || .@max_cloth > 3) .@max_cloth = 3;
 	if (.@max_hair <= 0) .@max_hair = 30;
 	if (.@max_hcolor <= 0) .@max_hcolor = 8;
 
-	setarray .@styles[1], .@max_cloth, .@max_hair, .@max_hcolor;
-	setarray .@look[1], LOOK_CLOTHES_COLOR, LOOK_HAIR, LOOK_HAIR_COLOR;
-	.@s = select("Cor da Roupa (0.." + .@max_cloth + ")", "Estilo do Cabelo (1.." + .@max_hair + ")", "Cor do Cabelo (0.." + .@max_hcolor + ")", "Resetar Cor da Roupa para Padrão (0)", "Cancelar");
-	if (.@s == 5) close;
-	if (.@s == 4) {
+	.@s = select(
+		"Cor da Roupa - Modo Seguro kRO (0..3)",
+		"Cor da Roupa - Modo Expandido com palette.grf (0..553)",
+		"Estilo do Cabelo (1.." + .@max_hair + ")",
+		"Cor do Cabelo (0.." + .@max_hcolor + ")",
+		"Resetar Cor da Roupa para Padrão (0)",
+		"Cancelar"
+	);
+	if (.@s == 6) close;
+	if (.@s == 5) {
 		setlook LOOK_CLOTHES_COLOR, 0;
 		mes "Cor da roupa restaurada para o padrão (0)!";
 		close;
 	}
 
-	.@min = (.@s == 2) ? 1 : 0;
-	.@style = getlook(.@look[.@s]);
-	.@max = .@styles[.@s];
+	if (.@s == 1) {
+		.@look = LOOK_CLOTHES_COLOR; .@min = 0; .@max = 3;
+	} else if (.@s == 2) {
+		mes "[ ^FF6600Atenção - palette.grf^000000 ]";
+		mes "Só escolha cores acima de 3 se você rodou ^0055FF.\\scripts\\setup-palette.ps1^000000 no seu cliente Froggo2022!";
+		mes "(Se travar, use o botão ^006600Destravar Personagem^000000 no Painel Web.)";
+		next;
+		.@look = LOOK_CLOTHES_COLOR; .@min = 0; .@max = 553;
+	} else if (.@s == 3) {
+		.@look = LOOK_HAIR; .@min = 1; .@max = .@max_hair;
+	} else {
+		.@look = LOOK_HAIR_COLOR; .@min = 0; .@max = .@max_hcolor;
+	}
+
+	.@style = getlook(.@look);
+	if (.@style < .@min || .@style > .@max) .@style = .@min;
 
 	while (1) {
-		setlook .@look[.@s], .@style;
+		setlook .@look, .@style;
 		message strcharinfo(0), "Estilo atual: #" + .@style + " (de " + .@min + " até " + .@max + ")";
 		.@menu = select("Próximo (+1)", "Anterior (-1)", "Digitar número", "Confirmar e Sair");
 		if (.@menu == 1) {

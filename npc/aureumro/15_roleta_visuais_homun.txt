@@ -1,0 +1,155 @@
+// =============================================================================
+// AureumRO Servidor de Testes - Roleta Poring, Visuais & Homúnculo Express
+// Itens 8 e 9:
+//   - Roleta Poring interativa estilo AureumRO
+//   - Armário de Visuais / Chapéus Clássicos & Efeitos de Aura
+//   - Assistente de Homúnculos (Embrião, Lealdade Máxima, Evolução e Nível 99)
+// =============================================================================
+
+prontera,164,195,3	script	Roleta & Visuais	1002,{
+	mes "[ ^B8860BRoleta Poring, Visuais & Homúnculos^000000 ]";
+	mes "Explore os sistemas temáticos do ^B8860BAureumRO^000000!";
+	next;
+	switch (select(
+		"^FF6699Girar a Roleta Poring (Grátis em Testes)^000000",
+		"Armário de Chapéus & Visuais Clássicos",
+		"Testar Auras & Efeitos Visuais",
+		"^006600Homúnculos Express (Alquimista / Criador)^000000",
+		"Cancelar"
+	)) {
+	case 1:
+		callsub L_PoringRoulette;
+		close;
+	case 2:
+		callsub L_VisualCloset;
+		close;
+	case 3:
+		callsub L_Auras;
+		close;
+	case 4:
+		callsub L_HomunculusExpress;
+		close;
+	case 5:
+		close;
+	}
+
+L_PoringRoulette:
+	mes "[ ^FF6699Roleta Poring AureumRO^000000 ]";
+	mes "Girando a roleta... boa sorte!";
+	specialeffect2 EF_COIN;
+	next;
+	.@roll = rand(1, 100);
+	if (.@roll <= 5) {
+		getitem 616, 1; // Velho Álbum de Cartas (OCA)
+		specialeffect2 EF_ANGEL2;
+		mes "^B8860B[JACKPOT!]^000000 Você ganhou ^0055FF1x Velho Álbum de Cartas (OCA)^000000!";
+	} else if (.@roll <= 20) {
+		getitem 607, 25; // Fruto de Yggdrasil
+		mes "^006600[PRÊMIO RARO]^000000 Você ganhou ^0055FF25x Fruto de Yggdrasil^000000!";
+	} else if (.@roll <= 40) {
+		getitem 23044, 20; // Doce de Elvira
+		mes "^006600[PRÊMIO]^000000 Você ganhou ^B8860B20x Doce de Elvira^000000!";
+	} else if (.@roll <= 65) {
+		getitem 603, 5; // Velha Caixa Azul (OBB)
+		mes "[PRÊMIO] Você ganhou ^0055FF5x Velha Caixa Azul (OBB)^000000!";
+	} else if (.@roll <= 85) {
+		getitem 12208, 3; // Manual de Combate
+		getitem 12210, 3; // Goma de Mascar
+		mes "[PRÊMIO] Você ganhou ^0055FF3x Manual de Combate + 3x Goma de Mascar^000000!";
+	} else {
+		Zeny += 500000;
+		mes "[PRÊMIO] Você ganhou ^B8860B500.000 Zeny^000000!";
+	}
+	return;
+
+L_VisualCloset:
+	mes "[ ^B8860BArmário de Chapéus & Visuais^000000 ]";
+	mes "Escolha um visual clássico Pré-Renewal para testar:";
+	next;
+	.@pick = select(
+		"Boina Alada (5170)",
+		"Chifres Majestosos Gigantes (5374)",
+		"Boneca de Alice (5137)",
+		"Chapéu de Rideword (5208)",
+		"Chapéu de Capitão (5359)",
+		"Orelhas de Gato Preto (5360)",
+		"Tiara de PecoPeco (5358)",
+		"Olho Biônico (5325)",
+		"Espírito do Anjo (5389)",
+		"Orelhas de Elfo (2286)",
+		"Cancelar"
+	);
+	if (.@pick == 11) return;
+	setarray .@vids[1], 5170, 5374, 5137, 5208, 5359, 5360, 5358, 5325, 5389, 2286;
+	getitem .@vids[.@pick], 1;
+	specialeffect2 EF_BEGINSPELL6;
+	mes "Visual entregue!";
+	return;
+
+L_Auras:
+	mes "[ ^B8860BAuras & Efeitos Especiais^000000 ]";
+	mes "Aplique um efeito visual temporário no seu personagem:";
+	next;
+	switch (select("Aura Dourada (Nível 99)", "Brilho Sagrado (Assumptio)", "Chamas (Fúria)", "Estrelas (Bênção)", "Cancelar")) {
+	case 1: specialeffect2 EF_LEVEL99_4; break;
+	case 2: specialeffect2 EF_ASSUMPTIO; break;
+	case 3: specialeffect2 EF_EXPLOSIONSPIRITS; break;
+	case 4: specialeffect2 EF_ANGEL2; break;
+	default: return;
+	}
+	mes "Efeito aplicado!";
+	return;
+
+L_HomunculusExpress:
+	mes "[ ^006600Homúnculos Express (Alquimista / Criador)^000000 ]";
+	if (BaseJob != Job_Alchemist) {
+		mes "Dica: você não é Alquimista/Criador no momento, mas ainda pode pegar Embriões.";
+	}
+	next;
+	switch (select(
+		"Receber 10x Embrião (7142) + Bioética",
+		"Maximizar Lealdade do Homúnculo (1000 - Alta)",
+		"Evoluir Homúnculo imediatamente (homevolution)",
+		"Subir Homúnculo para Nível 99 (@homlvl 99)",
+		"Alimentar e Curar Homúnculo",
+		"Cancelar"
+	)) {
+	case 1:
+		getitem 7142, 10;
+		if (BaseJob == Job_Alchemist) {
+			skill "AM_BIOETHICS", 1, SKILL_PERM;
+			skill "AM_CALLHOMUN", 1, SKILL_PERM;
+			skill "AM_REST", 1, SKILL_PERM;
+			skill "AM_RESURRECTHOMUN", 5, SKILL_PERM;
+		}
+		mes "10x Embrião entregues! Use a skill 'Criar Homúnculo' para invocar.";
+		return;
+	case 2:
+		if (!gethominfo(0)) { mes "Invoque seu Homúnculo primeiro!"; return; }
+		atcommand "@homfriendly 1000";
+		specialeffect2 EF_HEARTCASTING;
+		mes "Lealdade do Homúnculo definida para 1000 (Alta)!";
+		return;
+	case 3:
+		if (!gethominfo(0)) { mes "Invoque seu Homúnculo primeiro!"; return; }
+		atcommand "@homfriendly 1000";
+		homevolution;
+		specialeffect2 EF_ANGEL2;
+		mes "Evolução do Homúnculo aplicada!";
+		return;
+	case 4:
+		if (!gethominfo(0)) { mes "Invoque seu Homúnculo primeiro!"; return; }
+		atcommand "@homlvl 99";
+		specialeffect2 EF_ANGEL2;
+		mes "Homúnculo elevado para o Nível 99!";
+		return;
+	case 5:
+		if (!gethominfo(0)) { mes "Invoque seu Homúnculo primeiro!"; return; }
+		atcommand "@homhungry 100";
+		percentheal 100, 100;
+		mes "Fome do Homúnculo restaurada para 100%!";
+		return;
+	default:
+		return;
+	}
+}

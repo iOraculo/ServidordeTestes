@@ -1,0 +1,147 @@
+// =============================================================================
+// AureumRO Servidor de Testes - Sistemas da Wiki AureumRO
+// Itens 5, 6 e 7:
+//   - Sala MVP Privada (guild_vs3) + Placar Caça MVP (OnNPCKillEvent)
+//   - Torre Sem Fim (Endless Tower) & Instâncias sem cooldown
+//   - Controlador de Guerra do Emperium (WoE) sob demanda em prtg_cas01
+// =============================================================================
+
+guild_vs3	mapflag	nosave	SavePoint
+guild_vs3	mapflag	nomemo
+guild_vs3	mapflag	noteleport
+guild_vs3	mapflag	pvp	off
+
+prontera,164,193,3	script	Sistemas AureumRO	721,{
+	mes "[ ^B8860BSistemas Exclusivos AureumRO^000000 ]";
+	mes "MVPs abatidos por você: ^006600" + AUREUM_MVP_KILLS + "^000000 | Total no servidor: ^B8860B" + $AUREUM_TOTAL_MVP_KILLS + "^000000";
+	mes "Status WoE de Testes: " + (agitcheck() ? "^006600ATIVA^000000" : "^FF0000DESLIGADA^000000");
+	next;
+	switch (select(
+		"Entrar na Sala MVP Privada (guild_vs3)",
+		"Torre Sem Fim (Endless Tower) - Resetar Cooldown & Entrar",
+		"Guerra do Emperium (WoE) de Testes (prtg_cas01)",
+		"Ver Placar de Caça MVP",
+		"Cancelar"
+	)) {
+	case 1:
+		close2;
+		warp "guild_vs3", 50, 50;
+		end;
+	case 2:
+		mes "[ ^B8860BTorre Sem Fim - Modo Teste^000000 ]";
+		mes "Deseja limpar o tempo de espera (7 dias) da Torre Sem Fim e ir para a Ilha da Torre?";
+		next;
+		if (select("Resetar Cooldown e Ir para e_tower", "Cancelar") == 2) close;
+		if (isbegin_quest(60200)) erasequest 60200;
+		if (isbegin_quest(60201)) erasequest 60201;
+		etower_timer = 0;
+		close2;
+		warp "e_tower", 75, 108;
+		end;
+	case 3:
+		callsub L_WoeMenu;
+		close;
+	case 4:
+		mes "[ ^B8860BCaça MVP - Estatísticas^000000 ]";
+		mes "Seus MVPs abatidos: ^006600" + AUREUM_MVP_KILLS + "^000000";
+		mes "Último MVP abatido por você: ^0055FF" + (AUREUM_LAST_MVP$ != "" ? AUREUM_LAST_MVP$ : "Nenhum") + "^000000";
+		mes "Total global de MVPs abatidos: ^B8860B" + $AUREUM_TOTAL_MVP_KILLS + "^000000";
+		close;
+	case 5:
+		close;
+	}
+
+L_WoeMenu:
+	mes "[ ^B8860BGuerra do Emperium (WoE) de Testes^000000 ]";
+	mes "Status atual: " + (agitcheck() ? "^006600WoE ATIVA^000000" : "^FF0000WoE DESLIGADA^000000");
+	mes "Ideal para testar macros de WoE, Song Macro, ATK x DEF e quebra de Emperium em ^0055FFprtg_cas01^000000!";
+	next;
+	switch (select(
+		"Iniciar WoE de Testes agora (agitstart)",
+		"Encerrar WoE de Testes (agitend)",
+		"Teleportar para o Castelo de Prontera (prtg_cas01)",
+		"Voltar"
+	)) {
+	case 1:
+		if (agitcheck()) {
+			mes "A Guerra do Emperium já está ativa!";
+		} else {
+			agitstart;
+			announce "[AureumRO Testes] A Guerra do Emperium de Testes foi INICIADA!", bc_all;
+			mes "WoE iniciada! Crie ou entre em uma Guilda (@guild) para quebrar o Emperium.";
+		}
+		return;
+	case 2:
+		if (!agitcheck()) {
+			mes "A Guerra do Emperium já está desligada.";
+		} else {
+			agitend;
+			announce "[AureumRO Testes] A Guerra do Emperium de Testes foi ENCERRADA!", bc_all;
+			mes "WoE encerrada!";
+		}
+		return;
+	case 3:
+		close2;
+		warp "prtg_cas01", 96, 197;
+		end;
+	default:
+		return;
+	}
+
+OnNPCKillEvent:
+	if (getmonsterinfo(killedrid, MOB_MVPEXP) > 0) {
+		AUREUM_MVP_KILLS++;
+		AUREUM_LAST_MVP$ = getmonsterinfo(killedrid, MOB_NAME);
+		$AUREUM_TOTAL_MVP_KILLS++;
+		dispbottom "[Caça MVP] Você abateu " + AUREUM_LAST_MVP$ + "! Total pessoal: " + AUREUM_MVP_KILLS;
+	}
+	end;
+}
+
+guild_vs3,50,56,4	script	Controlador Sala MVP	721,{
+	mes "[ ^B8860BSala MVP Privada AureumRO^000000 ]";
+	mes "Invoque qualquer MVP Pré-Renewal livremente sem disputa:";
+	next;
+	switch (select(
+		"Invocar MVP Clássico (Bafomé, Osíris, Faraó, Doppel, Dark Lord, TG)",
+		"Invocar MVP Endgame (Thanatos, Randgris, Belzebu, Ifrit, Ktullanux, Bio3)",
+		"Limpar todos os MVPs da Sala",
+		"Curar 100% + Buffs",
+		"Voltar para Prontera",
+		"Cancelar"
+	)) {
+	case 1:
+		.@m = select("Bafomé (1039)", "Osíris (1038)", "Faraó (1157)", "Doppelganger (1046)", "Senhor das Trevas (1272)", "General Tartaruga (1312)", "Cancelar");
+		if (.@m == 7) close;
+		setarray .@ids[1], 1039, 1038, 1157, 1046, 1272, 1312;
+		monster "guild_vs3", 50, 44, "--ja--", .@ids[.@m], 1, "Controlador Sala MVP::OnRoomMvpDead";
+		mes "MVP invocado no centro da sala!";
+		close;
+	case 2:
+		.@m = select("Memória de Thanatos (1708)", "Valquíria Randgris (1751)", "Belzebu (1874)", "Ifrit (1832)", "Ktullanux (1779)", "Lorde Seyren Bio3 (1646)", "Arquimaga Kathryne Bio3 (1651)", "Cancelar");
+		if (.@m == 8) close;
+		setarray .@ids[1], 1708, 1751, 1874, 1832, 1779, 1646, 1651;
+		monster "guild_vs3", 50, 44, "--ja--", .@ids[.@m], 1, "Controlador Sala MVP::OnRoomMvpDead";
+		mes "MVP Endgame invocado no centro da sala!";
+		close;
+	case 3:
+		killmonster "guild_vs3", "Controlador Sala MVP::OnRoomMvpDead";
+		mes "Sala MVP limpa!";
+		close;
+	case 4:
+		percentheal 100, 100;
+		sc_start SC_BLESSING, 600000, 10;
+		sc_start SC_INCREASEAGI, 600000, 10;
+		specialeffect2 EF_HEAL2;
+		close;
+	case 5:
+		close2;
+		warp "prontera", 156, 191;
+		end;
+	case 6:
+		close;
+	}
+
+OnRoomMvpDead:
+	end;
+}

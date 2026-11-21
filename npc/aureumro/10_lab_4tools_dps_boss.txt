@@ -1,0 +1,195 @@
+// =============================================================================
+// AureumRO Servidor de Testes - Laboratório 4Tools: Medidor de DPS & Boss Stress
+// Itens 1 e 2:
+//   - Dummy Medidor de DPS em Tempo Real (janelas de 10s e 30s)
+//   - Simulador de Combate / Stress Test (ondas de dano + debuffs + Elvira + Dispell)
+//   - Invocador de MVPs Clássicos sob demanda na Arena
+// =============================================================================
+
+pvp_n_1-5,100,90,4	script	Medidor de DPS	705,{
+	mes "[ ^0055FFMedidor de DPS - Arena 4Tools^000000 ]";
+	mes "Meça seu dano total e ^B8860BDPS médio^000000 para comparar modos do Spammer (Compatibilidade vs Speed Boost), Macro Chain e ATK x DEF!";
+	next;
+	switch (select(
+		"Iniciar Teste de DPS (10 segundos - Dummy DEF 0)",
+		"Iniciar Teste de DPS (30 segundos - Dummy DEF 0)",
+		"Iniciar Teste de DPS (10 segundos - Dummy Tanque DEF 60)",
+		"Iniciar Teste de DPS (10 segundos - Dummy Humanoide PvP/WoE)",
+		"Limpar Dummy de DPS",
+		"Cancelar"
+	)) {
+	case 1: callsub L_RunDpsTest, 10, 0, RC_Formless, "Dummy DPS (DEF 0)"; end;
+	case 2: callsub L_RunDpsTest, 30, 0, RC_Formless, "Dummy DPS (DEF 0)"; end;
+	case 3: callsub L_RunDpsTest, 10, 60, RC_Formless, "Dummy DPS (DEF 60)"; end;
+	case 4: callsub L_RunDpsTest, 10, 20, RC_DemiHuman, "Dummy DPS (Humanoide)"; end;
+	case 5:
+		killmonster "pvp_n_1-5", "Medidor de DPS::OnDpsDummyDead";
+		message strcharinfo(0), "[DPS] Dummy de DPS removido.";
+		close;
+	case 6:
+		close;
+	}
+
+L_RunDpsTest:
+	.@duration = getarg(0);
+	.@def = getarg(1);
+	.@race = getarg(2);
+	.@label$ = getarg(3);
+	.@max_hp = 50000000;
+
+	killmonster "pvp_n_1-5", "Medidor de DPS::OnDpsDummyDead";
+	.@gid = monster("pvp_n_1-5", 100, 93, .@label$, 1905, 1, "Medidor de DPS::OnDpsDummyDead");
+	if (.@gid <= 0) {
+		mes "Falha ao invocar Dummy de DPS.";
+		close;
+	}
+	setunitdata .@gid, UMOB_MAXHP, .@max_hp;
+	setunitdata .@gid, UMOB_HP, .@max_hp;
+	setunitdata .@gid, UMOB_DEF, .@def;
+	setunitdata .@gid, UMOB_MDEF, .@def / 2;
+	setunitdata .@gid, UMOB_RACE, .@race;
+	setunitdata .@gid, UMOB_ATKMIN, 0;
+	setunitdata .@gid, UMOB_ATKMAX, 0;
+
+	mes "[ ^0055FFMedidor de DPS^000000 ]";
+	mes "Alvo invocado em (100, 93) com ^B8860B50.000.000 HP^000000.";
+	mes "Feche esta janela e ataque por ^006600" + .@duration + " segundos^000000!";
+	close2;
+
+	dispbottom "[DPS] === TESTE INICIADO (" + .@duration + "s) - ATAQUE AGORA! ===";
+	.@total_dmg = 0;
+	for (.@sec = 1; .@sec <= .@duration; .@sec++) {
+		sleep2 1000;
+		if (!unitexists(.@gid)) {
+			.@total_dmg += .@max_hp;
+			break;
+		}
+		getunitdata .@gid, .@udata;
+		.@cur_hp = .@udata[UMOB_HP];
+		.@sec_dmg = .@max_hp - .@cur_hp;
+		if (.@sec_dmg > 0) {
+			.@total_dmg += .@sec_dmg;
+			setunitdata .@gid, UMOB_HP, .@max_hp;
+		}
+		if (.@sec == 5 || .@sec == 10 || .@sec == 20 || .@sec == .@duration) {
+			.@dps_now = .@total_dmg / .@sec;
+			dispbottom "[DPS] " + .@sec + "s/" + .@duration + "s | Dano acumulado: " + .@total_dmg + " | DPS médio: " + .@dps_now + "/s";
+		}
+	}
+
+	.@final_dps = .@total_dmg / .@duration;
+	dispbottom "[DPS] ====================================================";
+	dispbottom "[DPS] RESULTADO FINAL (" + .@label$ + " - " + .@duration + "s):";
+	dispbottom "[DPS] Dano Total: " + .@total_dmg + " | DPS Médio: " + .@final_dps + " dano/seg";
+	dispbottom "[DPS] ====================================================";
+	killmonster "pvp_n_1-5", "Medidor de DPS::OnDpsDummyDead";
+	return;
+
+OnDpsDummyDead:
+	end;
+}
+
+pvp_n_1-5,92,98,5	script	Simulador de Combate	748,{
+	mes "[ ^0055FFSimulador de Combate & Boss Stress Test^000000 ]";
+	mes "Teste ^B8860BAutopot + Yggdrasil + Anti-debuffs + Doce de Elvira + Auto-Skills^000000 sob pressão real!";
+	next;
+	switch (select(
+		"^FF0000[Stress Test] Onda 4Tools (20s - Dano + Debuffs + Elvira)^000000",
+		"^FF0000[Stress Test] Onda Extrema WoE (30s - Dano Alto + Debuffs + Dispell)^000000",
+		"Invocar MVP Clássico na Arena (Sob Demanda)",
+		"Limpar todos os MVPs da Arena",
+		"Cancelar"
+	)) {
+	case 1:
+		callsub L_StressWave, 10, 0;
+		end;
+	case 2:
+		callsub L_StressWave, 15, 1;
+		end;
+	case 3:
+		callsub L_SpawnMvp;
+		close;
+	case 4:
+		killmonster "pvp_n_1-5", "Simulador de Combate::OnArenaMvpDead";
+		message strcharinfo(0), "[Arena] Todos os MVPs invocados foram removidos.";
+		close;
+	case 5:
+		close;
+	}
+
+L_StressWave:
+	.@waves = getarg(0);
+	.@with_dispell = getarg(1);
+
+	mes "[ ^0055FFStress Test 4Tools^000000 ]";
+	mes "Iniciando ^FF0000" + .@waves + " ondas^000000 (1 a cada 2s) com dano em HP/SP e debuffs aleatórios" + (.@with_dispell ? " + Dispell periódico" : "") + ".";
+	mes "Feche esta janela e observe o ^0055FFAureumRO-4Tools^000000 reagindo!";
+	close2;
+
+	setarray .@classic[0], SC_POISON, SC_SILENCE, SC_CURSE, SC_BLIND, SC_BLEEDING, SC_CONFUSION;
+	setarray .@elvira[0], SC_CRITICALWOUND, SC_BURNING, SC_FREEZING, SC_MANDRAGORA, SC_OVERHEAT;
+
+	for (.@i = 1; .@i <= .@waves; .@i++) {
+		sleep2 2000;
+		if (Hp <= 1) {
+			dispbottom "[Stress Test] Personagem derrotado na onda " + .@i + ".";
+			break;
+		}
+		.@dmg_pct = (.@with_dispell ? rand(25, 45) : rand(18, 35));
+		.@dmg = MaxHp * .@dmg_pct / 100;
+		if (Hp - .@dmg < 1) .@dmg = Hp - 1;
+		if (.@dmg > 0) heal - .@dmg, 0;
+		percentheal 0, -15;
+		specialeffect2 EF_HIT4;
+
+		if (.@i % 3 == 0) {
+			.@sc = .@elvira[rand(getarraysize(.@elvira))];
+			sc_start .@sc, 15000, 1;
+			dispbottom "[Stress Test] Onda " + .@i + "/" + .@waves + ": -" + .@dmg_pct + "% HP + Status Elvira!";
+		} else {
+			.@sc = .@classic[rand(getarraysize(.@classic))];
+			sc_start .@sc, 15000, 1;
+			dispbottom "[Stress Test] Onda " + .@i + "/" + .@waves + ": -" + .@dmg_pct + "% HP + Debuff clássico!";
+		}
+
+		if (.@with_dispell && (.@i % 5 == 0)) {
+			sc_end SC_BLESSING;
+			sc_end SC_INCREASEAGI;
+			sc_end SC_ASSUMPTIO;
+			specialeffect2 EF_DISPELL;
+			dispbottom "[Stress Test] Dispell aplicado! Verifique seu Auto-Skills rebuffando.";
+		}
+	}
+	dispbottom "[Stress Test] Simulação concluída!";
+	return;
+
+L_SpawnMvp:
+	mes "[ ^0055FFInvocar MVP na Arena^000000 ]";
+	mes "Escolha o MVP para invocar em (100, 88):";
+	next;
+	.@pick = select(
+		"Bafomé (1039)",
+		"Osíris (1038)",
+		"Doppelganger (1046)",
+		"Faraó (1157)",
+		"Senhor das Trevas (1272)",
+		"General Tartaruga (1312)",
+		"Lorde Seyren Bio3 (1646)",
+		"Arquimaga Kathryne Bio3 (1651)",
+		"Memória de Thanatos (1708)",
+		"Valquíria Randgris (1751)",
+		"Ktullanux (1779)",
+		"Ifrit (1832)",
+		"Belzebu (1874)",
+		"Cancelar"
+	);
+	if (.@pick == 14) return;
+
+	setarray .@mids[1], 1039, 1038, 1046, 1157, 1272, 1312, 1646, 1651, 1708, 1751, 1779, 1832, 1874;
+	monster "pvp_n_1-5", 100, 88, "--ja--", .@mids[.@pick], 1, "Simulador de Combate::OnArenaMvpDead";
+	message strcharinfo(0), "[Arena] MVP invocado em (100, 88)!";
+	return;
+
+OnArenaMvpDead:
+	end;
+}

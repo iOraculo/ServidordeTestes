@@ -1,0 +1,17 @@
+# ==============================================================================
+# AureumRO Servidor de Testes - Base de Rebalanceamento de Habilidades (Pré-Re)
+# Item 10: Arquivo pronto para espelhar mudanças de skills da Wiki AureumRO
+# (https://aureumro.com/wiki/ -> seção Rebalance).
+#
+# Como usar: descomente um bloco em Body:, ajuste CastTime/AfterCastActDelay/
+# Cooldown/MaxLevel/SpCost e reinicie o container rathena (ou use @reloadskilldb).
+# ==============================================================================
+Header:
+  Type: SKILL_DB
+  Version: 4
+
+# Body:
+#   # Exemplo: reduzir pós-conjuração da Chuva de Meteoros (WZ_METEOR)
+#   - Id: 83
+#     Name: WZ_METEOR
+#     AfterCastActDelay: 1000

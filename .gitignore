@@ -1,9 +1,10 @@
 # Variáveis de ambiente locais
 .env
 
-# Dados persistidos do banco / logs locais
+# Dados persistidos do banco / logs locais / backups
 data/
 logs/
+backups/
 *.log
 
 # Node / Painel Web

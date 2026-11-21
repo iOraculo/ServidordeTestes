@@ -1,0 +1,152 @@
+// =============================================================================
+// AureumRO Servidor de Testes - Refinador +10, Removedor de Cartas & Loja MVP
+// Item 4:
+//   - Refino instantâneo 100% seguro (+10 em qualquer item ou em todo o set)
+//   - Removedor de Cartas 100% gratuito e seguro
+//   - Entrega gratuita das melhores Cartas MVP / WoE Pré-Renewal
+// =============================================================================
+
+prontera,146,195,5	script	Ferreiro & Cartas MVP	813,{
+	mes "[ ^B8860BFerreiro Divino & Cartas MVP^000000 ]";
+	mes "Refine seus equipamentos para ^0055FF+10^000000 sem risco, remova cartas grátis ou pegue qualquer ^B8860BCarta MVP^000000!";
+	next;
+	switch (select(
+		"^0055FFRefinar TODOS os Equipamentos Vestidos para +10^000000",
+		"Refinar um Equipamento Específico (+1 até +10)",
+		"Removedor de Cartas (100% Seguro e Grátis)",
+		"^B8860BPegar Cartas MVP / WoE Grátis^000000",
+		"Cancelar"
+	)) {
+	case 1:
+		callsub L_RefineAll10;
+		close;
+	case 2:
+		callsub L_RefineSingle;
+		close;
+	case 3:
+		callsub L_RemoveCards;
+		close;
+	case 4:
+		callsub L_CardShop;
+		close;
+	case 5:
+		close;
+	}
+
+L_RefineAll10:
+	setarray .@parts[0], EQI_HEAD_TOP, EQI_ARMOR, EQI_HAND_L, EQI_HAND_R, EQI_GARMENT, EQI_SHOES;
+	.@count = 0;
+	for (.@i = 0; .@i < getarraysize(.@parts); .@i++) {
+		.@p = .@parts[.@i];
+		if (getequipisequiped(.@p) && getequipisenableref(.@p)) {
+			while (getequiprefinerycnt(.@p) < 10) {
+				successrefitem .@p;
+			}
+			.@count++;
+		}
+	}
+	specialeffect2 EF_REFINEOK;
+	mes "[ ^B8860BFerreiro Divino^000000 ]";
+	mes "Pronto! " + .@count + " equipamento(s) refinável(is) foram elevados para ^0055FF+10^000000!";
+	return;
+
+L_RefineSingle:
+	setarray .@parts[1], EQI_HEAD_TOP, EQI_ARMOR, EQI_HAND_L, EQI_HAND_R, EQI_GARMENT, EQI_SHOES;
+	setarray .@names$[1], "Cabeça (Topo)", "Armadura", "Mão Esquerda / Escudo", "Mão Direita / Arma", "Manto / Capa", "Calçado";
+	.@menu$ = "";
+	for (.@i = 1; .@i <= 6; .@i++) {
+		if (getequipisequiped(.@parts[.@i])) {
+			.@menu$ += .@names$[.@i] + " - [+" + getequiprefinerycnt(.@parts[.@i]) + " " + getequipname(.@parts[.@i]) + "]:";
+		} else {
+			.@menu$ += "^777777" + .@names$[.@i] + " (vazio)^000000:";
+		}
+	}
+	.@pick = select(.@menu$ + "Cancelar");
+	if (.@pick == 7) return;
+	.@p = .@parts[.@pick];
+	if (!getequipisequiped(.@p) || !getequipisenableref(.@p)) {
+		mes "Este slot está vazio ou o item não pode ser refinado.";
+		return;
+	}
+	mes "Digite o nível de refino desejado (atual: +" + getequiprefinerycnt(.@p) + ", máximo +10):";
+	input .@target, 1, 10;
+	while (getequiprefinerycnt(.@p) < .@target) {
+		successrefitem .@p;
+	}
+	specialeffect2 EF_REFINEOK;
+	mes "Equipamento refinado para ^0055FF+" + getequiprefinerycnt(.@p) + "^000000!";
+	return;
+
+L_RemoveCards:
+	setarray .@parts[1], EQI_HEAD_TOP, EQI_HEAD_MID, EQI_ARMOR, EQI_HAND_L, EQI_HAND_R, EQI_GARMENT, EQI_SHOES, EQI_ACC_L, EQI_ACC_R;
+	setarray .@names$[1], "Topo", "Meio", "Armadura", "Mão Esq.", "Mão Dir.", "Manto", "Calçado", "Acessório Esq.", "Acessório Dir.";
+	.@menu$ = "";
+	for (.@i = 1; .@i <= 9; .@i++) {
+		if (getequipisequiped(.@parts[.@i])) {
+			.@menu$ += .@names$[.@i] + " - " + getequipname(.@parts[.@i]) + " (" + getequipcardcnt(.@parts[.@i]) + " carta(s)):";
+		} else {
+			.@menu$ += "^777777" + .@names$[.@i] + " (vazio)^000000:";
+		}
+	}
+	.@pick = select(.@menu$ + "Cancelar");
+	if (.@pick == 10) return;
+	.@p = .@parts[.@pick];
+	if (!getequipisequiped(.@p) || getequipcardcnt(.@p) == 0) {
+		mes "Este equipamento não possui cartas encaixadas.";
+		return;
+	}
+	successremovecards .@p;
+	mes "Cartas removidas com 100% de segurança!";
+	return;
+
+L_CardShop:
+	switch (select(
+		"Cartas de Arma (Thanatos, TG, Randgris, AK, Doppel, Phreeoni, Hidra)",
+		"Cartas de Armadura (Tao Gunka, Ghostring, Angeling, Marc, Druida, RSX)",
+		"Cartas de Escudo & Manto (GTB, Thara, Raydric, Deviling, Eremes)",
+		"Cartas de Cabeça (Kiel-D-01, Kathryne, Vesper, Orc Hero, Maya Purple, Abelha)",
+		"Cartas de Bota & Acessório (Bispo Decadente, Amon Ra, Flor do Luar, Berzebub)",
+		"Cancelar"
+	)) {
+	case 1:
+		.@c = select("Memória de Thanatos (4399)", "General Tartaruga (4305)", "Valquíria Randgris (4407)", "Cavaleiro do Abismo (4140)", "Doppelganger (4142)", "Phreeoni (4121)", "Hidra (4035)", "Esqueleto Trabalhador (4092)", "Drake (4137)", "Atroce (4425)", "Cancelar");
+		if (.@c == 11) return;
+		setarray .@ids[1], 4399, 4305, 4407, 4140, 4142, 4121, 4035, 4092, 4137, 4425;
+		getitem .@ids[.@c], 1;
+		mes "Carta entregue!";
+		return;
+	case 2:
+		.@c = select("Tao Gunka (4302)", "Ghostring (4047)", "Angeling (4054)", "Marc (4105)", "Druida Maligno (4141)", "RSX-0806 (4342)", "Ktullanux (4419)", "Detardeurus (4386)", "Cancelar");
+		if (.@c == 9) return;
+		setarray .@ids[1], 4302, 4047, 4054, 4105, 4141, 4342, 4419, 4386;
+		getitem .@ids[.@c], 1;
+		mes "Carta entregue!";
+		return;
+	case 3:
+		.@c = select("Besouro-Ladrão Dourado - GTB (4128)", "Sapo de Thara (4058)", "Raydric (4133)", "Deviling (4174)", "Algoz Eremes (4359)", "Cancelar");
+		if (.@c == 6) return;
+		setarray .@ids[1], 4128, 4058, 4133, 4174, 4359;
+		getitem .@ids[.@c], 1;
+		mes "Carta entregue!";
+		return;
+	case 4:
+		.@c = select("Kiel-D-01 (4403)", "Kathryne Keyron (4366)", "Vesper (4374)", "Orc Hero (4143)", "Maya Purple (4198)", "Abelha-Rainha (4132)", "Faraó (4148)", "Serpente Suprema (4330)", "Lorde Seyren (4357)", "Cancelar");
+		if (.@c == 10) return;
+		setarray .@ids[1], 4403, 4366, 4374, 4143, 4198, 4132, 4148, 4330, 4357;
+		getitem .@ids[.@c], 1;
+		mes "Carta entregue!";
+		return;
+	case 5:
+		.@c = select("Bispo Decadente (4441)", "Amon Ra (4236)", "Flor do Luar (4131)", "General Egnigem Cenia (4352)", "Berzebub (4145)", "Osíris (4144)", "Cancelar");
+		if (.@c == 7) return;
+		setarray .@ids[1], 4441, 4236, 4131, 4352, 4145, 4144;
+		getitem .@ids[.@c], 1;
+		mes "Carta entregue!";
+		return;
+	default:
+		return;
+	}
+}
+
+// Duplicata na Arena de Treino 4Tools
+pvp_n_1-5,116,100,3	duplicate(Ferreiro & Cartas MVP)	Ferreiro & Cartas#4tools	813

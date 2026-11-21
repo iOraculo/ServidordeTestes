@@ -347,6 +347,108 @@ function createApp({ pool, config, checkPort = defaultCheckPort }) {
     res.send(JSON.stringify(payload, null, 2));
   });
 
+  app.post('/api/admin/unstuck', async (req, res) => {
+    const charName = String(req.body?.charName || '').trim();
+    try {
+      let result;
+      if (charName) {
+        [result] = await pool.query(
+          "UPDATE `char` SET `clothes_color` = 0, `last_map` = 'prontera', `last_x` = 156, `last_y` = 191, `save_map` = 'prontera', `save_x` = 156, `save_y` = 191 WHERE LOWER(`name`) = LOWER(?)",
+          [charName]
+        );
+      } else {
+        [result] = await pool.query(
+          "UPDATE `char` SET `clothes_color` = 0, `last_map` = 'prontera', `last_x` = 156, `last_y` = 191"
+        );
+      }
+
+      if (Number(result?.affectedRows || 0) === 0) {
+        return res.status(404).json({ error: charName ? `Personagem '${charName}' não encontrado.` : 'Nenhum personagem encontrado.' });
+      }
+
+      return res.json({
+        ok: true,
+        affectedRows: Number(result.affectedRows),
+        message: charName
+          ? `Personagem '${charName}' destravado (cor 0 e movido para prontera 156,191).`
+          : `${result.affectedRows} personagem(ns) destravado(s) com cor 0 em prontera.`
+      });
+    } catch (err) {
+      return res.status(500).json({ error: 'Falha ao destravar personagem no banco.', details: err.code || 'DB_ERROR' });
+    }
+  });
+
+  app.post('/api/admin/give-zeny', async (req, res) => {
+    const charName = String(req.body?.charName || '').trim();
+    const amount = Number(req.body?.amount || 0);
+    if (!charName) {
+      return res.status(400).json({ error: 'Informe o nome do personagem.' });
+    }
+    if (!Number.isInteger(amount) || amount <= 0 || amount > 1000000000) {
+      return res.status(400).json({ error: 'Valor de Zeny deve ser um inteiro entre 1 e 1.000.000.000.' });
+    }
+
+    try {
+      const [result] = await pool.query(
+        'UPDATE `char` SET `zeny` = LEAST(`zeny` + ?, 2000000000) WHERE LOWER(`name`) = LOWER(?)',
+        [amount, charName]
+      );
+      if (Number(result?.affectedRows || 0) === 0) {
+        return res.status(404).json({ error: `Personagem '${charName}' não encontrado.` });
+      }
+      return res.json({
+        ok: true,
+        message: `+${amount.toLocaleString('pt-BR')} Zeny enviados para '${charName}' (relogue se estiver online).`
+      });
+    } catch (err) {
+      return res.status(500).json({ error: 'Falha ao atualizar Zeny no banco.', details: err.code || 'DB_ERROR' });
+    }
+  });
+
+  app.post('/api/admin/preset', (req, res) => {
+    const target = String(req.body?.preset || '').trim().toLowerCase();
+    if (!PRESET_METADATA[target]) {
+      return res.status(400).json({ error: "Preset inválido. Use 'sandbox' ou 'aureumro'." });
+    }
+    try {
+      const dir = path.dirname(config.presetStateFile);
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(config.presetStateFile, `${target}\n`, 'utf8');
+      return res.json({
+        ok: true,
+        preset: PRESET_METADATA[target],
+        message: `Preset '${PRESET_METADATA[target].label}' gravado! Rode 'docker compose restart rathena' para aplicar no map-server.`
+      });
+    } catch (err) {
+      return res.status(500).json({ error: 'Não foi possível gravar o arquivo de preset.', details: err.code || 'FS_ERROR' });
+    }
+  });
+
+  app.get('/api/admin/logs', (req, res) => {
+    const allowed = {
+      map: 'map-msg_log.log',
+      char: 'char-msg_log.log',
+      login: 'login-msg_log.log'
+    };
+    const service = String(req.query.service || 'map').toLowerCase();
+    const filename = allowed[service];
+    if (!filename) {
+      return res.status(400).json({ error: "Serviço inválido. Use 'map', 'char' ou 'login'." });
+    }
+    const maxLines = Math.min(Math.max(Number(req.query.lines) || 80, 10), 400);
+    const fullPath = path.join(config.logDir || '/rathena/log', filename);
+    try {
+      if (!fs.existsSync(fullPath)) {
+        return res.json({ service, lines: [], note: `Arquivo ${filename} ainda não criado (reinicie o container rathena para ativar console_msg_log).` });
+      }
+      const raw = fs.readFileSync(fullPath, 'utf8');
+      const allLines = raw.split(/\r?\n/).filter((l) => l.length > 0);
+      return res.json({ service, lines: allLines.slice(-maxLines) });
+    } catch (err) {
+      return res.status(500).json({ error: 'Falha ao ler arquivo de log.', details: err.code || 'FS_ERROR' });
+    }
+  });
+
   return app;
 }
 
@@ -363,6 +465,7 @@ function loadConfigFromEnv() {
     mapPort: Number(process.env.MAP_PORT || 5121),
     allowRegistration: String(process.env.WEBPANEL_ALLOW_REGISTRATION || 'true').toLowerCase() !== 'false',
     presetStateFile: process.env.PRESET_STATE_FILE || '/aureumro/state/active_preset',
+    logDir: process.env.RATHENA_LOG_DIR || '/rathena/log',
     db: {
       host: process.env.DB_HOST || '127.0.0.1',
       port: Number(process.env.DB_PORT || 3306),

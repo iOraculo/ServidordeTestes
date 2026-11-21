@@ -90,6 +90,7 @@ function setupTabs() {
       const panel = document.getElementById(`panel-${btn.dataset.tab}`);
       if (panel) panel.classList.add('active');
       if (btn.dataset.tab === 'ranking') fetchRanking();
+      if (btn.dataset.tab === 'admin') fetchLogs();
     });
   });
 }
@@ -142,9 +143,9 @@ function setupRegistrationForm() {
 
 function buildToolsQuery() {
   const params = new URLSearchParams();
-  params.set('name', document.getElementById('tools-name').value.trim() || 'Ragexe');
-  params.set('hpAddress', document.getElementById('tools-hp').value.trim() || '0x015FF908');
-  params.set('nameAddress', document.getElementById('tools-name-addr').value.trim() || '0x01602568');
+  params.set('name', document.getElementById('tools-name').value.trim() || 'FroggoClient');
+  params.set('hpAddress', document.getElementById('tools-hp').value.trim() || '0x01138DDC');
+  params.set('nameAddress', document.getElementById('tools-name-addr').value.trim() || '0x0113B7B0');
   const mapAddr = document.getElementById('tools-map-addr').value.trim();
   if (mapAddr) params.set('mapAddress', mapAddr);
   return `/api/supported-servers.json?${params.toString()}`;
@@ -171,11 +172,85 @@ function setupToolsForm() {
   });
 }
 
+async function fetchLogs() {
+  const out = document.getElementById('logs-output');
+  const svc = document.getElementById('log-service-select').value;
+  out.textContent = `Carregando logs de ${svc}-server...`;
+  try {
+    const res = await fetch(`/api/admin/logs?service=${encodeURIComponent(svc)}&lines=100`);
+    const data = await res.json();
+    if (!res.ok) {
+      out.textContent = data.error || 'Erro ao carregar logs.';
+      return;
+    }
+    if (data.lines && data.lines.length > 0) {
+      out.textContent = data.lines.join('\n');
+      out.scrollTop = out.scrollHeight;
+    } else {
+      out.textContent = data.note || 'Nenhuma linha de log disponível ainda.';
+    }
+  } catch {
+    out.textContent = 'Falha ao consultar API de logs.';
+  }
+}
+
+function setupAdminTools() {
+  const feedback = document.getElementById('admin-feedback');
+
+  const setMsg = (ok, text) => {
+    feedback.className = `feedback ${ok ? 'ok' : 'err'}`;
+    feedback.textContent = text;
+  };
+
+  document.getElementById('unstuck-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const charName = document.getElementById('admin-unstuck-name').value.trim();
+    const res = await fetch('/api/admin/unstuck', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ charName })
+    });
+    const data = await res.json();
+    setMsg(res.ok, data.message || data.error || 'Concluído.');
+  });
+
+  document.getElementById('zeny-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const charName = document.getElementById('admin-zeny-name').value.trim();
+    const amount = Number(document.getElementById('admin-zeny-amount').value);
+    const res = await fetch('/api/admin/give-zeny', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ charName, amount })
+    });
+    const data = await res.json();
+    setMsg(res.ok, data.message || data.error || 'Concluído.');
+    if (res.ok) fetchStatus();
+  });
+
+  const switchPreset = async (preset) => {
+    const res = await fetch('/api/admin/preset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preset })
+    });
+    const data = await res.json();
+    setMsg(res.ok, data.message || data.error || 'Preset atualizado.');
+    if (res.ok) fetchStatus();
+  };
+
+  document.getElementById('btn-preset-sandbox').addEventListener('click', () => switchPreset('sandbox'));
+  document.getElementById('btn-preset-aureumro').addEventListener('click', () => switchPreset('aureumro'));
+  document.getElementById('refresh-logs').addEventListener('click', fetchLogs);
+  document.getElementById('log-service-select').addEventListener('change', fetchLogs);
+}
+
 document.getElementById('refresh-ranking').addEventListener('click', fetchRanking);
 
 setupTabs();
 setupThemeToggle();
 setupRegistrationForm();
 setupToolsForm();
+setupAdminTools();
 fetchStatus();
 setInterval(fetchStatus, 15000);

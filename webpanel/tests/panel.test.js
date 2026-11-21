@@ -147,3 +147,83 @@ test('HTTP endpoints: /api/health, /api/status, /api/accounts, /api/ranking, /ap
     server.close();
   }
 });
+
+test('GM Admin endpoints: /api/admin/unstuck, /api/admin/give-zeny, /api/admin/preset, /api/admin/logs', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aureumro-panel-test-'));
+  const stateFile = path.join(tmpDir, 'active_preset');
+  const logDir = path.join(tmpDir, 'logs');
+  fs.mkdirSync(logDir, { recursive: true });
+  fs.writeFileSync(path.join(logDir, 'map-msg_log.log'), '[Status]: Map Server Ready\n[Info]: 16 custom NPCs loaded\n', 'utf8');
+
+  const fakePool = {
+    async query(sql, params) {
+      if (sql.includes('SET `clothes_color` = 0')) {
+        return [{ affectedRows: params && params[0] === 'MissingChar' ? 0 : 1 }];
+      }
+      if (sql.includes('SET `zeny` = LEAST')) {
+        return [{ affectedRows: params && params[1] === 'Oraculo' ? 1 : 0 }];
+      }
+      throw new Error(`Unexpected SQL: ${sql}`);
+    }
+  };
+
+  const app = createApp({
+    pool: fakePool,
+    config: {
+      serverName: 'AureumRO Testes',
+      publicIp: '127.0.0.1',
+      defaultPreset: 'sandbox',
+      packetver: '20220406',
+      rathenaHost: '127.0.0.1',
+      loginPort: 6900,
+      charPort: 6121,
+      mapPort: 5121,
+      allowRegistration: true,
+      presetStateFile: stateFile,
+      logDir
+    },
+    checkPort: async () => true
+  });
+
+  const { server, baseUrl } = await startTestServer(app);
+  try {
+    const unstuck = await fetch(`${baseUrl}/api/admin/unstuck`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ charName: 'Oraculo' })
+    });
+    assert.equal(unstuck.status, 200);
+
+    const zenyOk = await fetch(`${baseUrl}/api/admin/give-zeny`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ charName: 'Oraculo', amount: 1000000 })
+    });
+    assert.equal(zenyOk.status, 200);
+
+    const zenyBad = await fetch(`${baseUrl}/api/admin/give-zeny`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ charName: 'Oraculo', amount: -10 })
+    });
+    assert.equal(zenyBad.status, 400);
+
+    const presetRes = await fetch(`${baseUrl}/api/admin/preset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preset: 'aureumro' })
+    });
+    assert.equal(presetRes.status, 200);
+    assert.equal(fs.readFileSync(stateFile, 'utf8').trim(), 'aureumro');
+
+    const logs = await fetch(`${baseUrl}/api/admin/logs?service=map&lines=20`).then((r) => r.json());
+    assert.equal(logs.lines.length, 2);
+    assert.match(logs.lines[0], /Map Server Ready/);
+  } finally {
+    server.close();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});

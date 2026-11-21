@@ -103,10 +103,12 @@ services:
       MAP_PORT: ${MAP_PORT:-5121}
       WEBPANEL_ALLOW_REGISTRATION: ${WEBPANEL_ALLOW_REGISTRATION:-true}
       PRESET_STATE_FILE: /aureumro/state/active_preset
+      RATHENA_LOG_DIR: /rathena/log
     ports:
       - "${WEBPANEL_PORT:-8080}:8080"
     volumes:
-      - rathena_state:/aureumro/state:ro
+      - rathena_state:/aureumro/state
+      - rathena_logs:/rathena/log:ro
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/api/health"]
       interval: 15s

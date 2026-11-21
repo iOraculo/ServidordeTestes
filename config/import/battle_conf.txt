@@ -31,7 +31,7 @@ party_share_level: 15
 item_check: no
 multi_level_up: yes
 
-// Limites seguros de paletas para data.grf oficial kRO (evita crash CPaletteRes por .pal ausente)
-max_cloth_color: 3
+// Limite de paletas (o Estilista oferece Modo Seguro kRO 0..3 por padrão e Modo Expandido 0..553 com palette.grf)
+max_cloth_color: 553
 max_hair_style: 30
 max_hair_color: 8

@@ -1,0 +1,146 @@
+// =============================================================================
+// AureumRO Servidor de Testes - Gerenciador de Builds & Atributos em 1 Clique
+// Item 3:
+//   - Presets instantâneos de atributos (99 Transclasse) sem clicar 99 vezes
+//   - Definição direta de FOR/AGI/VIT/INT/DES/SOR por número
+//   - Salvar e carregar até 3 builds por personagem
+// =============================================================================
+
+prontera,146,191,5	script	Mestre das Builds	754,{
+	mes "[ ^B8860BMestre das Builds & Atributos^000000 ]";
+	mes "Distribua atributos instantaneamente ou salve/carregue até ^0055FF3 builds^000000 neste personagem!";
+	next;
+	switch (select(
+		"Aplicar Preset de Atributos (1 Clique)",
+		"Definir Atributos Manualmente (digitar valores)",
+		"Salvar Build Atual (Slots 1 a 3)",
+		"Carregar Build Salva (Slots 1 a 3)",
+		"Resetar Atributos (tudo em 1)",
+		"Cancelar"
+	)) {
+	case 1:
+		callsub L_Presets;
+		close;
+	case 2:
+		callsub L_ManualStats;
+		close;
+	case 3:
+		callsub L_SaveBuild;
+		close;
+	case 4:
+		callsub L_LoadBuild;
+		close;
+	case 5:
+		resetstatus;
+		mes "Atributos resetados!";
+		close;
+	case 6:
+		close;
+	}
+
+L_Presets:
+	mes "[ ^B8860BPresets de Atributos (99 Transclasse)^000000 ]";
+	mes "Escolha o arquétipo (seus atributos serão resetados e reaplicados):";
+	next;
+	switch (select(
+		"Físico ASPD / Crítico (FOR 99 / AGI 99 / DES 25)",
+		"Mágico Instant Cast (INT 99 / DES 99 / VIT 25)",
+		"WoE / Tank / Suporte (VIT 99 / DES 99 / INT 25)",
+		"Sniper / Atirador (AGI 99 / DES 99 / SOR 25)",
+		"Asura / Bomba Ácida (FOR 99 / INT 99 / DES 25)",
+		"Equilibrado PvP/MVP (FOR 85 / AGI 75 / VIT 70 / DES 65)",
+		"Cancelar"
+	)) {
+	case 1: callsub L_ApplyStats, 99, 99, 1, 1, 25, 1; break;
+	case 2: callsub L_ApplyStats, 1, 1, 25, 99, 99, 1; break;
+	case 3: callsub L_ApplyStats, 1, 1, 99, 25, 99, 1; break;
+	case 4: callsub L_ApplyStats, 1, 99, 1, 1, 99, 25; break;
+	case 5: callsub L_ApplyStats, 99, 1, 1, 99, 25, 1; break;
+	case 6: callsub L_ApplyStats, 85, 75, 70, 1, 65, 1; break;
+	default: return;
+	}
+	return;
+
+L_ManualStats:
+	mes "[ ^B8860BDefinir Atributos Manualmente^000000 ]";
+	mes "Informe o valor desejado (1 a 99) para cada atributo.";
+	mes "Os atributos serão resetados antes da aplicação.";
+	next;
+	mes "Digite ^0055FFFOR (STR)^000000 (1-99):"; input .@s, 1, 99;
+	mes "Digite ^0055FFAGI^000000 (1-99):";       input .@a, 1, 99;
+	mes "Digite ^0055FFVIT^000000 (1-99):";       input .@v, 1, 99;
+	mes "Digite ^0055FFINT^000000 (1-99):";       input .@i, 1, 99;
+	mes "Digite ^0055FFDES (DEX)^000000 (1-99):"; input .@d, 1, 99;
+	mes "Digite ^0055FFSOR (LUK)^000000 (1-99):"; input .@l, 1, 99;
+	callsub L_ApplyStats, .@s, .@a, .@v, .@i, .@d, .@l;
+	return;
+
+L_ApplyStats:
+	.@t_str = getarg(0);
+	.@t_agi = getarg(1);
+	.@t_vit = getarg(2);
+	.@t_int = getarg(3);
+	.@t_dex = getarg(4);
+	.@t_luk = getarg(5);
+
+	resetstatus;
+	if (.@t_str > 1) statusup2 bStr, .@t_str - 1;
+	if (.@t_agi > 1) statusup2 bAgi, .@t_agi - 1;
+	if (.@t_vit > 1) statusup2 bVit, .@t_vit - 1;
+	if (.@t_int > 1) statusup2 bInt, .@t_int - 1;
+	if (.@t_dex > 1) statusup2 bDex, .@t_dex - 1;
+	if (.@t_luk > 1) statusup2 bLuk, .@t_luk - 1;
+
+	percentheal 100, 100;
+	specialeffect2 EF_ANGEL2;
+	mes "[ ^B8860BMestre das Builds^000000 ]";
+	mes "Atributos aplicados:";
+	mes "FOR: " + readparam(bStr) + " | AGI: " + readparam(bAgi) + " | VIT: " + readparam(bVit);
+	mes "INT: " + readparam(bInt) + " | DES: " + readparam(bDex) + " | SOR: " + readparam(bLuk);
+	mes "Pontos restantes: " + StatusPoint;
+	return;
+
+L_SaveBuild:
+	.@slot = select(
+		"Slot 1 (" + (BUILD_NAME_1$ != "" ? BUILD_NAME_1$ : "Vazio") + ")",
+		"Slot 2 (" + (BUILD_NAME_2$ != "" ? BUILD_NAME_2$ : "Vazio") + ")",
+		"Slot 3 (" + (BUILD_NAME_3$ != "" ? BUILD_NAME_3$ : "Vazio") + ")",
+		"Cancelar"
+	);
+	if (.@slot == 4) return;
+	mes "Digite um nome curto para esta build (ex.: WoE, MVP, Crit):";
+	input .@bname$;
+	setd "BUILD_NAME_" + .@slot + "$", .@bname$;
+	setd "BUILD_STR_" + .@slot, readparam(bStr);
+	setd "BUILD_AGI_" + .@slot, readparam(bAgi);
+	setd "BUILD_VIT_" + .@slot, readparam(bVit);
+	setd "BUILD_INT_" + .@slot, readparam(bInt);
+	setd "BUILD_DEX_" + .@slot, readparam(bDex);
+	setd "BUILD_LUK_" + .@slot, readparam(bLuk);
+	mes "Build ^B8860B" + .@bname$ + "^000000 salva no Slot " + .@slot + "!";
+	return;
+
+L_LoadBuild:
+	.@slot = select(
+		"Slot 1 (" + (BUILD_NAME_1$ != "" ? BUILD_NAME_1$ : "Vazio") + ")",
+		"Slot 2 (" + (BUILD_NAME_2$ != "" ? BUILD_NAME_2$ : "Vazio") + ")",
+		"Slot 3 (" + (BUILD_NAME_3$ != "" ? BUILD_NAME_3$ : "Vazio") + ")",
+		"Cancelar"
+	);
+	if (.@slot == 4) return;
+	if (getd("BUILD_NAME_" + .@slot + "$") == "") {
+		mes "Este slot está vazio!";
+		return;
+	}
+	callsub L_ApplyStats,
+		getd("BUILD_STR_" + .@slot),
+		getd("BUILD_AGI_" + .@slot),
+		getd("BUILD_VIT_" + .@slot),
+		getd("BUILD_INT_" + .@slot),
+		getd("BUILD_DEX_" + .@slot),
+		getd("BUILD_LUK_" + .@slot);
+	return;
+}
+
+// Duplicata na Arena de Treino 4Tools
+pvp_n_1-5,116,104,3	duplicate(Mestre das Builds)	Mestre das Builds#4tools	754

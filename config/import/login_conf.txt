@@ -16,3 +16,6 @@ use_MD5_passwords: no
 
 // Grupo VIP conforme Wiki AureumRO
 vip_group: 5
+
+// Grava logs de console em /rathena/log/login-msg_log.log para o Painel Web
+console_msg_log: 15
