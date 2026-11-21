@@ -11,16 +11,43 @@ aura_lv: 99
 max_aspd: 190
 max_parameter: 99
 max_baby_parameter: 80
-max_cart_weight: 8000
+
+// =============================================================================
+// Mecânicas de Servidor de Testes (Peso Liberado & Conforto de Sandbox)
+// =============================================================================
+// Remove penalidades de sobrepeso (50% sem regen / 90% sem ataque) e amplia carrinho
+natural_heal_weight_rate: 100
+major_overweight_rate: 100
+open_box_weight_rate: 100
+max_cart_weight: 99999
+
+// Equipamentos não quebram durante testes (Acid Terror, Meltdown, etc.)
+equip_natural_break_rate: 0
+equip_self_break_rate: 0
+equip_skill_break_rate: 0
+
+// Munições infinitas (flechas, projéteis, kunais e shurikens não são consumidos)
+arrow_decrement: 0
+
+// Reviver sempre com 100% HP/SP (inclusive ao teleportar morto) e logout instantâneo
+restart_hp_rate: 100
+restart_sp_rate: 100
+revive_onwarp: yes
+prevent_logout: 0
+
+// Sem burocracia de habilidades básicas (sentar/chat/party no Nv.1) nem trava perto de NPCs
+basic_skill_check: no
+quest_skill_reset: no
+min_npc_vendchat_distance: 0
 
 // Conjuração instantânea clássica Pré-Renewal com 150 DES
 castrate_dex_scale: 150
 
-// Exibe EXP e Zeny ganhos para facilitar testes de farm e balanceamento
+// Telemetria completa no cliente (EXP, Zeny, dreno/ganho HP/SP, timers e HP dos monstros)
 disp_experience: yes
 disp_zeny: yes
-
-// Permite testar buffs e habilidades sem bloqueios desnecessários de cliente
+show_hp_sp_drain: yes
+show_hp_sp_gain: yes
 display_status_timers: yes
 show_mob_info: 3
 

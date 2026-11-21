@@ -41,10 +41,15 @@ prontera,156,195,4	script	Guia AureumRO	105,{
 		close;
 	case 3:
 		mes "[ ^B8860BGuia AureumRO^000000 ]";
-		mes "Comandos Rápidos AureumRO:";
-		mes "^B8860B@restock, @buff, @arena, @hub^000000";
-		mes "Comandos de Jogador:";
-		mes "^006600@commands, @rates, @go, @autoloot, @alootid, @mi, @ii, @whodrops, @whereis, @refresh, @noks, @showexp, @storage^000000";
+		mes "Comandos Rápidos de Teste:";
+		mes "^B8860B@full, @buff, @debuff, @restock, @reparar, @kafra^000000";
+		mes "^0055FF@arena, @hub, @mvp, @dummy, @cleardummy, @turbo, @pacifico^000000";
+		next;
+		mes "[ ^B8860BGuia AureumRO^000000 ]";
+		mes "Mecânicas de Teste Ativas:";
+		mes "- Peso máximo 99.999 sem trava de 50%/90% + Carrinho 99.999";
+		mes "- Munições/Flechas infinitas + Equipamentos inquebráveis";
+		mes "- Reviver com 100% HP/SP + Logout instantâneo";
 		next;
 		mes "[ ^B8860BGuia AureumRO^000000 ]";
 		mes "Conta ^B8860Btester^000000 (Grupo 1) e ^FF0000admin^000000 (GM 99) também possuem:";

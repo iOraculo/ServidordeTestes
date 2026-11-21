@@ -1,0 +1,86 @@
+# ==============================================================================
+# AureumRO Servidor de Testes — Sobreposição de Peso Máximo por Classe
+# Aumenta o limite base de peso para 99.999 (999990 em décimos) em todas as
+# classes Pré-Renewal, preservando HP/SP/ASPD/Bônus de Job oficiais.
+# ==============================================================================
+Header:
+  Type: JOB_STATS
+  Version: 4
+
+Body:
+  - Jobs:
+      Novice: true
+      Swordman: true
+      Mage: true
+      Archer: true
+      Acolyte: true
+      Merchant: true
+      Thief: true
+      Knight: true
+      Knight2: true
+      Priest: true
+      Wizard: true
+      Blacksmith: true
+      Hunter: true
+      Assassin: true
+      Crusader: true
+      Crusader2: true
+      Monk: true
+      Sage: true
+      Rogue: true
+      Alchemist: true
+      Bard: true
+      Dancer: true
+      Supernovice: true
+      Gunslinger: true
+      Ninja: true
+      Taekwon: true
+      Star_Gladiator: true
+      Star_Gladiator2: true
+      Soul_Linker: true
+      Novice_High: true
+      Swordman_High: true
+      Mage_High: true
+      Archer_High: true
+      Acolyte_High: true
+      Merchant_High: true
+      Thief_High: true
+      Lord_Knight: true
+      Lord_Knight2: true
+      High_Priest: true
+      High_Wizard: true
+      Whitesmith: true
+      Sniper: true
+      Assassin_Cross: true
+      Paladin: true
+      Paladin2: true
+      Champion: true
+      Professor: true
+      Stalker: true
+      Creator: true
+      Clown: true
+      Gypsy: true
+      Baby: true
+      Baby_Swordman: true
+      Baby_Mage: true
+      Baby_Archer: true
+      Baby_Acolyte: true
+      Baby_Merchant: true
+      Baby_Thief: true
+      Baby_Knight: true
+      Baby_Knight2: true
+      Baby_Priest: true
+      Baby_Wizard: true
+      Baby_Blacksmith: true
+      Baby_Hunter: true
+      Baby_Assassin: true
+      Baby_Crusader: true
+      Baby_Crusader2: true
+      Baby_Monk: true
+      Baby_Sage: true
+      Baby_Rogue: true
+      Baby_Alchemist: true
+      Baby_Bard: true
+      Baby_Dancer: true
+      Super_Baby: true
+    MaxWeight: 999990

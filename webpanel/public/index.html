@@ -381,24 +381,24 @@
         </div>
 
         <div class="card">
-          <h3>Comandos Rápidos &amp; Scripts Visuais</h3>
-          <p class="muted">Comandos customizados disponíveis para qualquer conta:</p>
+          <h3>Comandos Rápidos &amp; Mecânicas de Teste</h3>
+          <p class="muted">Peso máximo <strong>99.999</strong> (sem trava de 50%/90%), munições infinitas, equipamentos inquebráveis, revive 100% HP/SP e logout instantâneo:</p>
           <ul class="checklist">
-            <li><code>@restock</code> — reabastece Poção Branca Compacta, Azul, Yggdrasil, Panaceia, Verde, Água Benta, Doce de Elvira e Gemas.</li>
-            <li><code>@buff</code> — cura 100% + remove debuffs + Bênção + Agilidade + Assumptio.</li>
-            <li><code>@arena</code> — teleporta direto para a Arena de Treino 4Tools (<code>pvp_n_1-5</code>).</li>
-            <li><code>@hub</code> — volta instantaneamente para o Hub de Prontera.</li>
+            <li><code>@full</code> — HP/SP 100%, limpa debuffs, repara/identifica tudo e aplica buffs completos.</li>
+            <li><code>@restock</code> / <code>@buff</code> / <code>@debuff</code> — reabastecimento 4Tools, buffs rápidos ou limpeza só de debuffs.</li>
+            <li><code>@arena</code> / <code>@mvp</code> / <code>@hub</code> — teleporte instantâneo para Arena 4Tools, Sala MVP Privada ou Prontera.</li>
+            <li><code>@dummy</code> / <code>@cleardummy</code> — invoca/remove Dummy 5M HP na sua frente (na Arena ou Sala MVP).</li>
+            <li><code>@turbo</code> / <code>@pacifico</code> / <code>@kafra</code> / <code>@reparar</code> — velocidade rápida, modo imune a aggro, armazém remoto e reparo/identificação.</li>
           </ul>
           <h4>Visuais do Cliente &amp; Backup (PowerShell)</h4>
           <pre class="code-block"><code># Instalar Login, Loading Screens e Skin AureumRO_Obsidian
-.\scripts\install-client-visuals.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\install-client-visuals.ps1
 
 # Alternar Graymap (chaopreto.grf) no DATA.INI
-.\scripts\toggle-graymap.ps1 on
+powershell -ExecutionPolicy Bypass -File .\scripts\toggle-graymap.ps1 on
 
 # Backup / Restore do banco MariaDB
-.\scripts\backup-db.ps1
-.\scripts\restore-db.ps1 backups\aureumro_YYYYMMDD_HHMMSS.sql</code></pre>
+powershell -ExecutionPolicy Bypass -File .\scripts\backup-db.ps1</code></pre>
         </div>
       </div>
     </section>

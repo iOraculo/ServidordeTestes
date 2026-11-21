@@ -86,13 +86,22 @@ OnInit:
 // Duplicata na Arena de Treino 4Tools
 pvp_n_1-5,88,104,5	duplicate(Kafra & Lixeira)	Kafra & Lixeira#4tools	112
 
-// Comandos rápidos globais (@restock, @buff, @arena, @hub)
+// Comandos rápidos globais de Servidor de Testes
 -	script	AureumRO_AtCommands	-1,{
 OnInit:
-	bindatcmd "restock", strnpcinfo(3) + "::OnRestock", 0, 99;
-	bindatcmd "buff",    strnpcinfo(3) + "::OnBuff",    0, 99;
-	bindatcmd "arena",   strnpcinfo(3) + "::OnArena",   0, 99;
-	bindatcmd "hub",     strnpcinfo(3) + "::OnHub",     0, 99;
+	bindatcmd "restock",    strnpcinfo(3) + "::OnRestock",    0, 99;
+	bindatcmd "buff",       strnpcinfo(3) + "::OnBuff",       0, 99;
+	bindatcmd "full",       strnpcinfo(3) + "::OnFull",       0, 99;
+	bindatcmd "debuff",     strnpcinfo(3) + "::OnClearDebuff",0, 99;
+	bindatcmd "arena",      strnpcinfo(3) + "::OnArena",      0, 99;
+	bindatcmd "hub",        strnpcinfo(3) + "::OnHub",        0, 99;
+	bindatcmd "mvp",        strnpcinfo(3) + "::OnMvpRoom",    0, 99;
+	bindatcmd "dummy",      strnpcinfo(3) + "::OnSpawnDummy", 0, 99;
+	bindatcmd "cleardummy", strnpcinfo(3) + "::OnClearDummy", 0, 99;
+	bindatcmd "turbo",      strnpcinfo(3) + "::OnTurbo",      0, 99;
+	bindatcmd "pacifico",   strnpcinfo(3) + "::OnPacifico",   0, 99;
+	bindatcmd "kafra",      strnpcinfo(3) + "::OnKafra",      0, 99;
+	bindatcmd "reparar",    strnpcinfo(3) + "::OnReparar",    0, 99;
 	end;
 
 OnRestock:
@@ -110,13 +119,7 @@ OnRestock:
 
 OnBuff:
 	percentheal 100, 100;
-	sc_end SC_POISON;
-	sc_end SC_SILENCE;
-	sc_end SC_BLIND;
-	sc_end SC_CURSE;
-	sc_end SC_CONFUSION;
-	sc_end SC_BLEEDING;
-	sc_end SC_CRITICALWOUND;
+	callsub L_RemoveDebuffs;
 	sc_start SC_BLESSING, 600000, 10;
 	sc_start SC_INCREASEAGI, 600000, 10;
 	sc_start SC_ASSUMPTIO, 300000, 5;
@@ -126,6 +129,51 @@ OnBuff:
 	dispbottom "[AureumRO] @buff aplicado (HP/SP 100% + Bênção + Agilidade + Assumptio).";
 	end;
 
+OnFull:
+	percentheal 100, 100;
+	callsub L_RemoveDebuffs;
+	atcommand "@repairall";
+	atcommand "@identifyall";
+	sc_start SC_BLESSING, 600000, 10;
+	sc_start SC_INCREASEAGI, 600000, 10;
+	sc_start SC_ASSUMPTIO, 600000, 5;
+	sc_start SC_MAGNIFICAT, 600000, 5;
+	sc_start SC_GLORIA, 600000, 5;
+	sc_start SC_IMPOSITIO, 600000, 5;
+	specialeffect2 EF_HEAL2;
+	specialeffect2 EF_ASSUMPTIO;
+	dispbottom "[AureumRO] @full aplicado! HP/SP 100%, debuffs limpos, itens reparados/identificados e buffs completos.";
+	end;
+
+OnClearDebuff:
+	callsub L_RemoveDebuffs;
+	specialeffect2 EF_CURE;
+	dispbottom "[AureumRO] @debuff concluído! Todos os status negativos foram removidos sem apagar seus buffs.";
+	end;
+
+L_RemoveDebuffs:
+	sc_end SC_POISON;
+	sc_end SC_SILENCE;
+	sc_end SC_BLIND;
+	sc_end SC_CURSE;
+	sc_end SC_CONFUSION;
+	sc_end SC_BLEEDING;
+	sc_end SC_STUN;
+	sc_end SC_FREEZE;
+	sc_end SC_STONE;
+	sc_end SC_SLEEP;
+	sc_end SC_HALLUCINATION;
+	sc_end SC_CRITICALWOUND;
+	sc_end SC_BURNING;
+	sc_end SC_FREEZING;
+	sc_end SC_OVERHEAT;
+	sc_end SC_MANDRAGORA;
+	sc_end SC_SLOWCAST;
+	sc_end SC_CHANGEUNDEAD;
+	sc_end SC_DECREASEAGI;
+	sc_end SC_QUAGMIRE;
+	return;
+
 OnArena:
 	warp "pvp_n_1-5", 100, 100;
 	dispbottom "[AureumRO] Teleportado para a Arena de Treino 4Tools (pvp_n_1-5).";
@@ -134,5 +182,66 @@ OnArena:
 OnHub:
 	warp "prontera", 156, 191;
 	dispbottom "[AureumRO] Teleportado para o Hub de Prontera.";
+	end;
+
+OnMvpRoom:
+	warp "guild_vs3", 50, 50;
+	dispbottom "[AureumRO] Teleportado para a Sala MVP Privada (guild_vs3).";
+	end;
+
+OnSpawnDummy:
+	getmapxy .@map$, .@x, .@y, BL_PC;
+	if (.@map$ != "pvp_n_1-5" && .@map$ != "guild_vs3") {
+		dispbottom "[AureumRO] Use @dummy dentro da Arena (@arena) ou na Sala MVP (@mvp)!";
+		end;
+	}
+	.@gid = monster(.@map$, .@x + 2, .@y, "Dummy 5M HP (DEF 0)", 1905, 1, strnpcinfo(3) + "::OnCustomDummyDead");
+	if (.@gid > 0) {
+		setunitdata .@gid, UMOB_MAXHP, 5000000;
+		setunitdata .@gid, UMOB_HP, 5000000;
+		setunitdata .@gid, UMOB_DEF, 0;
+		setunitdata .@gid, UMOB_MDEF, 0;
+		setunitdata .@gid, UMOB_ATKMIN, 0;
+		setunitdata .@gid, UMOB_ATKMAX, 0;
+		dispbottom "[AureumRO] Dummy 5M HP invocado em " + .@map$ + " (" + (.@x + 2) + ", " + .@y + "). Use @cleardummy para remover.";
+	}
+	end;
+
+OnClearDummy:
+	getmapxy .@map$, .@x, .@y, BL_PC;
+	killmonster .@map$, strnpcinfo(3) + "::OnCustomDummyDead";
+	dispbottom "[AureumRO] Todos os dummies invocados por @dummy em " + .@map$ + " foram removidos.";
+	end;
+
+OnCustomDummyDead:
+	end;
+
+OnTurbo:
+	if (@aureum_turbo) {
+		@aureum_turbo = 0;
+		atcommand "@speed 150";
+		dispbottom "[AureumRO] Modo @turbo DESATIVADO (velocidade padrão).";
+	} else {
+		@aureum_turbo = 1;
+		atcommand "@speed 100";
+		specialeffect2 EF_INCAGILITY;
+		dispbottom "[AureumRO] Modo @turbo ATIVADO (movimento rápido para testes). Digite @turbo novamente para voltar ao normal.";
+	}
+	end;
+
+OnPacifico:
+	atcommand "@monsterignore";
+	dispbottom "[AureumRO] Modo @pacifico alternado! (Monstros/MVPs ignoram você enquanto estiver ativo.)";
+	end;
+
+OnKafra:
+	openstorage;
+	end;
+
+OnReparar:
+	atcommand "@repairall";
+	atcommand "@identifyall";
+	specialeffect2 EF_REPAIRWEAPON;
+	dispbottom "[AureumRO] Todos os equipamentos reparados e itens identificados!";
 	end;
 }

@@ -31,7 +31,19 @@ Body:
       autoloottype: true
       autotrade: true
       go: true
+      warp: true
+      heal: true
       storage: true
+      storeall: true
+      repairall: true
+      identify: true
+      identifyall: true
+      speed: true
+      feelreset: true
+      hominfo: true
+      homstats: true
+      monsterignore: true
+      refineui: true
       changedress: true
       resurrect: true
     Permissions:
@@ -46,22 +58,22 @@ Body:
     Level: 0
     Commands:
       # Comandos adicionais liberados para a conta 'tester'
-      warp: true
-      heal: true
       blvl: true
       jlvl: true
       jobchange: true
       allskill: true
       allstats: true
       item: true
+      item2: true
       zeny: true
       monster: true
       killmonster2: true
-      speed: true
-      repairall: true
-      identify: true
       refine: true
       cleanmap: true
+      homlevel: true
+      homfriendly: true
+      homhungry: true
+      homevolution: true
       reloadscript: false
     Permissions:
       can_trade: true
