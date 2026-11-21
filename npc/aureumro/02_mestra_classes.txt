@@ -9,7 +9,10 @@ prontera,150,191,5	script	Mestra das Classes	123,{
 	mes "Bem-vindo ao serviço de classes Pré-Renewal (Cap 99/70) do ^B8860BAureumRO^000000.";
 	next;
 	switch (select(
-		"Trocar de Classe / Transclasse",
+		"^0055FF[Direto] Escolher Transclasse 99/70 + Todas Skills Max^000000",
+		"^0055FF[Direto] Escolher Classe Expandida 99 + Todas Skills Max^000000",
+		"Maximizar Todas as Skills da Classe Atual",
+		"Trocar de Classe / Reborn (Modo Progressão)",
 		"Receber Habilidades de Platina",
 		"Alugar Carrinho / Falcão / PecoPeco",
 		"Resetar Atributos e Habilidades",
@@ -17,15 +20,28 @@ prontera,150,191,5	script	Mestra das Classes	123,{
 		"Cancelar"
 	)) {
 	case 1:
-		callsub L_ChangeJob;
+		callsub L_DirectTransclass;
 		close;
 	case 2:
-		callsub L_PlatinumSkills;
+		callsub L_DirectExpanded;
 		close;
 	case 3:
-		callsub L_Rental;
+		atcommand "@allskill";
+		callsub L_PlatinumSkills;
+		percentheal 100, 100;
+		mes "[ ^B8860BMestra das Classes^000000 ]";
+		mes "Todas as habilidades da sua classe atual foram maximizadas!";
 		close;
 	case 4:
+		callsub L_ChangeJob;
+		close;
+	case 5:
+		callsub L_PlatinumSkills;
+		close;
+	case 6:
+		callsub L_Rental;
+		close;
+	case 7:
 		mes "[ ^B8860BMestra das Classes^000000 ]";
 		mes "O que deseja resetar gratuitamente?";
 		next;
@@ -46,11 +62,11 @@ prontera,150,191,5	script	Mestra das Classes	123,{
 		case 4:
 			close;
 		}
-	case 5:
+	case 8:
 		if (BaseLevel < 99) {
 			BaseLevel = 99;
 		}
-		.@max_job = (Upper == 1 || Class == Job_SuperNovice || Class == Job_Gunslinger || Class == Job_Ninja || Class == Job_Star_Gladiator || Class == Job_Soul_Linker) ? 70 : 50;
+		.@max_job = (Upper == 1 || Class == Job_SuperNovice || Class == Job_Gunslinger || Class == Job_Ninja) ? 70 : 50;
 		if (Class == Job_Novice || Class == Job_Novice_High) {
 			.@max_job = 10;
 		}
@@ -62,9 +78,98 @@ prontera,150,191,5	script	Mestra das Classes	123,{
 		mes "[ ^B8860BMestra das Classes^000000 ]";
 		mes "Pronto! Seu personagem foi elevado para o nível máximo da classe atual (" + BaseLevel + "/" + JobLevel + ").";
 		close;
-	case 6:
+	case 9:
 		close;
 	}
+
+L_DirectTransclass:
+	mes "[ ^B8860BMestra das Classes - Transclasse Direta^000000 ]";
+	mes "Escolha a ^0055FFTransclasse (99/70)^000000 desejada:";
+	mes "Todas as skills + Habilidades de Platina serão maximizadas automaticamente!";
+	next;
+	.@pick = select(
+		"Lorde (Lord Knight)",
+		"Paladino (Paladin)",
+		"Arquimago (High Wizard)",
+		"Professor (Scholar)",
+		"Atirador de Elite (Sniper)",
+		(Sex == SEX_MALE ? "Menestrel (Clown)" : "Cigana (Gypsy)"),
+		"Sumo Sacerdote (High Priest)",
+		"Mestre (Champion)",
+		"Mestre-Ferreiro (Whitesmith)",
+		"Criador (Creator)",
+		"Algoz (Assassin Cross)",
+		"Desordeiro (Stalker)",
+		"Cancelar"
+	);
+	if (.@pick == 13) return;
+
+	setarray .@jobs[1],
+		Job_Lord_Knight,
+		Job_Paladin,
+		Job_High_Wizard,
+		Job_Professor,
+		Job_Sniper,
+		(Sex == SEX_MALE ? Job_Clown : Job_Gypsy),
+		Job_High_Priest,
+		Job_Champion,
+		Job_Whitesmith,
+		Job_Creator,
+		Job_Assassin_Cross,
+		Job_Stalker;
+
+	callsub L_ApplyDirectClass, .@jobs[.@pick], 70;
+	return;
+
+L_DirectExpanded:
+	mes "[ ^B8860BMestra das Classes - Expandidas^000000 ]";
+	mes "Escolha a ^0055FFClasse Expandida^000000 desejada (nível máximo + todas as skills maximizadas):";
+	next;
+	.@pick = select(
+		"Super Aprendiz (99/99)",
+		"Justiceiro (99/70)",
+		"Ninja (99/70)",
+		"Mestre Taekwon (99/50)",
+		"Espiritualista (99/50)",
+		"Cancelar"
+	);
+	if (.@pick == 6) return;
+
+	setarray .@jobs[1], Job_SuperNovice, Job_Gunslinger, Job_Ninja, Job_Star_Gladiator, Job_Soul_Linker;
+	setarray .@jlv[1], 99, 70, 70, 50, 50;
+
+	callsub L_ApplyDirectClass, .@jobs[.@pick], .@jlv[.@pick];
+	return;
+
+L_ApplyDirectClass:
+	.@target_job = getarg(0);
+	.@target_jlv = getarg(1);
+
+	if (checkcart()) setcart 0;
+	if (checkfalcon()) setfalcon 0;
+	if (checkriding()) setriding 0;
+
+	resetskill;
+	jobchange .@target_job;
+	BaseLevel = 99;
+	JobLevel = .@target_jlv;
+	resetstatus;
+	atcommand "@allskill";
+	callsub L_PlatinumSkills;
+
+	if (BaseClass == Job_Merchant || Class == Job_SuperNovice) {
+		if (!checkcart()) setcart;
+	} else if (BaseJob == Job_Hunter) {
+		if (!checkfalcon()) setfalcon;
+	} else if (BaseJob == Job_Knight || BaseJob == Job_Crusader) {
+		if (!checkriding()) setriding;
+	}
+
+	percentheal 100, 100;
+	specialeffect2 EF_ANGEL2;
+	mes "[ ^B8860BMestra das Classes^000000 ]";
+	mes "Pronto! Você agora é ^B8860B" + jobname(Class) + " (" + BaseLevel + "/" + JobLevel + ")^000000 com ^006600todas as skills maximizadas^000000 e atributos prontos para distribuir!";
+	return;
 
 L_ChangeJob:
 	if (SkillPoint > 0) {
@@ -343,3 +448,6 @@ L_Rental:
 	mes "Você já possui seu aluguel ou não tem a habilidade necessária (Usar Carrinho, Adestrar Falcão ou Montaria).";
 	return;
 }
+
+// Duplicata dentro da Arena de Treino 4Tools para trocar de classe sem sair da Arena
+pvp_n_1-5,108,104,3	duplicate(Mestra das Classes)	Mestra das Classes#4tools	123
