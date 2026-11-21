@@ -1,0 +1,354 @@
+// =============================================================================
+// AureumRO Servidor de Testes - Arsenal Divino (+10 & Melhores Cartas MVP)
+// Entrega kits completos por classe com Itens Divinos (Godly), equipamentos +10
+// com cartas MVP/WoE ja encaixadas e kit dedicado para testar ATK x DEF no 4Tools.
+// =============================================================================
+
+prontera,148,193,5	script	Arsenal Divino	813,{
+	mes "[ ^B8860BArsenal Divino AureumRO (+10)^000000 ]";
+	mes "Receba gratuitamente kits completos com ^B8860BItens Divinos^000000, equipamentos ^0055FF+10^000000 e as ^006600melhores cartas MVP^000000 já encaixadas!";
+	next;
+	switch (select(
+		"^B8860B[Automático] Kit Divino da Minha Classe Atual^000000",
+		"Escolher Kit de Transclasse (99/70)",
+		"Escolher Kit de Classe Expandida",
+		"^0055FF[4Tools] Kit Troca DEF / WoE (Ghostring, Tao, Deviling, Thara, GTB)^000000",
+		"Pacote Itens Divinos (Brynhild, Asprika, Sleipnir, Megin, Bris, Mjolnir)",
+		"Cancelar"
+	)) {
+	case 1:
+		callsub L_GiveForCurrentClass;
+		close;
+	case 2:
+		switch (select(
+			"Lorde (Lord Knight)",
+			"Paladino (Paladin)",
+			"Arquimago (High Wizard)",
+			"Professor (Scholar)",
+			"Atirador de Elite (Sniper)",
+			"Menestrel / Cigana (Clown / Gypsy)",
+			"Sumo Sacerdote (High Priest)",
+			"Mestre (Champion)",
+			"Mestre-Ferreiro (Whitesmith)",
+			"Criador (Creator)",
+			"Algoz (Assassin Cross)",
+			"Desordeiro (Stalker)",
+			"Cancelar"
+		)) {
+		case 1:  callsub L_Kit_LK; break;
+		case 2:  callsub L_Kit_Pala; break;
+		case 3:  callsub L_Kit_HW; break;
+		case 4:  callsub L_Kit_Prof; break;
+		case 5:  callsub L_Kit_Sniper; break;
+		case 6:  callsub L_Kit_ClownGypsy; break;
+		case 7:  callsub L_Kit_HP; break;
+		case 8:  callsub L_Kit_Champ; break;
+		case 9:  callsub L_Kit_WS; break;
+		case 10: callsub L_Kit_Creator; break;
+		case 11: callsub L_Kit_SinX; break;
+		case 12: callsub L_Kit_Stalker; break;
+		default: close;
+		}
+		close;
+	case 3:
+		switch (select(
+			"Super Aprendiz",
+			"Justiceiro (Gunslinger)",
+			"Ninja",
+			"Mestre Taekwon / Espiritualista",
+			"Cancelar"
+		)) {
+		case 1: callsub L_Kit_SN; break;
+		case 2: callsub L_Kit_GS; break;
+		case 3: callsub L_Kit_Ninja; break;
+		case 4: callsub L_Kit_TKSL; break;
+		default: close;
+		}
+		close;
+	case 4:
+		callsub L_Kit_DefSwitch;
+		close;
+	case 5:
+		callsub L_Kit_AllGodly;
+		close;
+	case 6:
+		close;
+	}
+
+L_GiveForCurrentClass:
+	switch (BaseJob) {
+	case Job_Knight:         callsub L_Kit_LK; return;
+	case Job_Crusader:       callsub L_Kit_Pala; return;
+	case Job_Wizard:         callsub L_Kit_HW; return;
+	case Job_Sage:           callsub L_Kit_Prof; return;
+	case Job_Hunter:         callsub L_Kit_Sniper; return;
+	case Job_Bard:
+	case Job_Dancer:         callsub L_Kit_ClownGypsy; return;
+	case Job_Priest:         callsub L_Kit_HP; return;
+	case Job_Monk:           callsub L_Kit_Champ; return;
+	case Job_Blacksmith:     callsub L_Kit_WS; return;
+	case Job_Alchemist:      callsub L_Kit_Creator; return;
+	case Job_Assassin:       callsub L_Kit_SinX; return;
+	case Job_Rogue:          callsub L_Kit_Stalker; return;
+	case Job_SuperNovice:    callsub L_Kit_SN; return;
+	case Job_Gunslinger:     callsub L_Kit_GS; return;
+	case Job_Ninja:          callsub L_Kit_Ninja; return;
+	case Job_Star_Gladiator:
+	case Job_Soul_Linker:    callsub L_Kit_TKSL; return;
+	default:
+		mes "[ ^B8860BArsenal Divino^000000 ]";
+		mes "Pegue primeiro sua Transclasse na ^0055FFMestra das Classes^000000 ou escolha um kit manualmente no menu!";
+		return;
+	}
+
+// Base Divina Fisica (Brynhild + Asprika + Sleipnir + 2x Megingjard + Oculos [Orc Hero] + Lenco)
+L_BaseGodlyPhysical:
+	getitem2 2383, 1, 1, 0, 0, 0, 0, 0, 0;     // Brynhild
+	getitem2 2541, 1, 1, 0, 0, 0, 0, 0, 0;     // Asprika
+	getitem2 2410, 1, 1, 0, 0, 0, 0, 0, 0;     // Sleipnir
+	getitem2 2629, 2, 1, 0, 0, 0, 0, 0, 0;     // 2x Megingjard
+	getitem2 2202, 1, 1, 0, 0, 4143, 0, 0, 0;  // Oculos Escuros [Orc Hero]
+	getitem2 5361, 1, 1, 0, 0, 0, 0, 0, 0;     // Gangster Scarf (ATK +5)
+	getitem2 2115, 1, 1, 10, 0, 4128, 0, 0, 0; // +10 Escudo das Valquirias [GTB]
+	return;
+
+// Base Divina Magica / Cast (Brynhild + Asprika + Sleipnir + 2x Luva Orleans [Berzebub] + Bota Diabolus [Bispo Decadente])
+L_BaseGodlyMagic:
+	getitem2 2383, 1, 1, 0, 0, 0, 0, 0, 0;     // Brynhild
+	getitem2 2541, 1, 1, 0, 0, 0, 0, 0, 0;     // Asprika
+	getitem2 2410, 1, 1, 0, 0, 0, 0, 0, 0;     // Sleipnir
+	getitem2 2701, 2, 1, 0, 0, 4145, 0, 0, 0;  // 2x Luva de Orleans [Berzebub]
+	getitem2 2630, 1, 1, 0, 0, 0, 0, 0, 0;     // Brisingamen
+	getitem2 2433, 1, 1, 10, 0, 4441, 0, 0, 0; // +10 Botas de Diabolus [Bispo Decadente]
+	getitem2 2115, 1, 1, 10, 0, 4128, 0, 0, 0; // +10 Escudo das Valquirias [GTB]
+	return;
+
+L_Kit_LK:
+	callsub L_BaseGodlyPhysical;
+	getitem2 5171, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Elmo das Valquirias [Kiel-D-01]
+	getitem2 13412, 1, 1, 10, 0, 4399, 4305, 4407, 0;// +10 Lamina Gemea Vermelha [Thanatos + TG + Randgris]
+	getitem2 1422, 1, 1, 10, 0, 4140, 0, 0, 0;       // +10 Lanca de Caca [Cavaleiro do Abismo]
+	getitem2 1185, 1, 1, 10, 0, 4305, 4142, 0, 0;    // +10 Espada Violeta [TG + Doppelganger]
+	getitem2 2357, 1, 1, 10, 0, 4302, 0, 0, 0;       // +10 Armadura das Valquirias [Tao Gunka]
+	specialeffect2 EF_REFINEOK;
+	mes "Kit Divino +10 de ^B8860BLorde^000000 entregue!";
+	return;
+
+L_Kit_Pala:
+	callsub L_BaseGodlyPhysical;
+	getitem2 2630, 2, 1, 0, 0, 0, 0, 0, 0;           // 2x Brisingamen
+	getitem2 5171, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Elmo das Valquirias [Kiel-D-01]
+	getitem2 2357, 1, 1, 10, 0, 4302, 0, 0, 0;       // +10 Armadura das Valquirias [Tao Gunka]
+	getitem2 2130, 1, 1, 10, 0, 4128, 0, 0, 0;       // +10 Escudo Cruzado [GTB]
+	getitem2 2130, 1, 1, 10, 0, 4058, 0, 0, 0;       // +10 Escudo Cruzado [Sapo de Thara]
+	getitem2 1418, 1, 1, 10, 0, 4035, 4035, 0, 0;    // +10 Gungnir [2x Hidra]
+	getitem2 1228, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Faca de Combate
+	specialeffect2 EF_REFINEOK;
+	mes "Kit Divino +10 de ^B8860BPaladino^000000 entregue!";
+	return;
+
+L_Kit_HW:
+	callsub L_BaseGodlyMagic;
+	getitem2 5564, 1, 1, 10, 0, 4366, 0, 0, 0;       // +10 Crown of Deceit [Kathryne Keyron]
+	getitem2 2202, 1, 1, 0, 0, 4374, 0, 0, 0;        // Oculos Escuros [Vesper]
+	getitem2 1636, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Cajado de Espinhos da Escuridao
+	getitem2 2000, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Cajado da Destruicao
+	getitem2 2374, 1, 1, 10, 0, 4302, 0, 0, 0;       // +10 Manto de Diabolus [Tao Gunka]
+	specialeffect2 EF_REFINEOK;
+	mes "Kit Divino +10 de ^B8860BArquimago^000000 entregue!";
+	return;
+
+L_Kit_Prof:
+	callsub L_BaseGodlyMagic;
+	getitem2 5564, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Crown of Deceit [Kiel-D-01]
+	getitem2 2202, 1, 1, 0, 0, 4143, 0, 0, 0;        // Oculos Escuros [Orc Hero]
+	getitem2 2357, 1, 1, 10, 0, 4302, 0, 0, 0;       // +10 Armadura das Valquirias [Tao Gunka]
+	getitem2 1565, 1, 1, 10, 0, 4305, 4305, 0, 0;    // +10 Livro da Morte [2x TG]
+	getitem2 1636, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Cajado de Espinhos da Escuridao
+	getitem2 1228, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Faca de Combate
+	specialeffect2 EF_REFINEOK;
+	mes "Kit Divino +10 de ^B8860BProfessor^000000 entregue!";
+	return;
+
+L_Kit_Sniper:
+	getitem2 2383, 1, 1, 0, 0, 0, 0, 0, 0;           // Brynhild
+	getitem2 2541, 1, 1, 0, 0, 0, 0, 0, 0;           // Asprika
+	getitem2 2410, 1, 1, 0, 0, 0, 0, 0, 0;           // Sleipnir
+	getitem2 2630, 2, 1, 0, 0, 0, 0, 0, 0;           // 2x Brisingamen
+	getitem2 5359, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Chapeu de Capitao [Kiel-D-01]
+	getitem2 2202, 1, 1, 0, 0, 4143, 0, 0, 0;        // Oculos Escuros [Orc Hero]
+	getitem2 5361, 1, 1, 0, 0, 0, 0, 0, 0;           // Gangster Scarf
+	getitem2 1737, 1, 1, 10, 0, 4399, 0, 0, 0;       // +10 Asas de Ixion [Thanatos]
+	getitem2 1705, 1, 1, 10, 0, 4305, 4305, 4140, 4121; // +10 Arco Composto [2x TG + AK + Phreeoni]
+	getitem2 1734, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Arco de Orc
+	getitem 1751, 1000;                              // Flechas de Prata
+	getitem 1752, 1000;                              // Flechas de Fogo
+	specialeffect2 EF_REFINEOK;
+	mes "Kit Divino +10 de ^B8860BAtirador de Elite^000000 entregue!";
+	return;
+
+L_Kit_ClownGypsy:
+	callsub L_BaseGodlyMagic;
+	getitem2 2630, 2, 1, 0, 0, 0, 0, 0, 0;           // 2x Brisingamen
+	getitem2 5564, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Crown of Deceit [Kiel-D-01]
+	getitem2 2202, 1, 1, 0, 0, 4403, 0, 0, 0;        // Oculos Escuros [Kiel-D-01]
+	if (Sex == SEX_MALE) {
+		getitem2 1922, 1, 1, 10, 0, 4305, 4305, 0, 0;// +10 Alaude Oriental [2x TG]
+		getitem2 1927, 1, 1, 10, 0, 0, 0, 0, 0;      // +10 Glorious Guitar
+	} else {
+		getitem2 1976, 1, 1, 10, 0, 4305, 4305, 0, 0;// +10 Chicote da Rainha [2x TG]
+		getitem2 1981, 1, 1, 10, 0, 0, 0, 0, 0;      // +10 Glorious Lariat
+	}
+	getitem2 1228, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Faca de Combate
+	getitem 1751, 500;
+	specialeffect2 EF_REFINEOK;
+	mes "Kit Divino +10 de ^B8860BMenestrel / Cigana^000000 entregue!";
+	return;
+
+L_Kit_HP:
+	callsub L_BaseGodlyMagic;
+	getitem2 5564, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Crown of Deceit [Kiel-D-01]
+	getitem2 2202, 1, 1, 0, 0, 4143, 0, 0, 0;        // Oculos Escuros [Orc Hero]
+	getitem2 2357, 1, 1, 10, 0, 4302, 0, 0, 0;       // +10 Armadura das Valquirias [Tao Gunka]
+	getitem2 1647, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Croce Staff
+	getitem2 1641, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Glorious Cure Wand
+	getitem2 1228, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Faca de Combate
+	specialeffect2 EF_REFINEOK;
+	mes "Kit Divino +10 de ^B8860BSumo Sacerdote^000000 entregue!";
+	return;
+
+L_Kit_Champ:
+	callsub L_BaseGodlyPhysical;
+	getitem2 5137, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Boneca de Alice [Kiel-D-01]
+	getitem2 2202, 1, 1, 0, 0, 4198, 0, 0, 0;        // Oculos Escuros [Maya Purple]
+	getitem2 1530, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Mjolnir (Divino!)
+	getitem2 1520, 1, 1, 10, 0, 4140, 4140, 4305, 0; // +10 Chain [2x Cavaleiro do Abismo + TG]
+	getitem2 1822, 1, 1, 10, 0, 4035, 4035, 4305, 4399; // +10 Combo Battle Glove [2x Hidra + TG + Thanatos]
+	specialeffect2 EF_REFINEOK;
+	mes "Kit Divino +10 de ^B8860BMestre (Champion)^000000 entregue!";
+	return;
+
+L_Kit_WS:
+	callsub L_BaseGodlyPhysical;
+	getitem2 5171, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Elmo das Valquirias [Kiel-D-01]
+	getitem2 1530, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Mjolnir (Divino!)
+	getitem2 1311, 1, 1, 10, 0, 4399, 4305, 0, 0;    // +10 Machado Vecer [Thanatos + TG]
+	getitem2 1370, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Doom Slayer
+	specialeffect2 EF_REFINEOK;
+	mes "Kit Divino +10 de ^B8860BMestre-Ferreiro^000000 entregue!";
+	return;
+
+L_Kit_Creator:
+	callsub L_BaseGodlyPhysical;
+	getitem2 5137, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Boneca de Alice [Kiel-D-01]
+	getitem2 13412, 1, 1, 10, 0, 4305, 4305, 4140, 0;// +10 Lamina Gemea Vermelha [2x TG + AK]
+	getitem2 13414, 1, 1, 10, 0, 4035, 4035, 4035, 0;// +10 Espada Elemental [3x Hidra]
+	getitem2 1231, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Bazerald
+	getitem 7135, 200;                               // Frascos de Fogo Grego
+	getitem 7136, 200;                               // Frascos de Acido
+	specialeffect2 EF_REFINEOK;
+	mes "Kit Divino +10 de ^B8860BCriador^000000 entregue!";
+	return;
+
+L_Kit_SinX:
+	callsub L_BaseGodlyPhysical;
+	getitem2 5137, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Boneca de Alice [Kiel-D-01]
+	getitem2 1266, 1, 1, 10, 0, 4305, 0, 0, 0;       // +10 Infiltrador [TG]
+	getitem2 1264, 1, 1, 10, 0, 4399, 4305, 4035, 4035; // +10 Specialty Jur [Thanatos + TG + 2x Hidra]
+	getitem2 13017, 1, 1, 10, 0, 4305, 0, 0, 0;      // +10 Rondel [TG]
+	getitem2 13412, 1, 1, 10, 0, 4140, 4140, 4140, 0;// +10 Lamina Gemea Vermelha [3x AK]
+	getitem 678, 50;                                 // Garrafa de Veneno Mortal (EDP)
+	specialeffect2 EF_REFINEOK;
+	mes "Kit Divino +10 de ^B8860BAlgoz^000000 entregue!";
+	return;
+
+L_Kit_Stalker:
+	callsub L_BaseGodlyPhysical;
+	getitem2 5171, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Elmo das Valquirias [Kiel-D-01]
+	getitem2 2202, 1, 1, 0, 0, 4198, 0, 0, 0;        // Oculos Escuros [Maya Purple]
+	getitem2 13017, 1, 1, 10, 0, 4305, 0, 0, 0;      // +10 Rondel [TG]
+	getitem2 1737, 1, 1, 10, 0, 4399, 0, 0, 0;       // +10 Asas de Ixion [Thanatos]
+	getitem2 1228, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Faca de Combate
+	getitem 1751, 500;
+	specialeffect2 EF_REFINEOK;
+	mes "Kit Divino +10 de ^B8860BDesordeiro^000000 entregue!";
+	return;
+
+L_Kit_SN:
+	callsub L_BaseGodlyMagic;
+	getitem2 2629, 2, 1, 0, 0, 0, 0, 0, 0;           // 2x Megingjard
+	getitem2 5171, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Elmo das Valquirias [Kiel-D-01]
+	getitem2 1231, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Bazerald
+	getitem2 1524, 1, 1, 10, 0, 4305, 0, 0, 0;       // +10 Golden Mace [TG]
+	specialeffect2 EF_REFINEOK;
+	mes "Kit Divino +10 de ^B8860BSuper Aprendiz^000000 entregue!";
+	return;
+
+L_Kit_GS:
+	getitem2 2383, 1, 1, 0, 0, 0, 0, 0, 0;           // Brynhild
+	getitem2 2541, 1, 1, 0, 0, 0, 0, 0, 0;           // Asprika
+	getitem2 2410, 1, 1, 0, 0, 0, 0, 0, 0;           // Sleipnir
+	getitem2 2630, 2, 1, 0, 0, 0, 0, 0, 0;           // 2x Brisingamen
+	getitem2 5359, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Chapeu de Capitao [Kiel-D-01]
+	getitem2 2202, 1, 1, 0, 0, 4143, 0, 0, 0;        // Oculos Escuros [Orc Hero]
+	getitem2 13107, 1, 1, 10, 0, 4399, 4305, 0, 0;   // +10 Wasteland's Outlaw [Thanatos + TG]
+	getitem2 13159, 1, 1, 10, 0, 4142, 0, 0, 0;      // +10 Butcher [Doppelganger]
+	getitem2 13164, 1, 1, 10, 0, 4140, 0, 0, 0;      // +10 Long Barrel [Cavaleiro do Abismo]
+	getitem 13201, 1000;                             // Projetil de Prata
+	specialeffect2 EF_REFINEOK;
+	mes "Kit Divino +10 de ^B8860BJusticeiro^000000 entregue!";
+	return;
+
+L_Kit_Ninja:
+	callsub L_BaseGodlyMagic;
+	getitem2 2629, 2, 1, 0, 0, 0, 0, 0, 0;           // 2x Megingjard
+	getitem2 5564, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Crown of Deceit [Kiel-D-01]
+	getitem2 1231, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Bazerald
+	getitem2 13304, 1, 1, 10, 0, 4305, 4305, 0, 0;   // +10 Huuma Calm Mind [2x TG]
+	specialeffect2 EF_REFINEOK;
+	mes "Kit Divino +10 de ^B8860BNinja^000000 entregue!";
+	return;
+
+L_Kit_TKSL:
+	callsub L_BaseGodlyMagic;
+	getitem2 2629, 2, 1, 0, 0, 0, 0, 0, 0;           // 2x Megingjard
+	getitem2 5171, 1, 1, 10, 0, 4403, 0, 0, 0;       // +10 Elmo das Valquirias [Kiel-D-01]
+	getitem2 1565, 1, 1, 10, 0, 4305, 4305, 0, 0;    // +10 Livro da Morte [2x TG]
+	getitem2 1636, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Cajado de Espinhos da Escuridao
+	specialeffect2 EF_REFINEOK;
+	mes "Kit Divino +10 de ^B8860BMestre Taekwon / Espiritualista^000000 entregue!";
+	return;
+
+L_Kit_DefSwitch:
+	getitem2 5170, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Boina Alada (-10% Humanoide)
+	getitem2 1228, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Faca de Combate (-10% Humanoide)
+	getitem2 2115, 1, 1, 10, 0, 4058, 0, 0, 0;       // +10 Escudo das Valquirias [Sapo de Thara]
+	getitem2 2115, 1, 1, 10, 0, 4128, 0, 0, 0;       // +10 Escudo das Valquirias [GTB]
+	getitem2 2357, 1, 1, 10, 0, 4047, 0, 0, 0;       // +10 Armadura das Valquirias [Ghostring]
+	getitem2 2357, 1, 1, 10, 0, 4302, 0, 0, 0;       // +10 Armadura das Valquirias [Tao Gunka]
+	getitem2 2357, 1, 1, 10, 0, 4105, 0, 0, 0;       // +10 Armadura das Valquirias [Marc]
+	getitem2 2357, 1, 1, 10, 0, 4054, 0, 0, 0;       // +10 Armadura das Valquirias [Angeling]
+	getitem2 2524, 1, 1, 10, 0, 4174, 0, 0, 0;       // +10 Manto das Valquirias [Deviling]
+	getitem2 2524, 1, 1, 10, 0, 4133, 0, 0, 0;       // +10 Manto das Valquirias [Raydric]
+	specialeffect2 EF_REFINEOK;
+	mes "Kit de Troca DEF / WoE (+10) entregue! Ideal para testar o modo ^0055FFATK x DEF^000000 no AureumRO-4Tools.";
+	return;
+
+L_Kit_AllGodly:
+	getitem2 2383, 1, 1, 0, 0, 0, 0, 0, 0;           // Brynhild
+	getitem2 2541, 1, 1, 0, 0, 0, 0, 0, 0;           // Asprika
+	getitem2 2410, 1, 1, 0, 0, 0, 0, 0, 0;           // Sleipnir
+	getitem2 2629, 2, 1, 0, 0, 0, 0, 0, 0;           // 2x Megingjard
+	getitem2 2630, 2, 1, 0, 0, 0, 0, 0, 0;           // 2x Brisingamen
+	getitem2 1530, 1, 1, 10, 0, 0, 0, 0, 0;          // +10 Mjolnir
+	specialeffect2 EF_REFINEOK;
+	mes "Pacote completo de ^B8860BItens Divinos^000000 entregue!";
+	return;
+
+OnInit:
+	waitingroom "[ Arsenal Divino +10 ]", 0;
+	end;
+}
+
+// Duplicata dentro da Arena de Treino 4Tools
+pvp_n_1-5,112,104,3	duplicate(Arsenal Divino)	Arsenal Divino#4tools	813
