@@ -1,0 +1,62 @@
+name: Build AureumRO-4Tools (Servidor de Testes)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "tools/AureumRO-4Tools/**"
+      - ".github/workflows/build-4tools.yml"
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "tools/AureumRO-4Tools/**"
+      - ".github/workflows/build-4tools.yml"
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: tools/AureumRO-4Tools
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup NuGet
+        uses: nuget/setup-nuget@v2
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore NuGet packages (4RTools)
+        run: nuget restore 4RTools.csproj -PackagesDirectory packages
+
+      - name: Restore NuGet packages (Tests)
+        run: dotnet restore tests/4RTools.Tests/4RTools.Tests.csproj
+
+      - name: Build solution (Release)
+        run: msbuild 4RTools.sln /p:Configuration=Release /p:Platform="Any CPU" /m
+
+      - name: Run unit tests
+        run: dotnet test tests/4RTools.Tests/4RTools.Tests.csproj --no-build -c Release --verbosity normal
+
+      - name: Prepare release package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          Copy-Item "bin/Release/AureumRO 4Tools.exe" "dist/AureumRO 4Tools.exe" -Force
+          Copy-Item "supported_servers.json" "dist/supported_servers.json" -Force
+
+      - name: Upload AureumRO-4Tools Test Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: AureumRO-4Tools-TestBuild
+          path: tools/AureumRO-4Tools/dist/
+          if-no-files-found: error

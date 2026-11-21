@@ -1,0 +1,22 @@
+[
+  {
+    "name": "AureumRO",
+    "description": "AureumRO — O goldtimes que você sempre sonhou",
+    "hpAddress": "0x015FF908",
+    "nameAddress": "0x01602568"
+  },
+  {
+    "name": "FroggoClient",
+    "description": "AureumRO Servidor de Testes (rAthena Pré-Renewal 13.3 · Ragexe 2022-04-06)",
+    "hpAddress": "0x01138DDC",
+    "nameAddress": "0x0113B7B0",
+    "mapAddress": "0x00D2A3BC"
+  },
+  {
+    "name": "Ragexe",
+    "description": "AureumRO Servidor de Testes (rAthena Pré-Renewal 13.3 · Ragexe 2022-04-06)",
+    "hpAddress": "0x01138DDC",
+    "nameAddress": "0x0113B7B0",
+    "mapAddress": "0x00D2A3BC"
+  }
+]
