@@ -224,13 +224,13 @@ namespace _4RTools.Forms
                 new GuideSectionData
                 {
                     Key = "autobuff_skills",
-                    TitlePt = "4. Auto-Skills",
+                    TitlePt = "4. Auto-skill",
                     BodyPt =
                         "• O 4Tools lê diretamente os ícones de buff ativos na memória do jogo e aperta a tecla da skill assim que o buff acabar.\n" +
                         "• Auto-clique em si (alvo): quando marcado, buffs que exigem clique no alvo (Bênção, Aumentar Agilidade, Assumptio, Kyrie Eleison, Sufrágio, Impositio Manus e Aspersio) clicam automaticamente no centro da janela (em cima do seu personagem)!\n" +
                         "• Pré-skill automática (Ninja): configure Aura Ninja + Imagem Falsa juntas — o 4Tools ativa a Aura Ninja primeiro e só dispara Imagem Falsa quando a Aura estiver ativa.\n" +
                         "• Modo Pré-Renewal, SP Mín%, CD(ms) e Pausar ao sentar: mantém visíveis apenas skills Pré-Renewal (incluindo Esconderijo, Basílica, Canto de Batalha e músicas de Bardo/Odalisca) e evita gastar SP à toa.",
-                    TitleEn = "4. Auto-Skills",
+                    TitleEn = "4. Auto-skill",
                     BodyEn =
                         "• 4Tools reads active status icons directly from client memory and recasts the skill as soon as the buff expires.\n" +
                         "• Auto-click self (target): when enabled, target-cast buffs (Blessing, Increase Agility, Assumptio, Kyrie Eleison, Suffragium, Impositio Manus, and Aspersio) automatically click the center of the RO window (your character)!\n" +
@@ -244,12 +244,12 @@ namespace _4RTools.Forms
                     BodyPt =
                         "• Renova automaticamente poções de ASPD, conversores elementais, comidas, caixas, pergaminhos e buffs de EXP assim que o ícone expira.\n" +
                         "• Divisão Comuns vs. ROPs: os itens do AureumRO são organizados em 'Itens Comuns' e 'Itens de ROPs', com seletor rápido no topo para filtrar apenas Comuns, apenas ROPs ou Todos.\n" +
-                        "• Pausar ao sentar e Modo Pré-Renewal: ficam sincronizados entre Auto-Skills e Consumíveis para evitar desperdício de itens.",
+                        "• Pausar ao sentar e Modo Pré-Renewal: ficam sincronizados entre Auto-skill e Consumíveis para evitar desperdício de itens.",
                     TitleEn = "5. Consumables",
                     BodyEn =
                         "• Automatically refreshes ASPD potions, elemental converters, foods, boxes, scrolls, and EXP buffs as soon as their icon expires.\n" +
                         "• Common vs. ROPs Split: AureumRO items are organized into 'Common Items' and 'ROPs Items', with a quick filter dropdown at the top.\n" +
-                        "• Pause when sitting and Pre-Renewal Mode: stay synced across Auto-Skills and Consumables to avoid wasting consumables."
+                        "• Pause when sitting and Pre-Renewal Mode: stay synced across Auto-skill and Consumables to avoid wasting consumables."
                 },
                 new GuideSectionData
                 {
@@ -295,14 +295,36 @@ namespace _4RTools.Forms
                 },
                 new GuideSectionData
                 {
+                    Key = "mount_priority",
+                    TitlePt = "9. Montaria e Prioridade de Ações",
+                    BodyPt =
+                        "• Montaria (Rédea): informe a tecla da sua Rédea e ative 'Descer da montaria ao usar habilidade'. Sempre que você estiver montado e usar uma habilidade (manualmente ou pelo Spammer/Auto-skill/Temporizadores/Macros), o 4Tools desce da montaria automaticamente antes de disparar a skill!\n" +
+                        "• Pausar Auto-skill montado e Remontar após inatividade: opções extras para não desmontar enquanto caminha pela cidade/mapa ou para remontar sozinho após ficar alguns segundos sem atacar.\n" +
+                        "• Prioridade de Ações (4 níveis): o 4Tools sempre respeita a ordem fixa:\n" +
+                        "   1º Input do jogador no jogo (pausa o 4Tools por alguns milissegundos — padrão 120ms, ajustável na aba Montaria).\n" +
+                        "   2º Yggdrasil (tem prioridade sobre poções comuns e skills).\n" +
+                        "   3º Poções comuns (têm prioridade sobre skills e demais automações).\n" +
+                        "   4º Skills (Auto-skill), consumíveis, anti-debuffs e temporizadores.",
+                    TitleEn = "9. Mount and Action Priority",
+                    BodyEn =
+                        "• Mount (Halter Lead): bind your Halter Lead hotkey and enable 'Dismount when using skill'. Whenever you are mounted and cast a skill (manually or via Spammer/Auto-skill/Timers/Macros), 4Tools automatically dismounts before firing the skill!\n" +
+                        "• Pause Auto-skill while mounted and Auto remount after idle: optional helpers to stay mounted while traveling or automatically remount after a few idle seconds.\n" +
+                        "• Action Priority (4 tiers): 4Tools enforces a strict priority order:\n" +
+                        "   1st Player input in-game (briefly pauses 4Tools — default 120ms, adjustable in the Mount tab).\n" +
+                        "   2nd Yggdrasil (takes priority over regular potions and skills).\n" +
+                        "   3rd Standard potions (take priority over skills and other automations).\n" +
+                        "   4th Skills (Auto-skill), consumables, anti-debuffs, and timers."
+                },
+                new GuideSectionData
+                {
                     Key = "profiles",
-                    TitlePt = "9. Perfis, Backup, Conflitos e Dicas Rápidas",
+                    TitlePt = "10. Perfis, Backup, Conflitos e Dicas Rápidas",
                     BodyPt =
                         "• Perfis por personagem/build: crie perfis separados (ex.: PvM, MVP, WoE), copie ou renomeie com 1 clique.\n" +
                         "• Troca automática por personagem: vincule um perfil ao nome do seu personagem ('Usar Personagem Ativo' → 'Salvar') e marque 'Ativar Troca Automática' para carregar o perfil sozinho ao trocar de char (enquanto em OFF).\n" +
                         "• Verificar Conflitos e Backup .zip: use 'Verificar Conflitos' para descobrir teclas duplicadas entre abas, e 'Backup Geral (.zip)' para salvar todos os seus perfis com segurança.\n" +
                         "• Popups em todo o app: sempre que tiver dúvida em qualquer botão, caixa ou opção, basta parar o mouse em cima por um instante para ver a explicação detalhada!",
-                    TitleEn = "9. Profiles, Backup, Conflicts, and Quick Tips",
+                    TitleEn = "10. Profiles, Backup, Conflicts, and Quick Tips",
                     BodyEn =
                         "• Per-character/build profiles: create separate profiles (e.g., PvM, MVP, WoE), copy, or rename in 1 click.\n" +
                         "• Auto-Switch by Character: bind a profile to your character name ('Use Active Character' → 'Save') and enable 'Enable Auto-Switch' to auto-load when switching characters (while OFF).\n" +

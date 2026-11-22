@@ -21,6 +21,18 @@ namespace _4RTools.Utils
         [DllImport("user32.dll", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool UnhookWindowsHookEx(IntPtr idHook);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct KBDLLHOOKSTRUCT
+        {
+            public uint vkCode;
+            public uint scanCode;
+            public uint flags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
+        private const uint LLKHF_INJECTED = 0x10;
         #endregion
 
         public delegate IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam);
@@ -39,9 +51,16 @@ namespace _4RTools.Utils
 
         private static readonly Dictionary<Keys, KeyPressed> handledKeysDown = new Dictionary<Keys, KeyPressed>();
         private static readonly Dictionary<Keys, KeyPressed> handledKeysUp = new Dictionary<Keys, KeyPressed>();
+        private static readonly HashSet<Keys> heldPhysicalKeys = new HashSet<Keys>();
 
         public delegate bool KeyboardHookHandler(Keys key);
         public static KeyboardHookHandler KeyDown;
+
+        /// <summary>
+        /// Fires once per fresh physical (non-injected, non-auto-repeat) non-modifier key press.
+        /// Listeners must be non-blocking so the low-level Windows keyboard hook never lags.
+        /// </summary>
+        public static event Action<Keys> PhysicalKeyDown;
 
         private static bool Enabled;
 
@@ -86,6 +105,8 @@ namespace _4RTools.Utils
         {
             lock (SyncRoot)
             {
+                heldPhysicalKeys.Clear();
+
                 if (!Enabled || hHook == IntPtr.Zero)
                 {
                     Enabled = false;
@@ -117,7 +138,10 @@ namespace _4RTools.Utils
                 {
                     if (wParam == (IntPtr)Constants.WM_KEYDOWN_MSG_ID || wParam == (IntPtr)Constants.WM_SYSKEYDOWN)
                     {
-                        Keys key = (Keys)Marshal.ReadInt32(lParam);
+                        KBDLLHOOKSTRUCT hookData = (KBDLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(KBDLLHOOKSTRUCT));
+                        Keys key = (Keys)hookData.vkCode;
+                        bool isInjected = (hookData.flags & LLKHF_INJECTED) != 0;
+
                         if (key == Keys.LControlKey || key == Keys.RControlKey)
                             Control = true;
                         else if (key == Keys.LShiftKey || key == Keys.RShiftKey)
@@ -127,11 +151,30 @@ namespace _4RTools.Utils
                         else if (key == Keys.RWin || key == Keys.LWin)
                             Win = true;
                         else
+                        {
+                            if (!isInjected)
+                            {
+                                bool isFreshPress;
+                                lock (SyncRoot)
+                                {
+                                    isFreshPress = heldPhysicalKeys.Add(key);
+                                }
+
+                                if (isFreshPress)
+                                {
+                                    NotifyPhysicalKeyDown(key);
+                                }
+                            }
+
                             result = OnKeyDown(key);
+                        }
                     }
                     else if (wParam == (IntPtr)Constants.WM_KEYUP_MSG_ID || wParam == (IntPtr)Constants.WM_SYSKEYUP)
                     {
-                        Keys key = (Keys)Marshal.ReadInt32(lParam);
+                        KBDLLHOOKSTRUCT hookData = (KBDLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(KBDLLHOOKSTRUCT));
+                        Keys key = (Keys)hookData.vkCode;
+                        bool isInjected = (hookData.flags & LLKHF_INJECTED) != 0;
+
                         if (key == Keys.LControlKey || key == Keys.RControlKey)
                             Control = false;
                         else if (key == Keys.LShiftKey || key == Keys.RShiftKey)
@@ -141,7 +184,17 @@ namespace _4RTools.Utils
                         else if (key == Keys.RWin || key == Keys.LWin)
                             Win = false;
                         else
+                        {
+                            if (!isInjected)
+                            {
+                                lock (SyncRoot)
+                                {
+                                    heldPhysicalKeys.Remove(key);
+                                }
+                            }
+
                             result = OnKeyUp(key);
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -152,6 +205,27 @@ namespace _4RTools.Utils
             }
 
             return result ? CallNextHookEx(hHook, nCode, wParam, lParam) : new IntPtr(1);
+        }
+
+        private static void NotifyPhysicalKeyDown(Keys key)
+        {
+            Action<Keys> handlers = PhysicalKeyDown;
+            if (handlers == null)
+            {
+                return;
+            }
+
+            foreach (Delegate d in handlers.GetInvocationList())
+            {
+                try
+                {
+                    ((Action<Keys>)d)(key);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn("KeyboardHook", "Error in PhysicalKeyDown listener", ex);
+                }
+            }
         }
 
         public static bool AddKeyDown(Keys key, KeyPressed callback)

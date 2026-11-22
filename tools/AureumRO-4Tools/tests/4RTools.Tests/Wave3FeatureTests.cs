@@ -1000,21 +1000,25 @@ namespace _4RTools.Tests
             Subject subject = new Subject();
             using (GuideForm guide = new GuideForm(subject))
             {
-                Assert.Equal(9, guide.TotalSectionCount);
-                Assert.Equal(9, guide.VisibleSectionCount);
+                Assert.Equal(10, guide.TotalSectionCount);
+                Assert.Equal(10, guide.VisibleSectionCount);
 
                 // Accent-insensitive Portuguese search for ATK x DEF / Macros
                 guide.ApplySearchFilter("musicas");
                 Assert.True(guide.VisibleSectionCount >= 1);
                 Assert.True(guide.VisibleSectionCount < guide.TotalSectionCount);
 
+                // Search for Mount / Priority topic
+                guide.ApplySearchFilter("montaria");
+                Assert.True(guide.VisibleSectionCount >= 1);
+
                 // Nonsense search shows 0 cards
                 guide.ApplySearchFilter("zzzz_nao_existe_12345");
                 Assert.Equal(0, guide.VisibleSectionCount);
 
-                // Clearing filter restores all 9 cards
+                // Clearing filter restores all 10 cards
                 guide.ApplySearchFilter(string.Empty);
-                Assert.Equal(9, guide.VisibleSectionCount);
+                Assert.Equal(10, guide.VisibleSectionCount);
 
                 // Live language switch updates titles to English
                 LocalizationManager.SetLanguage(LocalizationManager.LANG_EN_US);
@@ -1081,6 +1085,137 @@ namespace _4RTools.Tests
             Assert.False(AutoBuff.RequiresSelfTargetClick(EffectStatusIDs.EFST_BASILICA));
             Assert.False(AutoBuff.RequiresSelfTargetClick(EffectStatusIDs.EFST_HIDING));
             Assert.False(AutoBuff.RequiresSelfTargetClick(EffectStatusIDs.AURA_NINJA));
+        }
+
+        [Fact]
+        public void ActionPriorityCoordinator_EnforcesFourTierPriorityOrder()
+        {
+            ActionPriorityCoordinator.Reset();
+            try
+            {
+                ActionPriorityCoordinator.PlayerInputYieldMs = 120;
+                ActionPriorityCoordinator.YggPriorityWindowMs = 250;
+                ActionPriorityCoordinator.PotionPriorityWindowMs = 150;
+
+                // Idle state: nothing yields.
+                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.PlayerInput, 1000));
+                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.Yggdrasil, 1000));
+                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.Potion, 1000));
+                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, 1000));
+
+                // Tier 1: Player input blocks Tier 2 (Ygg), Tier 3 (Potion), and Tier 4 (Skills) for 120ms.
+                ActionPriorityCoordinator.NotifyPlayerInput(1000);
+                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.PlayerInput, 1050));
+                Assert.True(ActionPriorityCoordinator.ShouldYield(ActionPriority.Yggdrasil, 1050));
+                Assert.True(ActionPriorityCoordinator.ShouldYield(ActionPriority.Potion, 1050));
+                Assert.True(ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, 1050));
+                // includePlayerInput: false ignores Tier 1 so held spammers don't delay themselves.
+                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, 1050, false));
+
+                // After 120ms window expires, all tiers resume.
+                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.Yggdrasil, 1120));
+                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.Potion, 1120));
+                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, 1120));
+
+                // Tier 2: Yggdrasil emergency blocks Tier 3 (Potion) and Tier 4 (Skills), but NOT Tier 2 (Ygg).
+                ActionPriorityCoordinator.SetYggEmergencyActive(true);
+                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.Yggdrasil, 1200));
+                Assert.True(ActionPriorityCoordinator.ShouldYield(ActionPriority.Potion, 1200));
+                Assert.True(ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, 1200));
+                Assert.True(ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, 1200, false));
+                ActionPriorityCoordinator.SetYggEmergencyActive(false);
+
+                // Tier 2: Recent Yggdrasil cast blocks Tier 3 & 4 for 250ms, then expires.
+                ActionPriorityCoordinator.NotifyYggAction(2000);
+                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.Yggdrasil, 2100));
+                Assert.True(ActionPriorityCoordinator.ShouldYield(ActionPriority.Potion, 2100));
+                Assert.True(ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, 2100));
+                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.Potion, 2250));
+                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, 2250));
+
+                // Tier 3: Standard Potion blocks Tier 4 (Skills) for 150ms, but NEVER blocks Tier 2 (Yggdrasil).
+                ActionPriorityCoordinator.NotifyPotionAction(3000);
+                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.Yggdrasil, 3050));
+                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.Potion, 3050));
+                Assert.True(ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, 3050));
+                Assert.True(ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, 3050, false));
+                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, 3150));
+            }
+            finally
+            {
+                ActionPriorityCoordinator.Reset();
+            }
+        }
+
+        [Fact]
+        public void AutoMount_PersistsInProfileTracksSkillKeysAndRendersMountForm()
+        {
+            Assert.Equal(613u, (uint)EffectStatusIDs.EFST_ALL_RIDING);
+            Assert.Equal(614u, (uint)EffectStatusIDs.EFST_ALL_RIDING_REUSE_LIMIT);
+
+            // Verify exact "Auto-skill" naming in both PT-BR and EN-US.
+            LocalizationManager.SetLanguage(LocalizationManager.LANG_PT_BR);
+            Assert.Equal("Auto-skill", LocalizationManager.T("section.buff_skills.title"));
+            Assert.Equal("Montaria", LocalizationManager.TranslateText("Mount"));
+
+            ProfileSingleton.Create("MountFeatureTest");
+            ProfileSingleton.Load("MountFeatureTest");
+
+            Profile prof = ProfileSingleton.GetCurrent();
+            prof.Autopot.hpKey = Key.F1;
+            prof.AutopotYgg.hpKey = Key.F2;
+            prof.AHK.AddAHKEntry("chkQ", new KeyConfig(Key.Q, true));
+            prof.Autobuff.AddKeyToBuff(EffectStatusIDs.BLESSING, Key.W);
+            prof.AutoRefreshSpammer1.RefreshKey = Key.E;
+            prof.AtkDefMode.keySpammer = Key.R;
+
+            prof.AutoMount.Enabled = true;
+            prof.AutoMount.MountKey = Key.F9;
+            prof.AutoMount.DismountOnSkill = true;
+            prof.AutoMount.DismountDelayMs = 90;
+            prof.AutoMount.PauseAutobuffWhileMounted = true;
+            prof.AutoMount.IncludeOtherTabsSkillKeys = true;
+            prof.AutoMount.AutoRemountAfterIdle = true;
+            prof.AutoMount.RemountDelaySec = 7;
+            prof.AutoMount.SetExtraSkillKey(0, Key.A);
+
+            prof.UserPreferences.playerInputYieldMs = 150;
+            ProfileSingleton.SetConfiguration(prof.AutoMount);
+            ProfileSingleton.SetConfiguration(prof.UserPreferences);
+
+            // Reload from disk and confirm persistence.
+            ProfileSingleton.Load("MountFeatureTest");
+            Profile reloaded = ProfileSingleton.GetCurrent();
+            Assert.True(reloaded.AutoMount.Enabled);
+            Assert.Equal(Key.F9, reloaded.AutoMount.MountKey);
+            Assert.Equal(90, reloaded.AutoMount.DismountDelayMs);
+            Assert.True(reloaded.AutoMount.PauseAutobuffWhileMounted);
+            Assert.True(reloaded.AutoMount.AutoRemountAfterIdle);
+            Assert.Equal(7, reloaded.AutoMount.RemountDelaySec);
+            Assert.Equal(Key.A, reloaded.AutoMount.GetExtraSkillKey(0));
+            Assert.Equal(150, reloaded.UserPreferences.playerInputYieldMs);
+
+            // Tracked key checks: skills match, MountKey & potion keys never match.
+            Assert.True(reloaded.AutoMount.IsTrackedSkillKey(Key.A, prof));
+            Assert.True(reloaded.AutoMount.IsTrackedSkillKey(Key.Q, prof));
+            Assert.True(reloaded.AutoMount.IsTrackedSkillKey(Key.W, prof));
+            Assert.True(reloaded.AutoMount.IsTrackedSkillKey(Key.E, prof));
+            Assert.True(reloaded.AutoMount.IsTrackedSkillKey(Key.R, prof));
+            Assert.False(reloaded.AutoMount.IsTrackedSkillKey(Key.F9, prof));
+            Assert.False(reloaded.AutoMount.IsTrackedSkillKey(Key.F1, prof));
+            Assert.False(reloaded.AutoMount.IsTrackedSkillKey(Key.F2, prof));
+
+            // MountForm loads profile values and syncs ActionPriorityCoordinator.
+            Subject subject = new Subject();
+            using (MountForm form = new MountForm(subject))
+            {
+                subject.Notify(new _4RTools.Utils.Message(MessageCode.PROFILE_CHANGED, null));
+                Assert.Equal("F9", form.Controls.Find("txtMountKey", true)[0].Text);
+                Assert.Equal("A", form.Controls.Find("txtExtraSkill1", true)[0].Text);
+                Assert.Equal(150, ActionPriorityCoordinator.PlayerInputYieldMs);
+            }
+
+            ActionPriorityCoordinator.Reset();
         }
 
         [Fact]

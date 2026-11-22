@@ -30,6 +30,8 @@ namespace _4RTools.Utils
         CRITICALWOUND = 286,
         OVERHEAT = 373,
         // New status 3RD / AureumRO Almas
+        EFST_ALL_RIDING = 613,
+        EFST_ALL_RIDING_REUSE_LIMIT = 614,
         EFST_SIT = 622,
         EFST_FREEZING = 351,
         EFST_BLEEDING = 124,

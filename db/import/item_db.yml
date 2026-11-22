@@ -27,6 +27,18 @@ Body:
       sc_end SC_SLOWCAST;
       specialeffect2 EF_CURE;
 
+  - Id: 12622
+    AegisName: Boarding_Halter
+    Name: Redea de Montaria
+    Type: Usable
+    Flags:
+      NoConsume: true
+    Delay:
+      Duration: 3000
+      Status: All_Riding_Reuse_Limit
+    Script: |
+      setmounting();
+
   - Id: 19509
     AegisName: Butterfly_Wing_Ear
     Name: Costume Butterfly Wing Ears

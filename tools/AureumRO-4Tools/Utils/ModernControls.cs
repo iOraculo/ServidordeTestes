@@ -15,6 +15,7 @@ namespace _4RTools.Utils
         MacroSwitch,
         MacroSongs,
         AtkDef,
+        Mount,
         Profiles,
         Servers,
         Guide
@@ -287,6 +288,13 @@ namespace _4RTools.Utils
                         // Crossed blades
                         g.DrawLine(pen, r.X + 2, r.Y + 2, r.Right - 2, r.Bottom - 2);
                         g.DrawLine(pen, r.Right - 2, r.Y + 2, r.X + 2, r.Bottom - 2);
+                        break;
+
+                    case SidebarIconKind.Mount:
+                        // Horseshoe / bridle arc with foot tips
+                        g.DrawArc(pen, r.X + 2, r.Y + 2, r.Width - 4, r.Height - 4, 150, 240);
+                        g.FillEllipse(brush, r.X + 2, r.Bottom - 4, 3, 3);
+                        g.FillEllipse(brush, r.Right - 5, r.Bottom - 4, 3, 3);
                         break;
 
                     case SidebarIconKind.Profiles:

@@ -14,6 +14,7 @@ prontera,156,185,4	script	Suprimentos 4Tools	86,{
 		"Kit Conversores Elementais (Fogo, Água, Terra, Vento, Amaldiçoada)",
 		"Kit Comidas +10 (FOR, AGI, VIT, INT, DES, SOR)",
 		"Kit Gemas, Veneno Mortal, AD & Munição",
+		"^B8860BRédea de Montaria (ID 12622 - Testar aba Montaria 4Tools)^000000",
 		"Receber +10.000.000 Zeny para Testes",
 		"Cancelar"
 	)) {
@@ -73,6 +74,15 @@ prontera,156,185,4	script	Suprimentos 4Tools	86,{
 		mes "Kit Gemas, Veneno Mortal, AD e Munição entregue!";
 		close;
 	case 7:
+		if (countitem(12622) > 0) {
+			mes "Você já possui a ^B8860BRédea de Montaria (ID 12622)^000000 no inventário! Coloque-a em um atalho (ex.: F9) e configure na aba Montaria do 4Tools.";
+			close;
+		}
+		getitem 12622, 1;   // Rédea de Montaria (Boarding_Halter)
+		specialeffect2 EF_ANGEL2;
+		mes "^B8860BRédea de Montaria (ID 12622)^000000 entregue! Coloque-a na barra de atalhos para testar a aba ^0055FFMontaria^000000 do AureumRO-4Tools.";
+		close;
+	case 8:
 		if (Zeny > 1000000000) {
 			mes "Você já possui mais de 1 bilhão de Zeny!";
 			close;
@@ -81,7 +91,7 @@ prontera,156,185,4	script	Suprimentos 4Tools	86,{
 		specialeffect2 EF_COIN;
 		mes "+10.000.000 Zeny adicionados!";
 		close;
-	case 8:
+	case 9:
 		close;
 	}
 

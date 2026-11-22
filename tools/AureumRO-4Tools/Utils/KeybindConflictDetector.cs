@@ -139,6 +139,11 @@ namespace _4RTools.Utils
             CollectMacroUsages(usagesByKey, profile.SongMacro, LocalizationManager.T("usage.song_macro"));
             CollectMacroUsages(usagesByKey, profile.MacroSwitch, LocalizationManager.T("usage.macro_switch"));
 
+            if (profile.AutoMount != null && profile.AutoMount.Enabled)
+            {
+                AddUsage(usagesByKey, profile.AutoMount.MountKey, LocalizationManager.T("usage.mount_key"));
+            }
+
             foreach (KeyValuePair<Key, List<string>> pair in usagesByKey.OrderBy(p => p.Key.ToString(), StringComparer.OrdinalIgnoreCase))
             {
                 if (pair.Value.Count > 1)

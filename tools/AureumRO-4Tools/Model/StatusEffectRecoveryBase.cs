@@ -106,13 +106,14 @@ namespace _4RTools.Model
 
             return new _4RThread(token =>
             {
-                if (client.HasMemorySupport && client.IsProcessAlive() && !client.ShouldPauseAutomation())
+                if (client.HasMemorySupport && client.IsProcessAlive() && !client.ShouldPauseAutomation()
+                    && !ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther))
                 {
                     Dictionary<EffectStatusIDs, Key> snapshot = GetBuffMappingSnapshot();
                     int count = client.ReadBuffStatusBuffer(rawBuffer, statusBuffer);
                     for (int i = 0; i < count; i++)
                     {
-                        if (token.IsCancellationRequested)
+                        if (token.IsCancellationRequested || ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther))
                         {
                             break;
                         }

@@ -37,10 +37,20 @@ namespace _4RTools.Model
             if (this.RefreshKey != Key.None
                 && roClient.IsProcessAlive()
                 && !roClient.ShouldPauseAutomation()
-                && !KeyHelper.IsAltPressed())
+                && !KeyHelper.IsAltPressed()
+                && !ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther))
             {
-                Keys formsKey = KeyHelper.ToFormsKeys(this.RefreshKey);
-                Interop.SendKeyDown(roClient.GetWindowHandle(), formsKey);
+                AutoMount autoMount = ProfileSingleton.GetCurrent() != null ? ProfileSingleton.GetCurrent().AutoMount : null;
+                if (autoMount != null && autoMount.IsActiveForDismount())
+                {
+                    autoMount.EnsureDismountedIfMounted(roClient, token);
+                }
+
+                if (!token.IsCancellationRequested && !ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther))
+                {
+                    Keys formsKey = KeyHelper.ToFormsKeys(this.RefreshKey);
+                    Interop.SendKeyDown(roClient.GetWindowHandle(), formsKey);
+                }
             }
 
             _4RThread.Sleep(delayMs, token);

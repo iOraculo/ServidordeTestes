@@ -91,11 +91,13 @@ namespace _4RTools.Model
 
             return new _4RThread(token =>
             {
-                if (c.HasMemorySupport && c.IsProcessAlive() && !c.ShouldPauseAutomation())
+                if (c.HasMemorySupport && c.IsProcessAlive() && !c.ShouldPauseAutomation()
+                    && !ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther))
                 {
                     bool foundQuag = false;
                     bool foundBlockingDebuff = false;
                     bool isSitting = false;
+                    bool isMounted = false;
                     Dictionary<EffectStatusIDs, Key> missingBuffs = GetBuffMappingSnapshot();
 
                     if (missingBuffs.Count > 0)
@@ -128,13 +130,20 @@ namespace _4RTools.Model
                             {
                                 isSitting = true;
                             }
+                            else if (status == EffectStatusIDs.EFST_ALL_RIDING)
+                            {
+                                isMounted = true;
+                            }
                             else if (IncapacitatingDebuffs.Contains(status))
                             {
                                 foundBlockingDebuff = true;
                             }
                         }
 
-                        if (missingBuffs.Count > 0 && !(this.pauseWhenSitting && isSitting))
+                        AutoMount autoMount = ProfileSingleton.GetCurrent() != null ? ProfileSingleton.GetCurrent().AutoMount : null;
+                        bool pauseForMount = isMounted && autoMount != null && autoMount.Enabled && autoMount.PauseAutobuffWhileMounted;
+
+                        if (missingBuffs.Count > 0 && !(this.pauseWhenSitting && isSitting) && !pauseForMount)
                         {
                             uint currentHp;
                             uint maxHp;
@@ -146,7 +155,7 @@ namespace _4RTools.Model
                                 long nowMs = this.clock.ElapsedMilliseconds;
                                 foreach (KeyValuePair<EffectStatusIDs, Key> item in missingBuffs)
                                 {
-                                    if (token.IsCancellationRequested)
+                                    if (token.IsCancellationRequested || ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther))
                                     {
                                         break;
                                     }
@@ -158,6 +167,16 @@ namespace _4RTools.Model
                                     if (!ShouldCastBuff(item.Key, nowMs, foundQuag, foundBlockingDebuff, currentSp, maxSp, isSitting, prerequisiteSatisfied))
                                     {
                                         continue;
+                                    }
+
+                                    if (isMounted && autoMount != null && autoMount.IsActiveForDismount())
+                                    {
+                                        autoMount.DismountNow(c, token);
+                                        isMounted = false;
+                                        if (token.IsCancellationRequested || ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther))
+                                        {
+                                            break;
+                                        }
                                     }
 
                                     UseAutobuff(c, item.Key, item.Value, token);

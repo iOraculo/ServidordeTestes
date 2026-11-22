@@ -195,18 +195,27 @@ namespace _4RTools.Model
                     continue;
                 }
 
-                ExecuteChain(hWnd, chainConfig, token);
+                ExecuteChain(roClient, hWnd, chainConfig, token);
             }
 
             _4RThread.Sleep(100, token);
         }
 
-        private void ExecuteChain(IntPtr hWnd, ChainConfig chainConfig, CancellationToken token)
+        private void ExecuteChain(Client roClient, IntPtr hWnd, ChainConfig chainConfig, CancellationToken token)
         {
             Dictionary<string, MacroKey> macro = chainConfig.macroEntries;
             if (macro == null || macro.Count == 0)
             {
                 return;
+            }
+
+            if (string.Equals(this.actionName, ACTION_NAME_SONG_MACRO, StringComparison.Ordinal))
+            {
+                AutoMount autoMount = ProfileSingleton.GetCurrent() != null ? ProfileSingleton.GetCurrent().AutoMount : null;
+                if (autoMount != null && autoMount.IsActiveForDismount())
+                {
+                    autoMount.EnsureDismountedIfMounted(roClient, token);
+                }
             }
 
             int maxSlot = Math.Max(MAX_SLOTS_PER_LANE, macro.Count);
@@ -218,6 +227,14 @@ namespace _4RTools.Model
                 if (token.IsCancellationRequested)
                 {
                     break;
+                }
+
+                if (ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, null, false))
+                {
+                    if (!_4RThread.Sleep(25, token))
+                    {
+                        break;
+                    }
                 }
 
                 MacroKey macroKey;

@@ -1,5 +1,19 @@
 # Changelogs
 
+## [v2.29.0] - 2026-11-21 — Aba Montaria (Descer ao Usar Habilidade), Prioridade 4 Níveis e Ajuste "Auto-skill"
+### Added
+- **Nova aba `Montaria` (`Model/AutoMount.cs`, `Forms/MountForm.cs`, `Forms/Container.cs`, `Utils/EffectStatusIDs.cs`)**:
+  - Detecta montaria de Rédea / Halter Lead (`EFST_ALL_RIDING = 613`) sem interferir no Peco-Peco (`EFST_RIDING = 27`).
+  - **Descer da montaria ao usar habilidade**: ao pressionar manualmente uma tecla de skill ou quando Spammer, Auto-skill, Temporizadores, ATK x DEF ou Macro Músicas disparam uma habilidade estando montado, o 4Tools aperta a tecla da montaria automaticamente (com proteção anti-duplo-toque de 600ms e delay configurável) e dispara a habilidade em seguida.
+  - Inclui **Pausar Auto-skill montado**, **Remontar após inatividade (opcional)**, detecção automática das teclas das outras abas e 6 slots de teclas extras manuais.
+- **Motor de Prioridade em 4 Níveis (`Utils/ActionPriorityCoordinator.cs`, `Utils/KeyboardHook.cs`, `Model/Autopot.cs`, `Model/Autobuff.cs`, `Model/StatusEffectRecoveryBase.cs`, `Model/AutoRefreshSpammer.cs`, `Model/AHK.cs`, `Model/ATKDEFMode.cs`, `Model/Macro.cs`)**:
+  - **1º Input do jogador**: qualquer tecla física nova pressionada no jogo pausa o 4Tools por alguns milissegundos (padrão `120ms`, configurável na aba `Montaria`, sem bloquear ao segurar teclas).
+  - **2º Yggdrasil**: tem prioridade absoluta sobre poções comuns e skills sempre que o HP/SP cair abaixo do limite de emergência ou logo após usar Yggdrasil.
+  - **3º Poções comuns**: têm prioridade sobre skills e demais automações.
+  - **4º Skills e demais**: Auto-skill, consumíveis, anti-debuffs, temporizadores e spammers cedem passagem para ações de prioridade maior.
+### Changed
+- **Renomeada a guia `Auto-Skills` → `Auto-skill`** na barra lateral, cabeçalho, tooltips e Guia / Ajuda.
+
 ## [v2.28.0] - 2026-11-21 — Auto-Skills Self-Target Auto-Click, Hiding, Mirror Image (Pre-Skill), Suffragium & Basilica
 ### Added
 - **New Pre-Renewal Class Buffs in `Auto-Skills` (`Model/Buff.cs`, `Utils/EffectStatusIDs.cs`, `Resources/4RTools/Icons.resx`, `Utils/LocalizationManager.cs`)**:

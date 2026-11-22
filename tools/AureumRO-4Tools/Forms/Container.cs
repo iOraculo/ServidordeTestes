@@ -94,6 +94,7 @@ namespace _4RTools.Forms
             this.vitalsTimer.Tick += VitalsTimer_Tick;
 
             ChatPauseState.StateChanged += OnChatPauseStateChanged;
+            KeyboardHook.PhysicalKeyDown += OnPhysicalPlayerKeyDown;
 
             // Embed all child forms inside the modern dashboard cards.
             SetToggleApplicationStateWindow();
@@ -107,6 +108,7 @@ namespace _4RTools.Forms
             SetAutobuffStuffWindow();
             SetSkillTimerWindow();
             SetMacrosWindow();
+            SetMountWindow();
             SetProfileWindow();
             SetGuideWindow();
 
@@ -330,25 +332,26 @@ namespace _4RTools.Forms
                 int y = 32;
                 AddSidebarButton("spammer", "Skill Spammer", SidebarIconKind.Spammer, ref y);
                 AddSidebarButton("debuff", "Anti-Debuffs", SidebarIconKind.Debuffs, ref y);
-                AddSidebarButton("buff_skills", "Auto-Skills", SidebarIconKind.BuffSkills, ref y);
+                AddSidebarButton("buff_skills", "Auto-skill", SidebarIconKind.BuffSkills, ref y);
                 AddSidebarButton("buff_stuffs", "Consumables", SidebarIconKind.BuffItems, ref y);
                 AddSidebarButton("timers", "Skill timers", SidebarIconKind.Timers, ref y);
                 AddSidebarButton("macros", "Macros", SidebarIconKind.MacroSwitch, ref y);
+                AddSidebarButton("mount", "Mount", SidebarIconKind.Mount, ref y);
 
-                this.panelSidebar.Controls.Add(CreateDivider(new Point(14, 256), new Size(176, 1)));
+                this.panelSidebar.Controls.Add(CreateDivider(new Point(14, 292), new Size(176, 1)));
 
                 Label lblGroupManagement = new Label
                 {
                     AutoSize = true,
                     Font = sidebarGroupFont,
-                    Location = new Point(14, 268),
+                    Location = new Point(14, 304),
                     Name = "lblGroupManagement",
                     Text = "MANAGEMENT",
                     Tag = ThemeManager.TAG_MUTED_TEXT
                 };
                 this.panelSidebar.Controls.Add(lblGroupManagement);
 
-                y = 288;
+                y = 324;
                 AddSidebarButton("profiles", "Profiles", SidebarIconKind.Profiles, ref y);
                 AddSidebarButton("guide", "Guide / Help", SidebarIconKind.Guide, ref y);
 
@@ -1416,7 +1419,9 @@ namespace _4RTools.Forms
 
             try
             {
+                KeyboardHook.PhysicalKeyDown -= OnPhysicalPlayerKeyDown;
                 ChatPauseState.StateChanged -= OnChatPauseStateChanged;
+                ActionPriorityCoordinator.SetYggEmergencyActive(false);
                 this.clientMonitorTimer.Stop();
                 this.clientMonitorTimer.Dispose();
                 this.vitalsTimer.Stop();
@@ -1573,6 +1578,7 @@ namespace _4RTools.Forms
                     break;
                 case MessageCode.TURN_OFF:
                     this.isAutomationOn = false;
+                    ActionPriorityCoordinator.SetYggEmergencyActive(false);
                     this.clientMonitorTimer.Stop();
                     this.profileCB.Enabled = true;
                     this.processCB.Enabled = true;
@@ -1724,9 +1730,38 @@ namespace _4RTools.Forms
             RegisterSectionForm("macros", new MacrosHubForm(this.subject));
         }
 
+        public void SetMountWindow()
+        {
+            RegisterSectionForm("mount", new MountForm(this.subject));
+        }
+
         public void SetGuideWindow()
         {
             RegisterSectionForm("guide", new GuideForm(this.subject));
+        }
+
+        private void OnPhysicalPlayerKeyDown(Keys key)
+        {
+            if (!this.isAutomationOn || KeyboardHook.Alt || KeyboardHook.Control)
+            {
+                return;
+            }
+
+            Profile prof = ProfileSingleton.GetCurrent();
+            if (prof != null && prof.UserPreferences != null)
+            {
+                Keys toggleKey;
+                if (KeyHelper.TryParseFormsKeys(prof.UserPreferences.toggleStateKey, out toggleKey) && key == toggleKey)
+                {
+                    return;
+                }
+            }
+
+            Client activeClient = ClientSingleton.GetClient();
+            if (activeClient != null && activeClient.IsProcessAlive() && activeClient.IsGameWindowFocused())
+            {
+                ActionPriorityCoordinator.NotifyPlayerInput();
+            }
         }
 
         #endregion

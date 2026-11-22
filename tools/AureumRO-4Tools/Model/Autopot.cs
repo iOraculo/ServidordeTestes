@@ -54,8 +54,17 @@ namespace _4RTools.Model
             }
         }
 
+        private bool IsYggdrasil
+        {
+            get { return string.Equals(GetActionName(), ACTION_NAME_AUTOPOT_YGG, StringComparison.Ordinal); }
+        }
+
         private void AutopotThreadExecution(Client roClient, byte[] vitalsBuffer, ref int hpPotCount, CancellationToken token)
         {
+            bool isYgg = this.IsYggdrasil;
+            ActionPriority priority = isYgg ? ActionPriority.Yggdrasil : ActionPriority.Potion;
+            bool yggEmergency = false;
+
             if (roClient.HasMemorySupport && roClient.IsProcessAlive() && !roClient.ShouldPauseForFocus() && !roClient.ShouldPauseForTown())
             {
                 uint currentHp;
@@ -66,40 +75,60 @@ namespace _4RTools.Model
                 if (roClient.TryReadVitals(vitalsBuffer, out currentHp, out maxHp, out currentSp, out maxSp)
                     && currentHp > 0 && maxHp > 0)
                 {
-                    bool pottedSpThisTick = false;
+                    bool needsHp = this.hpKey != Key.None && Client.IsBelowPercent(currentHp, maxHp, this.hpPercent);
+                    bool needsSp = this.spKey != Key.None && Client.IsBelowPercent(currentSp, maxSp, this.spPercent);
 
-                    // Prioritize HP recovery first; every 3 consecutive HP pots also check SP to prevent SP starvation.
-                    if (Client.IsBelowPercent(currentHp, maxHp, this.hpPercent))
+                    if (isYgg)
                     {
-                        Pot(roClient, this.hpKey);
-                        hpPotCount++;
+                        yggEmergency = needsHp || needsSp;
+                        ActionPriorityCoordinator.SetYggEmergencyActive(yggEmergency);
+                    }
 
-                        if (hpPotCount >= 3)
+                    if (!ActionPriorityCoordinator.ShouldYield(priority))
+                    {
+                        bool pottedSpThisTick = false;
+
+                        // Prioritize HP recovery first; every 3 consecutive HP pots also check SP to prevent SP starvation.
+                        if (needsHp)
                         {
-                            hpPotCount = 0;
-                            if (Client.IsBelowPercent(currentSp, maxSp, this.spPercent))
+                            Pot(roClient, this.hpKey, isYgg);
+                            hpPotCount++;
+
+                            if (hpPotCount >= 3)
                             {
-                                Pot(roClient, this.spKey);
-                                pottedSpThisTick = true;
+                                hpPotCount = 0;
+                                if (needsSp && !ActionPriorityCoordinator.ShouldYield(priority))
+                                {
+                                    Pot(roClient, this.spKey, isYgg);
+                                    pottedSpThisTick = true;
+                                }
                             }
                         }
-                    }
-                    else
-                    {
-                        hpPotCount = 0;
-                    }
+                        else
+                        {
+                            hpPotCount = 0;
+                        }
 
-                    if (!pottedSpThisTick && Client.IsBelowPercent(currentSp, maxSp, this.spPercent))
-                    {
-                        Pot(roClient, this.spKey);
+                        if (!pottedSpThisTick && needsSp && !ActionPriorityCoordinator.ShouldYield(priority))
+                        {
+                            Pot(roClient, this.spKey, isYgg);
+                        }
                     }
                 }
+                else if (isYgg)
+                {
+                    ActionPriorityCoordinator.SetYggEmergencyActive(false);
+                }
+            }
+            else if (isYgg)
+            {
+                ActionPriorityCoordinator.SetYggEmergencyActive(false);
             }
 
             _4RThread.Sleep(Math.Max(1, this.delay), token);
         }
 
-        private void Pot(Client roClient, Key key)
+        private void Pot(Client roClient, Key key, bool isYgg)
         {
             if (key == Key.None || KeyHelper.IsAltPressed() || roClient == null || roClient.ShouldPauseAutopotKey(key))
             {
@@ -109,6 +138,15 @@ namespace _4RTools.Model
             Keys formsKey = KeyHelper.ToFormsKeys(key);
             if (formsKey != Keys.None)
             {
+                if (isYgg)
+                {
+                    ActionPriorityCoordinator.NotifyYggAction();
+                }
+                else
+                {
+                    ActionPriorityCoordinator.NotifyPotionAction();
+                }
+
                 Interop.SendKeyPress(roClient.GetWindowHandle(), formsKey);
             }
         }
@@ -117,6 +155,10 @@ namespace _4RTools.Model
         {
             _4RThread.Stop(this.thread);
             this.thread = null;
+            if (this.IsYggdrasil)
+            {
+                ActionPriorityCoordinator.SetYggEmergencyActive(false);
+            }
         }
 
         public string GetConfiguration()

@@ -99,10 +99,25 @@ namespace _4RTools.Model
                 }
             }
 
+            AutoMount autoMount = ProfileSingleton.GetCurrent() != null ? ProfileSingleton.GetCurrent().AutoMount : null;
+            if (autoMount != null && autoMount.IsActiveForDismount())
+            {
+                autoMount.EnsureDismountedIfMounted(roClient, token);
+            }
+
             if (this.keySpammerWithClick)
             {
                 while (!token.IsCancellationRequested && Keyboard.IsKeyDown(spammer))
                 {
+                    if (ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, null, false))
+                    {
+                        if (!_4RThread.Sleep(Math.Max(10, spamDelay), token))
+                        {
+                            break;
+                        }
+                        continue;
+                    }
+
                     Interop.SendKeyDown(hWnd, thisk);
                     Interop.SendLeftClick(hWnd);
                     if (!_4RThread.Sleep(spamDelay, token))
@@ -115,6 +130,15 @@ namespace _4RTools.Model
             {
                 while (!token.IsCancellationRequested && Keyboard.IsKeyDown(spammer))
                 {
+                    if (ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, null, false))
+                    {
+                        if (!_4RThread.Sleep(Math.Max(10, spamDelay), token))
+                        {
+                            break;
+                        }
+                        continue;
+                    }
+
                     Interop.SendKeyDown(hWnd, thisk);
                     if (!_4RThread.Sleep(spamDelay, token))
                     {

@@ -94,6 +94,12 @@ namespace _4RTools.Model
                         continue;
                     }
 
+                    AutoMount autoMount = ProfileSingleton.GetCurrent() != null ? ProfileSingleton.GetCurrent().AutoMount : null;
+                    if (autoMount != null && autoMount.IsActiveForDismount())
+                    {
+                        autoMount.EnsureDismountedIfMounted(roClient, token);
+                    }
+
                     if (config.ClickActive)
                     {
                         bool shiftPressed = false;
@@ -130,7 +136,7 @@ namespace _4RTools.Model
                         break;
                     }
 
-                    if (config == null || config.key == Key.None)
+                    if (config == null || config.key == Key.None || !Keyboard.IsKeyDown(config.key))
                     {
                         continue;
                     }
@@ -138,6 +144,12 @@ namespace _4RTools.Model
                     Keys thisk = KeyHelper.ToFormsKeys(config.key);
                     if (thisk != Keys.None)
                     {
+                        AutoMount autoMount = ProfileSingleton.GetCurrent() != null ? ProfileSingleton.GetCurrent().AutoMount : null;
+                        if (autoMount != null && autoMount.IsActiveForDismount())
+                        {
+                            autoMount.EnsureDismountedIfMounted(roClient, token);
+                        }
+
                         AHKSpeedBoost(roClient, config, thisk, token);
                     }
                 }
@@ -158,6 +170,15 @@ namespace _4RTools.Model
             {
                 while (!token.IsCancellationRequested && Keyboard.IsKeyDown(config.key))
                 {
+                    if (ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, null, false))
+                    {
+                        if (!_4RThread.Sleep(Math.Max(10, delay), token))
+                        {
+                            break;
+                        }
+                        continue;
+                    }
+
                     Interop.SendKeyDown(hWnd, thisk);
                     Point current = System.Windows.Forms.Cursor.Position;
                     System.Windows.Forms.Cursor.Position = new Point(
@@ -179,6 +200,15 @@ namespace _4RTools.Model
             {
                 while (!token.IsCancellationRequested && Keyboard.IsKeyDown(config.key))
                 {
+                    if (ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, null, false))
+                    {
+                        if (!_4RThread.Sleep(Math.Max(10, delay), token))
+                        {
+                            break;
+                        }
+                        continue;
+                    }
+
                     Interop.SendKeyDown(hWnd, thisk);
                     Interop.SendLeftClick(hWnd);
 
@@ -202,6 +232,15 @@ namespace _4RTools.Model
 
             while (!token.IsCancellationRequested && !KeyHelper.IsAltPressed() && Keyboard.IsKeyDown(config.key))
             {
+                if (ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, null, false))
+                {
+                    if (!_4RThread.Sleep(Math.Max(10, delay), token))
+                    {
+                        break;
+                    }
+                    continue;
+                }
+
                 Point cursorPos = System.Windows.Forms.Cursor.Position;
                 Interop.SendKeyDown(hWnd, thisk);
                 Interop.mouse_event(Constants.MOUSEEVENTF_LEFTDOWN, cursorPos.X, cursorPos.Y, 0, 0);
@@ -227,6 +266,15 @@ namespace _4RTools.Model
 
             while (!token.IsCancellationRequested && Keyboard.IsKeyDown(config.key))
             {
+                if (ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, null, false))
+                {
+                    if (!_4RThread.Sleep(Math.Max(10, delay), token))
+                    {
+                        break;
+                    }
+                    continue;
+                }
+
                 Interop.SendKeyDown(hWnd, thisk);
 
                 if (!_4RThread.Sleep(delay, token))

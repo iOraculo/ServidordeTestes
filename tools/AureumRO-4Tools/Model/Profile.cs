@@ -99,6 +99,8 @@ namespace _4RTools.Model
                 loaded.AtkDefMode = DeserializeAction(rawObject, loaded.AtkDefMode);
                 loaded.MacroSwitch = DeserializeAction(rawObject, loaded.MacroSwitch);
                 loaded.DebuffsRecovery = DeserializeAction(rawObject, loaded.DebuffsRecovery);
+                loaded.AutoMount = DeserializeAction(rawObject, loaded.AutoMount);
+                loaded.AutoMount.EnsureExtraSkillSlotCount();
 
                 profile = loaded;
             }
@@ -454,6 +456,7 @@ namespace _4RTools.Model
         public Macro MacroSwitch { get; set; }
         public ATKDEFMode AtkDefMode { get; set; }
         public DebuffsRecovery DebuffsRecovery { get; set; }
+        public AutoMount AutoMount { get; set; }
 
         public Profile(string name)
         {
@@ -475,6 +478,7 @@ namespace _4RTools.Model
             this.MacroSwitch = new Macro(Macro.ACTION_NAME_MACRO_SWITCH, MacroSwitchForm.TOTAL_MACRO_LANES);
             this.AtkDefMode = new ATKDEFMode();
             this.DebuffsRecovery = new DebuffsRecovery();
+            this.AutoMount = new AutoMount();
         }
 
         public static string GetByAction(JObject obj, Action action)

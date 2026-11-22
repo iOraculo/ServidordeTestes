@@ -269,6 +269,9 @@
     <Compile Include="Forms\MacrosHubForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Forms\MountForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Forms\GuideForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -325,6 +328,7 @@
     <Compile Include="Model\ATKDEFMode.cs" />
     <Compile Include="Model\Autopot.cs" />
     <Compile Include="Model\Autobuff.cs" />
+    <Compile Include="Model\AutoMount.cs" />
     <Compile Include="Model\AutoRefreshSpammer.cs" />
     <Compile Include="Model\Buff.cs" />
     <Compile Include="Model\BuffContainer.cs" />
@@ -361,6 +365,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Icons.resx</DependentUpon>
     </Compile>
+    <Compile Include="Utils\ActionPriorityCoordinator.cs" />
     <Compile Include="Utils\ChatPauseState.cs" />
     <Compile Include="Utils\EffectStatusIDs.cs" />
     <Compile Include="Utils\AppConfig.cs" />
