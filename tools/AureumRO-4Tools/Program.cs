@@ -23,14 +23,9 @@ namespace _4RTools
             Model.AppSettings startupSettings = Model.AppSettings.Load();
             LocalizationManager.SetLanguage(startupSettings.Language);
 
-            using (Forms.AutoPatcher patcher = new Forms.AutoPatcher())
-            {
-                patcher.ShowDialog();
-                if (patcher.UpdateApplied)
-                {
-                    return;
-                }
-            }
+            // AutoPatcher is intentionally disabled in the Test Server build:
+            // official AureumRO-4Tools releases restrict servers to "AureumRO" only
+            // and would silently overwrite FroggoClient/Ragexe support on launch.
 
             using (Forms.ClientUpdaterForm updater = new Forms.ClientUpdaterForm())
             {

@@ -46,6 +46,8 @@ if (-not [string]::IsNullOrWhiteSpace($ZipPath) -and (Test-Path $ZipPath)) {
             throw "AureumRO 4Tools.exe nao encontrado dentro do ZIP: $ZipPath"
         }
         Copy-Item -Path $exe.FullName -Destination (Join-Path $ClientDir "AureumRO 4Tools.exe") -Force
+        $oldExe = Join-Path $ClientDir "AureumRO 4Tools_old.exe"
+        if (Test-Path $oldExe) { Remove-Item -Path $oldExe -Force -ErrorAction SilentlyContinue }
         Write-Host "[OK] Novo AureumRO 4Tools.exe instalado em $ClientDir" -ForegroundColor Green
     } finally {
         if (Test-Path $tmp) { Remove-Item -Path $tmp -Recurse -Force -ErrorAction SilentlyContinue }
