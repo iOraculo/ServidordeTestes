@@ -58,7 +58,7 @@ namespace _4RTools.Model
 
         // Minimum recast guards for skills that have long cast time or no Pre-Renewal EFST icon (e.g. Basilica).
         public const int BASILICA_NO_ICON_RECAST_MS = 25000;
-        public const int BASILICA_ICON_CAST_GUARD_MS = 5000;
+        public const int BASILICA_ICON_CAST_GUARD_MS = 1200;
 
         private readonly object mappingLock = new object();
         private readonly Dictionary<EffectStatusIDs, long> lastCastTimesMs = new Dictionary<EffectStatusIDs, long>();
@@ -184,11 +184,22 @@ namespace _4RTools.Model
                             if (hasVitals && currentHp >= Constants.MINIMUM_HP_TO_RECOVER)
                             {
                                 long nowMs = this.clock.ElapsedMilliseconds;
+                                Key deferredBasilicaKey = Key.None;
+                                bool castNonBasilicaBuff = false;
+
                                 foreach (KeyValuePair<EffectStatusIDs, Key> item in missingBuffs)
                                 {
                                     if (token.IsCancellationRequested || ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther))
                                     {
                                         break;
+                                    }
+
+                                    // Always cast Basilica LAST (after other buffs are up) so it neither blocks
+                                    // other Pre-Renewal buffs nor gets eaten by another skill's after-cast delay.
+                                    if (item.Key == EffectStatusIDs.EFST_BASILICA)
+                                    {
+                                        deferredBasilicaKey = item.Value;
+                                        continue;
                                     }
 
                                     EffectStatusIDs prerequisite;
@@ -212,9 +223,29 @@ namespace _4RTools.Model
 
                                     UseAutobuff(c, item.Key, item.Value, token);
                                     RecordBuffCast(item.Key, nowMs);
+                                    castNonBasilicaBuff = true;
                                     if (!_4RThread.Sleep(50, token))
                                     {
                                         break;
+                                    }
+                                }
+
+                                if (deferredBasilicaKey != Key.None
+                                    && !castNonBasilicaBuff
+                                    && !token.IsCancellationRequested
+                                    && !ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther)
+                                    && ShouldCastBuff(EffectStatusIDs.EFST_BASILICA, nowMs, foundQuag, foundBlockingDebuff, currentSp, maxSp, isSitting, true, isInPostDelay))
+                                {
+                                    if (isMounted && autoMount != null && autoMount.IsActiveForDismount())
+                                    {
+                                        autoMount.DismountNow(c, token);
+                                        isMounted = false;
+                                    }
+
+                                    if (!token.IsCancellationRequested && !ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther))
+                                    {
+                                        UseAutobuff(c, EffectStatusIDs.EFST_BASILICA, deferredBasilicaKey, token);
+                                        RecordBuffCast(EffectStatusIDs.EFST_BASILICA, nowMs);
                                     }
                                 }
                             }
