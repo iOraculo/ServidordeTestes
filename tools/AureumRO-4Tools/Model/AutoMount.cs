@@ -19,6 +19,9 @@ namespace _4RTools.Model
         public const string ACTION_NAME_AUTOMOUNT = "AutoMount";
         public const int EXTRA_SKILL_SLOTS = 6;
         public const int DISMOUNT_DEBOUNCE_MS = 600;
+        public const int DEFAULT_REMOUNT_DELAY_MS = 1000;
+        public const int MIN_REMOUNT_DELAY_MS = 100;
+        public const int MAX_REMOUNT_DELAY_MS = 120000;
 
         private readonly object stateLock = new object();
         private readonly Stopwatch clock = Stopwatch.StartNew();
@@ -35,7 +38,17 @@ namespace _4RTools.Model
         public bool PauseAutobuffWhileMounted { get; set; } = false;
         public bool IncludeOtherTabsSkillKeys { get; set; } = true;
         public bool AutoRemountAfterIdle { get; set; } = false;
-        public int RemountDelaySec { get; set; } = 5;
+        public int RemountDelayMs { get; set; } = DEFAULT_REMOUNT_DELAY_MS;
+        // Legacy field kept for backward-compatible loading of v2.29.0–v2.29.2 profiles.
+        public int RemountDelaySec { get; set; } = 0;
+
+        public int GetEffectiveRemountDelayMs()
+        {
+            int raw = this.RemountDelayMs > 0
+                ? this.RemountDelayMs
+                : (this.RemountDelaySec > 0 ? this.RemountDelaySec * 1000 : DEFAULT_REMOUNT_DELAY_MS);
+            return Math.Max(MIN_REMOUNT_DELAY_MS, Math.Min(MAX_REMOUNT_DELAY_MS, raw));
+        }
         [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
         public List<Key> ExtraSkillKeys { get; set; } = new List<Key>();
 
@@ -249,9 +262,11 @@ namespace _4RTools.Model
             byte[] rawBuffer = new byte[Constants.STATUS_BUFFER_BYTE_SIZE];
             uint[] statusBuffer = new uint[Constants.MAX_BUFF_LIST_INDEX_SIZE];
             int count = client.ReadBuffStatusBuffer(rawBuffer, statusBuffer);
-            for (int i = 0; i < count; i++)
+            List<uint> activeStatuses = new List<uint>(32);
+            Client.ExtractActiveStatuses(statusBuffer, count, activeStatuses);
+            for (int i = 0; i < activeStatuses.Count; i++)
             {
-                if (statusBuffer[i] == (uint)EffectStatusIDs.EFST_ALL_RIDING)
+                if (activeStatuses[i] == (uint)EffectStatusIDs.EFST_ALL_RIDING)
                 {
                     return true;
                 }
@@ -441,7 +456,7 @@ namespace _4RTools.Model
                 && !ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther))
             {
                 bool shouldCheckRemount;
-                long delayMs = Math.Max(1, Math.Min(120, this.RemountDelaySec)) * 1000L;
+                long delayMs = GetEffectiveRemountDelayMs();
 
                 lock (this.stateLock)
                 {
@@ -466,10 +481,13 @@ namespace _4RTools.Model
                     {
                         bool isMounted = false;
                         bool isSitting = false;
+                        bool hasReuseLimit = false;
                         int count = client.ReadBuffStatusBuffer(rawBuffer, statusBuffer);
-                        for (int i = 0; i < count; i++)
+                        List<uint> activeStatuses = new List<uint>(32);
+                        Client.ExtractActiveStatuses(statusBuffer, count, activeStatuses);
+                        for (int i = 0; i < activeStatuses.Count; i++)
                         {
-                            uint st = statusBuffer[i];
+                            uint st = activeStatuses[i];
                             if (st == (uint)EffectStatusIDs.EFST_ALL_RIDING)
                             {
                                 isMounted = true;
@@ -478,27 +496,35 @@ namespace _4RTools.Model
                             {
                                 isSitting = true;
                             }
-                        }
-
-                        if (!isMounted && !isSitting)
-                        {
-                            IntPtr hWnd = client.GetWindowHandle();
-                            Keys formsMountKey = KeyHelper.ToFormsKeys(this.MountKey);
-                            if (hWnd != IntPtr.Zero && formsMountKey != Keys.None)
+                            else if (st == (uint)EffectStatusIDs.EFST_ALL_RIDING_REUSE_LIMIT)
                             {
-                                Interop.SendKeyPress(hWnd, formsMountKey);
+                                hasReuseLimit = true;
                             }
                         }
 
-                        lock (this.stateLock)
+                        // If the server mount reuse cooldown is still active, wait for it to clear before remounting.
+                        if (!hasReuseLimit)
                         {
-                            this.dismountedByAutoMount = false;
+                            if (!isMounted && !isSitting)
+                            {
+                                IntPtr hWnd = client.GetWindowHandle();
+                                Keys formsMountKey = KeyHelper.ToFormsKeys(this.MountKey);
+                                if (hWnd != IntPtr.Zero && formsMountKey != Keys.None)
+                                {
+                                    Interop.SendKeyPress(hWnd, formsMountKey);
+                                }
+                            }
+
+                            lock (this.stateLock)
+                            {
+                                this.dismountedByAutoMount = false;
+                            }
                         }
                     }
                 }
             }
 
-            _4RThread.Sleep(400, token);
+            _4RThread.Sleep(50, token);
         }
 
         public string GetConfiguration()

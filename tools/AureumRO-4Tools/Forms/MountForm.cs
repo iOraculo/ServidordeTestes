@@ -156,21 +156,22 @@ namespace _4RTools.Forms
                 this.lblRemountDelay = new Label
                 {
                     AutoSize = false,
-                    Location = new Point(226, 79),
+                    Location = new Point(218, 79),
                     Name = "lblRemountDelay",
-                    Size = new Size(72, 18),
-                    Text = "After(s):",
+                    Size = new Size(80, 18),
+                    Text = "After(ms):",
                     TextAlign = ContentAlignment.MiddleRight
                 };
 
                 this.numRemountDelay = new NumericUpDown
                 {
+                    Increment = 100,
                     Location = new Point(302, 78),
-                    Maximum = 120,
-                    Minimum = 1,
+                    Maximum = AutoMount.MAX_REMOUNT_DELAY_MS,
+                    Minimum = AutoMount.MIN_REMOUNT_DELAY_MS,
                     Name = "numRemountDelay",
-                    Size = new Size(56, 20),
-                    Value = 5
+                    Size = new Size(74, 20),
+                    Value = AutoMount.DEFAULT_REMOUNT_DELAY_MS
                 };
                 this.numRemountDelay.ValueChanged += OnMountSettingChanged;
 
@@ -346,7 +347,7 @@ namespace _4RTools.Forms
                 this.cbDismountOnSkill.Checked = this.autoMount.DismountOnSkill;
                 this.cbPauseAutobuffMounted.Checked = this.autoMount.PauseAutobuffWhileMounted;
                 this.cbAutoRemount.Checked = this.autoMount.AutoRemountAfterIdle;
-                FormUtils.SetNumericValue(this.numRemountDelay, this.autoMount.RemountDelaySec);
+                FormUtils.SetNumericValue(this.numRemountDelay, this.autoMount.GetEffectiveRemountDelayMs());
                 this.cbIncludeOtherTabs.Checked = this.autoMount.IncludeOtherTabsSkillKeys;
 
                 for (int i = 0; i < this.extraSkillBoxes.Length; i++)
@@ -381,7 +382,7 @@ namespace _4RTools.Forms
             this.autoMount.DismountDelayMs = decimal.ToInt32(this.numDismountDelay.Value);
             this.autoMount.PauseAutobuffWhileMounted = this.cbPauseAutobuffMounted.Checked;
             this.autoMount.AutoRemountAfterIdle = this.cbAutoRemount.Checked;
-            this.autoMount.RemountDelaySec = decimal.ToInt32(this.numRemountDelay.Value);
+            this.autoMount.RemountDelayMs = decimal.ToInt32(this.numRemountDelay.Value);
             this.autoMount.IncludeOtherTabsSkillKeys = this.cbIncludeOtherTabs.Checked;
 
             ProfileSingleton.SetConfiguration(this.autoMount);

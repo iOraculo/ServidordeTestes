@@ -1,5 +1,22 @@
 # Changelogs
 
+## [v2.30.0] - 2026-11-21 — Correção Definitiva de Basílica (Anti-Spam), Leitura de Buffer para Angelus e Melhorias em Anti-Debuffs
+### Fixed
+- **Basílica de volta ao `Auto-skill` (Modo Pré-Renewal) com proteção anti-spam inteligente (`Model/Buff.cs`, `Model/Autobuff.cs`)**:
+  - Basílica reativada no Modo Pré-Renewal reconhecendo múltiplos handles (`EFST_BASILICA = 111` e `EFST_BASILICA_BUFF = 1122`).
+  - Adicionada proteção automática de recarga (`25000ms` padrão ou `CD(ms)` se maior quando o servidor não emite ícone EFST, reduzindo automaticamente para `3000ms` de proteção de conjuração caso o servidor emita o ícone) — elimina completamente o spam infinito e o cancelamento em loop!
+- **Angelus e fim real do buffer de status (`Model/Client.cs`, `Model/Autobuff.cs`, `Model/StatusEffectRecoveryBase.cs`, `Model/AutoMount.cs`)**:
+  - Implementado `Client.ExtractActiveStatuses`, que interrompe a varredura ao detectar 6 slots vazios consecutivos (`IGNORE` / `0xFFFFFFFF`), evitando ler lixo de memória fora do array de buffs do cliente (que frequentemente contém inteiros pequenos como `9` = `ANGELUS` e impedia o Angelus de ativar automaticamente).
+  - Atualizado o botão **`Perfis → Ver Status (IDs)`** para separar claramente os IDs ativos no buffer dos valores ignorados após o fim do buffer.
+- **Anti-debuffs / Cegueira (`Model/StatusEffectRecoveryBase.cs`)**:
+  - Alterado o envio de tecla de cura para `SendKeyPress` (`WM_KEYDOWN + WM_KEYUP`) e mantidos todos os múltiplos handles para Cegueira (`887`, `694`, `1205`), Silêncio (`885`, `693`, `1206`), Maldição (`884`, `692`) e Veneno (`883`, `890`, `1214`).
+
+## [v2.29.3] - 2026-11-21 — Contador de Remontar em Milissegundos (ms)
+### Changed & Fixed
+- **Remontar em milissegundos (`Model/AutoMount.cs`, `Forms/MountForm.cs`, `Utils/LocalizationManager.cs`)**:
+  - Alterado o campo **`Após(s)`** (que tinha mínimo travado em `2s`) para **`Após(ms)`** (`100ms` a `120000ms`, incremento de `100ms`, padrão `1000ms`) com precisão de verificação a cada `50ms`.
+  - Adicionado respeito ao cooldown da Rédea no servidor (`EFST_ALL_RIDING_REUSE_LIMIT = 614`) para que o auto-remontar aguarde o fim do cooldown sem desistir caso o delay configurado seja curto.
+
 ## [v2.29.2] - 2026-11-21 — Prioridade de Ações movida para a aba Spammer
 ### Changed
 - **Prioridade de Ações alocada na aba `Spammer` (`Forms/AHKForm.cs`, `Forms/MountForm.cs`, `Utils/LocalizationManager.cs`, `Forms/GuideForm.cs`)**:

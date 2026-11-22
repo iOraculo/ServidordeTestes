@@ -140,7 +140,7 @@ namespace _4RTools.Model
             if (hWnd != IntPtr.Zero)
             {
                 Keys formsKey = KeyHelper.ToFormsKeys(key);
-                Interop.SendKeyDown(hWnd, formsKey);
+                Interop.SendKeyPress(hWnd, formsKey);
             }
         }
 
@@ -148,6 +148,7 @@ namespace _4RTools.Model
         {
             byte[] rawBuffer = new byte[Constants.STATUS_BUFFER_BYTE_SIZE];
             uint[] statusBuffer = new uint[Constants.MAX_BUFF_LIST_INDEX_SIZE];
+            List<uint> activeStatuses = new List<uint>(32);
 
             return new _4RThread(token =>
             {
@@ -156,20 +157,17 @@ namespace _4RTools.Model
                 {
                     Dictionary<EffectStatusIDs, Key> snapshot = GetBuffMappingSnapshot();
                     int count = client.ReadBuffStatusBuffer(rawBuffer, statusBuffer);
-                    for (int i = 0; i < count; i++)
+                    activeStatuses.Clear();
+                    Client.ExtractActiveStatuses(statusBuffer, count, activeStatuses);
+
+                    for (int i = 0; i < activeStatuses.Count; i++)
                     {
                         if (token.IsCancellationRequested || ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther))
                         {
                             break;
                         }
 
-                        uint rawStatus = statusBuffer[i];
-                        if (rawStatus == (uint)EffectStatusIDs.IGNORE || rawStatus == (uint)EffectStatusIDs.IGNORE_2)
-                        {
-                            continue;
-                        }
-
-                        ProcessStatus(client, (EffectStatusIDs)rawStatus, snapshot);
+                        ProcessStatus(client, (EffectStatusIDs)activeStatuses[i], snapshot);
                     }
                 }
 

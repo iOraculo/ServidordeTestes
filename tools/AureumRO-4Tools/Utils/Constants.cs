@@ -16,6 +16,7 @@ namespace _4RTools.Utils
         public const int MINIMUM_HP_TO_RECOVER = 20;
         public const int MOUSE_DIAGONAL_MOVIMENTATION_PIXELS_AHK = 1;
         public const int MAX_BUFF_LIST_INDEX_SIZE = 100;
+        public const int STATUS_END_CONSECUTIVE_IGNORES = 6;
         public const int STATUS_BUFFER_BYTE_SIZE = MAX_BUFF_LIST_INDEX_SIZE * sizeof(uint);
         public const int HP_SP_BLOCK_BYTE_SIZE = 4 * sizeof(uint);
 

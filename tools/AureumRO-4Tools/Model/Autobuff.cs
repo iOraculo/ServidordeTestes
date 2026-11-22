@@ -56,8 +56,13 @@ namespace _4RTools.Model
             EffectStatusIDs.ASPERSIO
         };
 
+        // Minimum recast guards for skills that have long cast time or no Pre-Renewal EFST icon (e.g. Basilica).
+        public const int BASILICA_NO_ICON_RECAST_MS = 25000;
+        public const int BASILICA_ICON_CAST_GUARD_MS = 3000;
+
         private readonly object mappingLock = new object();
         private readonly Dictionary<EffectStatusIDs, long> lastCastTimesMs = new Dictionary<EffectStatusIDs, long>();
+        private readonly HashSet<EffectStatusIDs> observedStatusIcons = new HashSet<EffectStatusIDs>();
         private readonly Stopwatch clock = Stopwatch.StartNew();
         private _4RThread thread;
 
@@ -101,6 +106,7 @@ namespace _4RTools.Model
             byte[] rawBuffer = new byte[Constants.STATUS_BUFFER_BYTE_SIZE];
             uint[] statusBuffer = new uint[Constants.MAX_BUFF_LIST_INDEX_SIZE];
             byte[] vitalsBuffer = new byte[Constants.HP_SP_BLOCK_BYTE_SIZE];
+            List<uint> extractedStatuses = new List<uint>(32);
 
             return new _4RThread(token =>
             {
@@ -117,21 +123,21 @@ namespace _4RTools.Model
                     {
                         HashSet<EffectStatusIDs> activeStatuses = new HashSet<EffectStatusIDs>();
                         int count = c.ReadBuffStatusBuffer(rawBuffer, statusBuffer);
-                        for (int i = 0; i < count; i++)
-                        {
-                            EffectStatusIDs status = (EffectStatusIDs)statusBuffer[i];
+                        extractedStatuses.Clear();
+                        Client.ExtractActiveStatuses(statusBuffer, count, extractedStatuses);
 
-                            if (status == EffectStatusIDs.IGNORE || status == EffectStatusIDs.IGNORE_2)
-                            {
-                                continue;
-                            }
+                        for (int i = 0; i < extractedStatuses.Count; i++)
+                        {
+                            EffectStatusIDs status = (EffectStatusIDs)extractedStatuses[i];
 
                             activeStatuses.Add(status);
+                            MarkStatusObserved(status);
 
                             EffectStatusIDs equivalentBuff;
                             if (TryGetEquivalentBuff(status, out equivalentBuff))
                             {
                                 activeStatuses.Add(equivalentBuff);
+                                MarkStatusObserved(equivalentBuff);
                                 missingBuffs.Remove(equivalentBuff);
                             }
 
@@ -245,7 +251,7 @@ namespace _4RTools.Model
                 return false;
             }
 
-            int cooldown = this.buffCooldownMs;
+            int cooldown = GetEffectiveCooldownMs(status);
             if (cooldown > 0)
             {
                 lock (this.mappingLock)
@@ -261,6 +267,32 @@ namespace _4RTools.Model
             return true;
         }
 
+        public int GetEffectiveCooldownMs(EffectStatusIDs status)
+        {
+            int cooldown = Math.Max(0, this.buffCooldownMs);
+            if (status == EffectStatusIDs.EFST_BASILICA)
+            {
+                bool iconObserved;
+                lock (this.mappingLock)
+                {
+                    iconObserved = this.observedStatusIcons.Contains(EffectStatusIDs.EFST_BASILICA);
+                }
+
+                int minGuard = iconObserved ? BASILICA_ICON_CAST_GUARD_MS : BASILICA_NO_ICON_RECAST_MS;
+                return Math.Max(cooldown, minGuard);
+            }
+
+            return cooldown;
+        }
+
+        public void MarkStatusObserved(EffectStatusIDs status)
+        {
+            lock (this.mappingLock)
+            {
+                this.observedStatusIcons.Add(status);
+            }
+        }
+
         public void RecordBuffCast(EffectStatusIDs status, long nowMs)
         {
             lock (this.mappingLock)
@@ -274,6 +306,7 @@ namespace _4RTools.Model
             lock (this.mappingLock)
             {
                 this.lastCastTimesMs.Clear();
+                this.observedStatusIcons.Clear();
             }
         }
 

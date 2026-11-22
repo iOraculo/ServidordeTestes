@@ -106,6 +106,7 @@ namespace _4RTools.Model
             EffectStatusIDs.BLESSING,
             EffectStatusIDs.INC_AGI,
             EffectStatusIDs.ASSUMPTIO,
+            EffectStatusIDs.EFST_BASILICA,
             EffectStatusIDs.EFST_KYRIE,
             EffectStatusIDs.EFST_SUFFRAGIUM,
             EffectStatusIDs.GLORIA,
