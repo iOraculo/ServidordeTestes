@@ -167,7 +167,7 @@ namespace _4RTools.Forms
                 {
                     Location = new Point(302, 78),
                     Maximum = 120,
-                    Minimum = 2,
+                    Minimum = 1,
                     Name = "numRemountDelay",
                     Size = new Size(56, 20),
                     Value = 5

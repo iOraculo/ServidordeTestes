@@ -441,7 +441,7 @@ namespace _4RTools.Model
                 && !ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther))
             {
                 bool shouldCheckRemount;
-                long delayMs = Math.Max(2, Math.Min(120, this.RemountDelaySec)) * 1000L;
+                long delayMs = Math.Max(1, Math.Min(120, this.RemountDelaySec)) * 1000L;
 
                 lock (this.stateLock)
                 {
