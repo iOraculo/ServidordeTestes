@@ -522,7 +522,7 @@ namespace _4RTools.Utils
             { "usage.mount_key", "Montaria (Tecla da Rédea)" },
 
             // MountForm & Action Priority
-            { "mount.priority_order", "Ordem:  1º Jogador  →  2º Ygg / Panaceia (Anti-debuffs)  →  3º Poções  →  4º Skills" },
+            { "mount.priority_order", "1º Input do Jogador → 2º Fruto de Yggdrasil / Panaceia → 3º Consumíveis → 4º Auto-skills" },
             { "tooltip.mount_enabled", "Ativa o controle automático de Montaria (Rédea / Halter Lead — EFST_ALL_RIDING) quando o 4Tools estiver ligado." },
             { "tooltip.mount_key", "Tecla do atalho da Rédea / Montaria na sua barra do jogo." },
             { "tooltip.mount_dismount_delay", "Pausa em milissegundos (ms) após apertar a tecla da montaria para esperar o servidor desmontar antes de lançar a habilidade (padrão: 80ms)." },
@@ -534,7 +534,7 @@ namespace _4RTools.Utils
             { "tooltip.mount_extra_skill", "Tecla extra de habilidade usada manualmente no jogo: ao apertar montado, o 4Tools desce da montaria e dispara a habilidade." },
             { "tooltip.mount_clear_extra", "Limpa as 6 teclas extras de habilidade." },
             { "tooltip.priority_player_yield", "Tempo em milissegundos (ms) que o 4Tools aguarda sempre que você aperta uma tecla no jogo, garantindo prioridade total às suas ações (padrão: 120ms; 0 = desativado)." },
-            { "tooltip.priority_order", "Hierarquia fixa de prioridade: 1º O que o jogador faz no jogo → 2º Yggdrasil e Panaceia / Anti-debuffs (vencem poções e skills) → 3º Poções comuns → 4º Auto-skill, consumíveis, timers e demais." }
+            { "tooltip.priority_order", "Hierarquia fixa de prioridade: 1º Input do Jogador → 2º Fruto de Yggdrasil / Panaceia (Anti-debuffs) → 3º Consumíveis (Poções) → 4º Auto-skills e demais." }
         };
 
         private static readonly Dictionary<string, string> MessagesEn = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -805,7 +805,7 @@ namespace _4RTools.Utils
             { "usage.macro_slot", "{0} (Lane {1} Slot)" },
             { "usage.mount_key", "Mount (Halter Lead Key)" },
 
-            { "mount.priority_order", "Order:  1st Player  →  2nd Ygg / Panacea (Anti-debuffs)  →  3rd Potions  →  4th Skills" },
+            { "mount.priority_order", "1st Player Input → 2nd Yggdrasil Berry / Panacea → 3rd Consumables → 4th Auto-skills" },
             { "tooltip.mount_enabled", "Enables automatic Mount (Halter Lead — EFST_ALL_RIDING) management while 4Tools is ON." },
             { "tooltip.mount_key", "Hotkey assigned to your Halter Lead / Mount item in-game." },
             { "tooltip.mount_dismount_delay", "Delay in milliseconds (ms) after pressing the Mount key to let the server dismount before casting the skill (default: 80ms)." },
@@ -817,7 +817,7 @@ namespace _4RTools.Utils
             { "tooltip.mount_extra_skill", "Extra manual skill hotkey: pressing it while mounted automatically dismounts and fires the skill." },
             { "tooltip.mount_clear_extra", "Clears all 6 extra skill hotkeys." },
             { "tooltip.priority_player_yield", "Duration in milliseconds (ms) that 4Tools yields whenever you press a key in-game, giving your actions top priority (default: 120ms; 0 = disabled)." },
-            { "tooltip.priority_order", "Fixed priority hierarchy: 1st Player input in-game → 2nd Yggdrasil & Panacea / Anti-debuffs (beat potions & skills) → 3rd Standard potions → 4th Auto-skill, consumables, timers, and others." }
+            { "tooltip.priority_order", "Fixed priority hierarchy: 1st Player Input → 2nd Yggdrasil Berry / Panacea (Anti-debuffs) → 3rd Consumables (Potions) → 4th Auto-skills and others." }
         };
 
         public static string CurrentLanguage

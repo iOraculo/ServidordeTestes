@@ -23,7 +23,7 @@ namespace _4RTools.Forms
         {
             InitializeComponent();
             this.helpToolTip = FormUtils.CreateHelpToolTip(this.components);
-            this.priorityOrderFont = new Font("Segoe UI", 8.25F, FontStyle.Bold);
+            this.priorityOrderFont = new Font("Segoe UI", 7.75F, FontStyle.Bold);
             InitializeClearAllButton();
             InitializePriorityControls();
             InitializeCheckAsThreeState();
@@ -88,9 +88,9 @@ namespace _4RTools.Forms
             {
                 AutoSize = false,
                 Font = this.priorityOrderFont,
-                Location = new Point(14, 94),
+                Location = new Point(10, 93),
                 Name = "lblPriorityOrder",
-                Size = new Size(530, 18),
+                Size = new Size(538, 20),
                 Tag = ThemeManager.TAG_ACCENT_TEXT,
                 TextAlign = ContentAlignment.MiddleLeft
             };
