@@ -15,9 +15,9 @@ namespace _4RTools.Utils
     /// <summary>
     /// Enforces the 4-tier action priority order across all 4RTools automation threads:
     /// 1) Player input in the game (highest — pauses 4RTools briefly on fresh physical keypresses)
-    /// 2) Yggdrasil emergency autopot (takes precedence over standard potions and skills)
-    /// 3) Standard potions (takes precedence over skills, buffs, debuffs, and timers)
-    /// 4) Skills, Auto-skill, consumables, anti-debuffs, timers, and other automations (lowest)
+    /// 2) Yggdrasil emergency autopot & Panacea / Anti-debuffs (takes precedence over standard potions and skills)
+    /// 3) Standard potions (takes precedence over skills, buffs, and timers)
+    /// 4) Skills, Auto-skill, consumables, timers, and other automations (lowest)
     /// </summary>
     public static class ActionPriorityCoordinator
     {
@@ -86,6 +86,11 @@ namespace _4RTools.Utils
         {
             long timestamp = nowMs ?? Clock.ElapsedMilliseconds;
             Interlocked.Exchange(ref lastYggActionMs, timestamp);
+        }
+
+        public static void NotifyAntiDebuffAction(long? nowMs = null)
+        {
+            NotifyYggAction(nowMs);
         }
 
         public static void NotifyPotionAction(long? nowMs = null)

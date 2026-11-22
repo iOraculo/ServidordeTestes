@@ -211,7 +211,7 @@ namespace _4RTools.Forms
                         "   – Quadrado preenchido (■): spamma APENAS a tecla, sem clicar (ideal para skills sem alvo / self-cast como Impacto Explosivo, Crux Magnum, Rajada Congelante).\n" +
                         "   – Marcado (✓): spamma tecla + clique esquerdo do mouse (ideal para skills de alvo ou chão como Bomba Ácida, Rajada de Flechas, Lanças, Nevasca).\n" +
                         "• Compatibilidade vs. Speed Boost: Compatibilidade é o modo mais estável e libera 'Sem Shift' e 'Mouse Flick'. Speed Boost foca na máxima velocidade de spam.\n" +
-                        "• Prioridade de Ações (4 níveis, configurável em 'Prioridade Jogador' nesta aba): 1º Input do jogador no jogo (pausa o 4Tools por alguns ms, padrão 120ms) → 2º Yggdrasil → 3º Poções comuns → 4º Skills e demais.",
+                        "• Prioridade de Ações (4 níveis, configurável em 'Prioridade Jogador' nesta aba): 1º Input do jogador no jogo (pausa o 4Tools por alguns ms, padrão 120ms) → 2º Yggdrasil e Panaceia / Anti-debuffs → 3º Poções comuns → 4º Skills e demais.",
                     TitleEn = "3. Skill Spammer and Action Priority",
                     BodyEn =
                         "• 3 states on every key checkbox (click to cycle):\n" +
@@ -219,7 +219,7 @@ namespace _4RTools.Forms
                         "   – Filled square (■): spams ONLY the key without clicking (ideal for self-cast skills like Magnum Break, Grand Cross, Frost Nova).\n" +
                         "   – Checked (✓): spams key + left mouse click (ideal for target/ground skills like Acid Demonstration, Double Strafe, Bolts, Storm Gust).\n" +
                         "• Compatibility vs. Speed Boost: Compatibility is the most stable mode and enables 'No Shift' and 'Mouse Flick'. Speed Boost prioritizes raw speed.\n" +
-                        "• Action Priority (4 tiers, configurable via 'Player Priority' on this tab): 1st Player input in-game (briefly pauses 4Tools, default 120ms) → 2nd Yggdrasil → 3rd Standard potions → 4th Skills and others."
+                        "• Action Priority (4 tiers, configurable via 'Player Priority' on this tab): 1st Player input in-game (briefly pauses 4Tools, default 120ms) → 2nd Yggdrasil & Panacea / Anti-debuffs → 3rd Standard potions → 4th Skills and others."
                 },
                 new GuideSectionData
                 {

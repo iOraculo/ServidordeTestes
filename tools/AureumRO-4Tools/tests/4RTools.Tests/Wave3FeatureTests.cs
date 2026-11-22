@@ -1203,13 +1203,20 @@ namespace _4RTools.Tests
                 Assert.True(ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, 1200, false));
                 ActionPriorityCoordinator.SetYggEmergencyActive(false);
 
-                // Tier 2: Recent Yggdrasil cast blocks Tier 3 & 4 for 250ms, then expires.
+                // Tier 2: Recent Yggdrasil or Panacea/Anti-debuff cast blocks Tier 3 & 4 for 250ms, then expires.
                 ActionPriorityCoordinator.NotifyYggAction(2000);
                 Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.Yggdrasil, 2100));
                 Assert.True(ActionPriorityCoordinator.ShouldYield(ActionPriority.Potion, 2100));
                 Assert.True(ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, 2100));
                 Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.Potion, 2250));
                 Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, 2250));
+
+                ActionPriorityCoordinator.NotifyAntiDebuffAction(2500);
+                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.Yggdrasil, 2600));
+                Assert.True(ActionPriorityCoordinator.ShouldYield(ActionPriority.Potion, 2600));
+                Assert.True(ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, 2600));
+                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.Potion, 2750));
+                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, 2750));
 
                 // Tier 3: Standard Potion blocks Tier 4 (Skills) for 150ms, but NEVER blocks Tier 2 (Yggdrasil).
                 ActionPriorityCoordinator.NotifyPotionAction(3000);

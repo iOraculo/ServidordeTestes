@@ -140,6 +140,7 @@ namespace _4RTools.Model
             if (hWnd != IntPtr.Zero)
             {
                 Keys formsKey = KeyHelper.ToFormsKeys(key);
+                ActionPriorityCoordinator.NotifyAntiDebuffAction();
                 Interop.SendKeyPress(hWnd, formsKey);
             }
         }
@@ -153,7 +154,7 @@ namespace _4RTools.Model
             return new _4RThread(token =>
             {
                 if (client.HasMemorySupport && client.IsProcessAlive() && !client.ShouldPauseAutomation()
-                    && !ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther))
+                    && !ActionPriorityCoordinator.ShouldYield(ActionPriority.Yggdrasil))
                 {
                     Dictionary<EffectStatusIDs, Key> snapshot = GetBuffMappingSnapshot();
                     int count = client.ReadBuffStatusBuffer(rawBuffer, statusBuffer);
@@ -162,7 +163,7 @@ namespace _4RTools.Model
 
                     for (int i = 0; i < activeStatuses.Count; i++)
                     {
-                        if (token.IsCancellationRequested || ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther))
+                        if (token.IsCancellationRequested || ActionPriorityCoordinator.ShouldYield(ActionPriority.Yggdrasil))
                         {
                             break;
                         }
