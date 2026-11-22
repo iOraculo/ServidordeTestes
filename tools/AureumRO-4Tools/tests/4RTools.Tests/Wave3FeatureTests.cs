@@ -1052,7 +1052,6 @@ namespace _4RTools.Tests
                 EffectStatusIDs.BLESSING,
                 EffectStatusIDs.INC_AGI,
                 EffectStatusIDs.ASSUMPTIO,
-                EffectStatusIDs.EFST_BASILICA,
                 EffectStatusIDs.EFST_KYRIE,
                 EffectStatusIDs.EFST_SUFFRAGIUM,
                 EffectStatusIDs.ASPERSIO
@@ -1064,6 +1063,27 @@ namespace _4RTools.Tests
                 Assert.NotNull(b.icon);
                 Assert.True(b.IsPreRenewal);
             }
+
+            // Basilica exists in Acolyte list (for Renewal/custom icon servers) but is excluded from Pre-Renewal Mode
+            // because Pre-Renewal SC_BASILICA does not emit an EFST icon to the client status buffer.
+            Buff basilica = acolyte.FirstOrDefault(x => x.effectStatusID == EffectStatusIDs.EFST_BASILICA);
+            Assert.NotNull(basilica);
+            Assert.NotNull(basilica.icon);
+            Assert.False(basilica.IsPreRenewal);
+
+            // Equivalent EFST IDs: EFST_HEALTHSTATE_ANGELUS (888) satisfies ANGELUS (9); EFST_BASILICA_BUFF (1122) satisfies EFST_BASILICA (111).
+            EffectStatusIDs equivalent;
+            Assert.True(AutoBuff.TryGetEquivalentBuff(EffectStatusIDs.EFST_HEALTHSTATE_ANGELUS, out equivalent));
+            Assert.Equal(EffectStatusIDs.ANGELUS, equivalent);
+            Assert.True(AutoBuff.TryGetEquivalentBuff(EffectStatusIDs.EFST_BASILICA_BUFF, out equivalent));
+            Assert.Equal(EffectStatusIDs.EFST_BASILICA, equivalent);
+
+            // Shared recovery aliases resolve Blind / Curse / Silence / Poison variants for both Panacea and per-status cures.
+            Assert.Equal(EffectStatusIDs.BLIND, StatusEffectRecoveryBase.ResolveCanonicalStatus(EffectStatusIDs.EFST_GVG_BLIND));
+            Assert.Equal(EffectStatusIDs.BLIND, StatusEffectRecoveryBase.ResolveCanonicalStatus(EffectStatusIDs.EFST_HANDICAPSTATE_DEEPBLIND));
+            Assert.Equal(EffectStatusIDs.SILENCE, StatusEffectRecoveryBase.ResolveCanonicalStatus(EffectStatusIDs.EFST_GVG_SILENCE));
+            Assert.Equal(EffectStatusIDs.CURSE, StatusEffectRecoveryBase.ResolveCanonicalStatus(EffectStatusIDs.EFST_GVG_CURSE));
+            Assert.Equal(EffectStatusIDs.POISON, StatusEffectRecoveryBase.ResolveCanonicalStatus(EffectStatusIDs.EFST_HEALTHSTATE_HEAVYPOISON));
 
             // Prerequisite check: Mirror Image requires Ninja Aura active first.
             EffectStatusIDs prereq;
@@ -1205,13 +1225,17 @@ namespace _4RTools.Tests
             Assert.False(reloaded.AutoMount.IsTrackedSkillKey(Key.F1, prof));
             Assert.False(reloaded.AutoMount.IsTrackedSkillKey(Key.F2, prof));
 
-            // MountForm loads profile values and syncs ActionPriorityCoordinator.
+            // MountForm loads mount keys cleanly (priority controls live in AHKForm / Spammer).
             Subject subject = new Subject();
-            using (MountForm form = new MountForm(subject))
+            using (MountForm mountForm = new MountForm(subject))
+            using (AHKForm ahkForm = new AHKForm(subject))
             {
                 subject.Notify(new _4RTools.Utils.Message(MessageCode.PROFILE_CHANGED, null));
-                Assert.Equal("F9", form.Controls.Find("txtMountKey", true)[0].Text);
-                Assert.Equal("A", form.Controls.Find("txtExtraSkill1", true)[0].Text);
+                Assert.Equal("F9", mountForm.Controls.Find("txtMountKey", true)[0].Text);
+                Assert.Equal("A", mountForm.Controls.Find("txtExtraSkill1", true)[0].Text);
+                Assert.Empty(mountForm.Controls.Find("numPlayerYield", true));
+                Assert.Single(ahkForm.Controls.Find("numPlayerYield", true));
+                Assert.Single(ahkForm.Controls.Find("lblPriorityOrder", true));
                 Assert.Equal(150, ActionPriorityCoordinator.PlayerInputYieldMs);
             }
 

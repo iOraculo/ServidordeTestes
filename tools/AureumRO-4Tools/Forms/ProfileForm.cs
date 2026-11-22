@@ -19,6 +19,7 @@ namespace _4RTools.Forms
         private Button btnBackupZip;
         private Button btnRestoreZip;
         private Button btnCheckConflicts;
+        private Button btnInspectStatus;
         private Button btnUseActiveChar;
         private Button btnSaveBinding;
         private Button btnClearBinding;
@@ -55,6 +56,7 @@ namespace _4RTools.Forms
             if (this.btnBackupZip != null) this.profileToolTip.SetToolTip(this.btnBackupZip, LocalizationManager.T("tooltip.profile_backup"));
             if (this.btnRestoreZip != null) this.profileToolTip.SetToolTip(this.btnRestoreZip, LocalizationManager.T("tooltip.profile_restore"));
             if (this.btnCheckConflicts != null) this.profileToolTip.SetToolTip(this.btnCheckConflicts, LocalizationManager.T("tooltip.profile_conflicts"));
+            if (this.btnInspectStatus != null) this.profileToolTip.SetToolTip(this.btnInspectStatus, LocalizationManager.T("tooltip.profile_inspect_status"));
             if (this.cbAutoSwitch != null) this.profileToolTip.SetToolTip(this.cbAutoSwitch, LocalizationManager.T("tooltip.profile_autoswitch"));
             if (this.txtBoundCharacter != null) this.profileToolTip.SetToolTip(this.txtBoundCharacter, LocalizationManager.T("tooltip.profile_autoswitch"));
             if (this.btnUseActiveChar != null) this.profileToolTip.SetToolTip(this.btnUseActiveChar, LocalizationManager.T("tooltip.profile_use_char"));
@@ -120,9 +122,20 @@ namespace _4RTools.Forms
             };
             this.btnCheckConflicts.Click += btnCheckConflicts_Click;
 
+            this.btnInspectStatus = new Button
+            {
+                Location = new Point(413, 224),
+                Name = "btnInspectStatus",
+                Size = new Size(135, 25),
+                Text = "Inspect Status IDs",
+                UseVisualStyleBackColor = true
+            };
+            this.btnInspectStatus.Click += btnInspectStatus_Click;
+
             this.Controls.Add(this.btnBackupZip);
             this.Controls.Add(this.btnRestoreZip);
             this.Controls.Add(this.btnCheckConflicts);
+            this.Controls.Add(this.btnInspectStatus);
         }
 
         private void InitializeCharacterBindingPanel()
@@ -616,6 +629,94 @@ namespace _4RTools.Forms
             string report = KeybindConflictDetector.FormatReport(current != null ? current.Name : "Default", conflicts);
             MessageBoxIcon icon = conflicts.Count > 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Information;
             MessageBox.Show(report, LocalizationManager.T("title.key_conflicts"), MessageBoxButtons.OK, icon);
+        }
+
+        private void btnInspectStatus_Click(object sender, EventArgs e)
+        {
+            Client activeClient = ClientSingleton.GetClient();
+            if (activeClient == null || !activeClient.HasMemorySupport || !activeClient.IsProcessAlive())
+            {
+                MessageBox.Show(
+                    LocalizationManager.T("msg.select_client_first"),
+                    LocalizationManager.T("title.status_inspect"),
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
+
+            using (Form dlg = new Form())
+            using (Font monoFont = new Font("Consolas", 9F, FontStyle.Regular))
+            {
+                dlg.Text = LocalizationManager.T("title.status_inspect");
+                dlg.FormBorderStyle = FormBorderStyle.FixedDialog;
+                dlg.MaximizeBox = false;
+                dlg.MinimizeBox = false;
+                dlg.StartPosition = FormStartPosition.CenterParent;
+                dlg.ClientSize = new Size(440, 310);
+
+                TextBox txtOutput = new TextBox
+                {
+                    Font = monoFont,
+                    Location = new Point(12, 12),
+                    Multiline = true,
+                    ReadOnly = true,
+                    ScrollBars = ScrollBars.Vertical,
+                    Size = new Size(416, 250),
+                    Text = activeClient.BuildActiveStatusReport()
+                };
+
+                Button btnRefreshStatus = new Button
+                {
+                    Location = new Point(12, 272),
+                    Size = new Size(100, 26),
+                    Text = LocalizationManager.IsPortuguese ? "Atualizar" : "Refresh",
+                    UseVisualStyleBackColor = true
+                };
+                btnRefreshStatus.Click += delegate
+                {
+                    Client c = ClientSingleton.GetClient();
+                    txtOutput.Text = c != null ? c.BuildActiveStatusReport() : LocalizationManager.T("msg.select_client_first");
+                };
+
+                Button btnCopyStatus = new Button
+                {
+                    Location = new Point(118, 272),
+                    Size = new Size(100, 26),
+                    Text = LocalizationManager.IsPortuguese ? "Copiar" : "Copy",
+                    UseVisualStyleBackColor = true
+                };
+                btnCopyStatus.Click += delegate
+                {
+                    try
+                    {
+                        if (!string.IsNullOrEmpty(txtOutput.Text))
+                        {
+                            Clipboard.SetText(txtOutput.Text);
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore clipboard contention errors.
+                    }
+                };
+
+                Button btnClose = new Button
+                {
+                    DialogResult = DialogResult.OK,
+                    Location = new Point(328, 272),
+                    Size = new Size(100, 26),
+                    Text = LocalizationManager.IsPortuguese ? "Fechar" : "Close",
+                    UseVisualStyleBackColor = true
+                };
+
+                dlg.Controls.Add(txtOutput);
+                dlg.Controls.Add(btnRefreshStatus);
+                dlg.Controls.Add(btnCopyStatus);
+                dlg.Controls.Add(btnClose);
+                dlg.AcceptButton = btnClose;
+                ThemeManager.ApplyTheme(dlg, ThemeManager.IsDarkMode);
+                dlg.ShowDialog(this);
+            }
         }
     }
 }

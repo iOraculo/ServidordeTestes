@@ -36,6 +36,14 @@ namespace _4RTools.Model
             { EffectStatusIDs.EFST_NJ_BUNSINJYUTSU, EffectStatusIDs.AURA_NINJA }
         };
 
+        // Alternative client EFST IDs that satisfy a configured buff (e.g. EFST_HEALTHSTATE_ANGELUS = 888 for ANGELUS = 9).
+        private static readonly Dictionary<EffectStatusIDs, EffectStatusIDs> EquivalentActiveBuffs = new Dictionary<EffectStatusIDs, EffectStatusIDs>
+        {
+            { EffectStatusIDs.OVERTHRUSTMAX, EffectStatusIDs.OVERTHRUST },
+            { EffectStatusIDs.EFST_HEALTHSTATE_ANGELUS, EffectStatusIDs.ANGELUS },
+            { EffectStatusIDs.EFST_BASILICA_BUFF, EffectStatusIDs.EFST_BASILICA }
+        };
+
         // Target-cast buffs that require clicking on your own character (center of the RO window) to self-cast.
         private static readonly HashSet<EffectStatusIDs> SelfTargetClickBuffs = new HashSet<EffectStatusIDs>
         {
@@ -64,6 +72,11 @@ namespace _4RTools.Model
         public static bool TryGetPrerequisite(EffectStatusIDs status, out EffectStatusIDs prerequisite)
         {
             return PrerequisiteBuffs.TryGetValue(status, out prerequisite);
+        }
+
+        public static bool TryGetEquivalentBuff(EffectStatusIDs activeStatus, out EffectStatusIDs satisfiedBuff)
+        {
+            return EquivalentActiveBuffs.TryGetValue(activeStatus, out satisfiedBuff);
         }
 
         public static bool RequiresSelfTargetClick(EffectStatusIDs status)
@@ -115,9 +128,11 @@ namespace _4RTools.Model
 
                             activeStatuses.Add(status);
 
-                            if (status == EffectStatusIDs.OVERTHRUSTMAX)
+                            EffectStatusIDs equivalentBuff;
+                            if (TryGetEquivalentBuff(status, out equivalentBuff))
                             {
-                                missingBuffs.Remove(EffectStatusIDs.OVERTHRUST);
+                                activeStatuses.Add(equivalentBuff);
+                                missingBuffs.Remove(equivalentBuff);
                             }
 
                             missingBuffs.Remove(status);
@@ -181,7 +196,7 @@ namespace _4RTools.Model
 
                                     UseAutobuff(c, item.Key, item.Value, token);
                                     RecordBuffCast(item.Key, nowMs);
-                                    if (!_4RThread.Sleep(10, token))
+                                    if (!_4RThread.Sleep(50, token))
                                     {
                                         break;
                                     }
@@ -329,7 +344,7 @@ namespace _4RTools.Model
             }
 
             Keys formsKey = KeyHelper.ToFormsKeys(key);
-            Interop.SendKeyDown(hWnd, formsKey);
+            Interop.SendKeyPress(hWnd, formsKey);
 
             if (this.autoSelfClick && RequiresSelfTargetClick(status))
             {

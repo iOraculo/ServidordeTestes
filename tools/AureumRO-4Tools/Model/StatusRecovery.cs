@@ -37,9 +37,10 @@ namespace _4RTools.Model
         protected override void ProcessStatus(Client client, EffectStatusIDs status, Dictionary<EffectStatusIDs, Key> mappingSnapshot)
         {
             Key key;
-            if (mappingSnapshot.TryGetValue(status, out key))
+            EffectStatusIDs matchedStatus;
+            if (TryResolveMappedKey(status, mappingSnapshot, out key, out matchedStatus))
             {
-                if (ElviraStatuses.Contains(status) && this.newStatusDelay > 0)
+                if ((ElviraStatuses.Contains(status) || ElviraStatuses.Contains(matchedStatus)) && this.newStatusDelay > 0)
                 {
                     if (!this.elviraUsedOnce || this.elviraCooldownWatch.ElapsedMilliseconds >= this.newStatusDelay)
                     {

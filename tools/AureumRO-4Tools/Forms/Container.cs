@@ -1333,7 +1333,10 @@ namespace _4RTools.Forms
                 {
                     try
                     {
-                        if (!string.IsNullOrEmpty(p.MainWindowTitle) && ClientListSingleton.ExistsByProcessName(p.ProcessName))
+                        bool hasWindow = !string.IsNullOrEmpty(p.MainWindowTitle)
+                            || p.MainWindowHandle != IntPtr.Zero
+                            || ClientUpdaterForm.IsBuiltInTestServerName(p.ProcessName);
+                        if (hasWindow && ClientListSingleton.ExistsByProcessName(p.ProcessName))
                         {
                             this.processCB.Items.Add(string.Format("{0}.exe - {1}", p.ProcessName, p.Id));
                         }

@@ -1,5 +1,18 @@
 # Changelogs
 
+## [v2.29.2] - 2026-11-21 — Prioridade de Ações movida para a aba Spammer
+### Changed
+- **Prioridade de Ações alocada na aba `Spammer` (`Forms/AHKForm.cs`, `Forms/MountForm.cs`, `Utils/LocalizationManager.cs`, `Forms/GuideForm.cs`)**:
+  - Movido o ajuste de **Prioridade Jogador (ms)** e a legenda visual da hierarquia (**`1º Jogador → 2º Yggdrasil → 3º Poções → 4º Skills e demais`**) para o painel `Configuração do Spammer` na aba **`Spammer`**, lado a lado com `Config. Tecla` e `Atraso (Delay)`.
+  - A aba **`Montaria`** ficou limpa e dedicada exclusivamente aos controles de montaria (Rédea) e teclas de habilidade.
+
+## [v2.29.1] - 2026-11-21 — Correções em Angelus, Basílica, Cegueira e Inspetor de Status (EFST IDs)
+### Fixed & Added
+- **Angelus (`Model/Autobuff.cs`, `Utils/EffectStatusIDs.cs`)**: adicionado suporte ao alias `EFST_HEALTHSTATE_ANGELUS (888)` junto ao `EFST_ANGELUS (9)`, envio completo `WM_KEYDOWN + WM_KEYUP` (`SendKeyPress`) no `Auto-skill` e espaçamento de `50ms` entre buffs consecutivos para evitar colisão de teclas.
+- **Basílica (`Model/Buff.cs`, `Model/Autobuff.cs`, `Utils/EffectStatusIDs.cs`)**: ocultada no **Modo Pré-Renewal** (pois `SC_BASILICA` no Pré-Renewal cria célula no chão sem enviar ícone EFST ao cliente, o que causava spam infinito; para Basílica periódica no Pré-Renewal, utilize `Temporizadores`) e adicionado suporte a `EFST_BASILICA_BUFF (1122)` para servidores Renewal / customizados com ícone.
+- **Cegueira e Panaceia (`Model/StatusEffectRecoveryBase.cs`, `Model/StatusRecovery.cs`, `Model/DebuffsRecovery.cs`)**: unificada a resolução de aliases entre **Panaceia (tecla única)** e **teclas individuais**, cobrindo `EFST_HEALTHSTATE_BLIND (887)`, `EFST_GVG_BLIND (694)`, `EFST_HANDICAPSTATE_DEEPBLIND (1205)`, além de variantes GvG/Handicap de Maldição, Silêncio e Veneno.
+- **Botão `Ver Status (IDs)` (`Forms/ProfileForm.cs`, `Model/Client.cs`)**: novo botão de diagnóstico na aba **Perfis** que lista ao vivo os IDs EFST presentes na memória do `AureumRO.exe` (com botões Atualizar e Copiar) para validar instantaneamente qualquer buff ou debuff do servidor.
+
 ## [v2.29.0] - 2026-11-21 — Aba Montaria (Descer ao Usar Habilidade), Prioridade 4 Níveis e Ajuste "Auto-skill"
 ### Added
 - **Nova aba `Montaria` (`Model/AutoMount.cs`, `Forms/MountForm.cs`, `Forms/Container.cs`, `Utils/EffectStatusIDs.cs`)**:

@@ -10,11 +10,56 @@ namespace _4RTools.Model
 {
     public abstract class StatusEffectRecoveryBase : Action
     {
+        private static readonly Dictionary<EffectStatusIDs, EffectStatusIDs> SharedStatusAliases = new Dictionary<EffectStatusIDs, EffectStatusIDs>
+        {
+            { EffectStatusIDs.EFST_BURNT, EffectStatusIDs.EFST_BURNING },
+            { EffectStatusIDs.MISTY_FROST, EffectStatusIDs.EFST_FREEZING },
+            { EffectStatusIDs.EFST_HEALTHSTATE_BLOODING, EffectStatusIDs.EFST_BLEEDING },
+            { EffectStatusIDs.EFST_STONE_ING, EffectStatusIDs.EFST_STONE },
+            { EffectStatusIDs.EFST_GVG_BLIND, EffectStatusIDs.BLIND },
+            { EffectStatusIDs.EFST_HANDICAPSTATE_DEEPBLIND, EffectStatusIDs.BLIND },
+            { EffectStatusIDs.EFST_GVG_CURSE, EffectStatusIDs.CURSE },
+            { EffectStatusIDs.EFST_GVG_SILENCE, EffectStatusIDs.SILENCE },
+            { EffectStatusIDs.EFST_HANDICAPSTATE_DEEPSILENCE, EffectStatusIDs.SILENCE },
+            { EffectStatusIDs.EFST_HEALTHSTATE_HEAVYPOISON, EffectStatusIDs.POISON },
+            { EffectStatusIDs.EFST_HANDICAPSTATE_DEADLYPOISON, EffectStatusIDs.POISON },
+        };
+
         protected readonly object mappingLock = new object();
         private _4RThread thread;
 
         public Dictionary<EffectStatusIDs, Key> buffMapping = new Dictionary<EffectStatusIDs, Key>();
         public int delay { get; set; } = 10;
+
+        public static EffectStatusIDs ResolveCanonicalStatus(EffectStatusIDs status)
+        {
+            EffectStatusIDs canonical;
+            return SharedStatusAliases.TryGetValue(status, out canonical) ? canonical : status;
+        }
+
+        protected static bool TryResolveMappedKey(
+            EffectStatusIDs status,
+            Dictionary<EffectStatusIDs, Key> mappingSnapshot,
+            out Key key,
+            out EffectStatusIDs matchedStatus)
+        {
+            if (mappingSnapshot.TryGetValue(status, out key))
+            {
+                matchedStatus = status;
+                return true;
+            }
+
+            EffectStatusIDs canonical = ResolveCanonicalStatus(status);
+            if (canonical != status && mappingSnapshot.TryGetValue(canonical, out key))
+            {
+                matchedStatus = canonical;
+                return true;
+            }
+
+            matchedStatus = status;
+            key = Key.None;
+            return false;
+        }
 
         public abstract string GetActionName();
 

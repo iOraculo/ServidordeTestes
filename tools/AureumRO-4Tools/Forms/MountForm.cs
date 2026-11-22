@@ -11,7 +11,6 @@ namespace _4RTools.Forms
     {
         private readonly ToolTip helpToolTip;
         private readonly TextBox[] extraSkillBoxes = new TextBox[AutoMount.EXTRA_SKILL_SLOTS];
-        private readonly Font boldFont;
 
         private AutoMount autoMount;
         private bool isUpdatingUi;
@@ -33,18 +32,12 @@ namespace _4RTools.Forms
         private Label lblExtraSkills;
         private Button btnClearExtraSkills;
 
-        private GroupBox gbActionPriority;
-        private Label lblPlayerYield;
-        private NumericUpDown numPlayerYield;
-        private Label lblPriorityOrder;
-
         public MountForm(Subject subject)
         {
             this.FormBorderStyle = FormBorderStyle.None;
             this.Name = "MountForm";
             this.Text = "Mount";
             this.Size = new Size(584, 281);
-            this.boldFont = new Font("Segoe UI", 8.25F, FontStyle.Bold);
             this.helpToolTip = FormUtils.CreateHelpToolTip();
 
             BuildUi();
@@ -258,57 +251,8 @@ namespace _4RTools.Forms
                 this.btnClearExtraSkills.Click += OnClearExtraSkillsClick;
                 this.gbMountSkills.Controls.Add(this.btnClearExtraSkills);
 
-                // Card 3: Action Priority
-                this.gbActionPriority = new GroupBox
-                {
-                    Location = new Point(8, 210),
-                    Name = "gbActionPriority",
-                    Size = new Size(568, 65),
-                    TabStop = false,
-                    Text = "Action Priority"
-                };
-
-                this.lblPlayerYield = new Label
-                {
-                    AutoSize = false,
-                    Location = new Point(12, 19),
-                    Name = "lblPlayerYield",
-                    Size = new Size(216, 18),
-                    Text = "Pause 4RTools on player key (ms):",
-                    TextAlign = ContentAlignment.MiddleLeft
-                };
-
-                this.numPlayerYield = new NumericUpDown
-                {
-                    Increment = 10,
-                    Location = new Point(232, 18),
-                    Maximum = ActionPriorityCoordinator.MAX_PLAYER_INPUT_YIELD_MS,
-                    Minimum = ActionPriorityCoordinator.MIN_PLAYER_INPUT_YIELD_MS,
-                    Name = "numPlayerYield",
-                    Size = new Size(64, 20),
-                    Value = ActionPriorityCoordinator.DEFAULT_PLAYER_INPUT_YIELD_MS,
-                    Tag = FormUtils.SKIP_RESET_TAG
-                };
-                this.numPlayerYield.ValueChanged += OnPlayerYieldChanged;
-
-                this.lblPriorityOrder = new Label
-                {
-                    AutoSize = false,
-                    Font = this.boldFont,
-                    Location = new Point(12, 42),
-                    Name = "lblPriorityOrder",
-                    Size = new Size(544, 17),
-                    Tag = ThemeManager.TAG_ACCENT_TEXT,
-                    TextAlign = ContentAlignment.MiddleLeft
-                };
-
-                this.gbActionPriority.Controls.Add(this.lblPlayerYield);
-                this.gbActionPriority.Controls.Add(this.numPlayerYield);
-                this.gbActionPriority.Controls.Add(this.lblPriorityOrder);
-
                 this.Controls.Add(this.gbMountMain);
                 this.Controls.Add(this.gbMountSkills);
-                this.Controls.Add(this.gbActionPriority);
             }
             finally
             {
@@ -318,8 +262,6 @@ namespace _4RTools.Forms
 
         private void RefreshTooltipsAndDynamicText()
         {
-            this.lblPriorityOrder.Text = LocalizationManager.T("mount.priority_order");
-
             if (this.helpToolTip == null)
             {
                 return;
@@ -346,11 +288,6 @@ namespace _4RTools.Forms
                     this.helpToolTip.SetToolTip(this.extraSkillBoxes[i], extraTip);
                 }
             }
-
-            string yieldTip = LocalizationManager.T("tooltip.priority_player_yield");
-            this.helpToolTip.SetToolTip(this.lblPlayerYield, yieldTip);
-            this.helpToolTip.SetToolTip(this.numPlayerYield, yieldTip);
-            this.helpToolTip.SetToolTip(this.lblPriorityOrder, LocalizationManager.T("tooltip.priority_order"));
         }
 
         public void Update(ISubject subject)
@@ -400,11 +337,6 @@ namespace _4RTools.Forms
             this.autoMount = current.AutoMount;
             this.autoMount.EnsureExtraSkillSlotCount();
 
-            int yieldMs = current.UserPreferences != null
-                ? current.UserPreferences.playerInputYieldMs
-                : ActionPriorityCoordinator.DEFAULT_PLAYER_INPUT_YIELD_MS;
-            ActionPriorityCoordinator.PlayerInputYieldMs = yieldMs;
-
             this.isUpdatingUi = true;
             try
             {
@@ -422,7 +354,6 @@ namespace _4RTools.Forms
                     this.extraSkillBoxes[i].Text = this.autoMount.GetExtraSkillKey(i).ToString();
                 }
 
-                FormUtils.SetNumericValue(this.numPlayerYield, ActionPriorityCoordinator.PlayerInputYieldMs);
                 UpdateRemountControlState();
             }
             finally
@@ -510,24 +441,6 @@ namespace _4RTools.Forms
             ProfileSingleton.SetConfiguration(this.autoMount);
         }
 
-        private void OnPlayerYieldChanged(object sender, EventArgs e)
-        {
-            int yieldMs = decimal.ToInt32(this.numPlayerYield.Value);
-            ActionPriorityCoordinator.PlayerInputYieldMs = yieldMs;
-
-            if (this.isUpdatingUi || ProfileSingleton.IsSaveSuppressed)
-            {
-                return;
-            }
-
-            Profile current = ProfileSingleton.GetCurrent();
-            if (current != null && current.UserPreferences != null)
-            {
-                current.UserPreferences.playerInputYieldMs = yieldMs;
-                ProfileSingleton.SetConfiguration(current.UserPreferences);
-            }
-        }
-
         protected override void Dispose(bool disposing)
         {
             if (disposing)
@@ -535,10 +448,6 @@ namespace _4RTools.Forms
                 if (this.helpToolTip != null)
                 {
                     this.helpToolTip.Dispose();
-                }
-                if (this.boldFont != null)
-                {
-                    this.boldFont.Dispose();
                 }
             }
 

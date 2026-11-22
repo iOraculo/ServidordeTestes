@@ -69,6 +69,14 @@ namespace _4RTools.Forms
                 {
                     Logger.Error("ClientUpdaterForm", "Failed to load embedded supported_servers resource", resEx);
                 }
+
+                // 4. Guaranteed built-in fallback for AureumRO Servidor de Testes (FroggoClient / Ragexe 2022-04-06).
+                clients.Add(new KeyValuePair<ClientDTO, bool>(
+                    new ClientDTO("FroggoClient", "AureumRO Servidor de Testes (FroggoClient)", "0x01138DDC", "0x0113B7B0", "0x00D2A3BC"),
+                    false));
+                clients.Add(new KeyValuePair<ClientDTO, bool>(
+                    new ClientDTO("Ragexe", "AureumRO Servidor de Testes (Ragexe)", "0x01138DDC", "0x0113B7B0", "0x00D2A3BC"),
+                    false));
             }
             finally
             {

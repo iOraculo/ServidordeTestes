@@ -8,36 +8,21 @@ namespace _4RTools.Model
     {
         public static string ACTION_NAME_DEBUFF_RECOVERY = "DebuffsRecovery";
 
-        private static readonly Dictionary<EffectStatusIDs, EffectStatusIDs> StatusAliases = new Dictionary<EffectStatusIDs, EffectStatusIDs>
-        {
-            { EffectStatusIDs.EFST_BURNT, EffectStatusIDs.EFST_BURNING },
-            { EffectStatusIDs.MISTY_FROST, EffectStatusIDs.EFST_FREEZING },
-            { EffectStatusIDs.EFST_HEALTHSTATE_BLOODING, EffectStatusIDs.EFST_BLEEDING },
-            { EffectStatusIDs.EFST_STONE_ING, EffectStatusIDs.EFST_STONE },
-        };
-
         public override string GetActionName()
         {
             return ACTION_NAME_DEBUFF_RECOVERY;
         }
 
-        public static EffectStatusIDs ResolveCanonicalStatus(EffectStatusIDs status)
+        public new static EffectStatusIDs ResolveCanonicalStatus(EffectStatusIDs status)
         {
-            EffectStatusIDs canonical;
-            return StatusAliases.TryGetValue(status, out canonical) ? canonical : status;
+            return StatusEffectRecoveryBase.ResolveCanonicalStatus(status);
         }
 
         protected override void ProcessStatus(Client client, EffectStatusIDs status, Dictionary<EffectStatusIDs, Key> mappingSnapshot)
         {
             Key key;
-            if (mappingSnapshot.TryGetValue(status, out key))
-            {
-                SendRecoveryKey(client, key);
-                return;
-            }
-
-            EffectStatusIDs canonical = ResolveCanonicalStatus(status);
-            if (canonical != status && mappingSnapshot.TryGetValue(canonical, out key))
+            EffectStatusIDs matchedStatus;
+            if (TryResolveMappedKey(status, mappingSnapshot, out key, out matchedStatus))
             {
                 SendRecoveryKey(client, key);
             }

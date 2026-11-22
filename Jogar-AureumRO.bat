@@ -15,6 +15,7 @@ echo Iniciando AureumRO Servidor de Testes (%CLIENT_DIR%)...
 start "" /D "%CLIENT_DIR%" "FroggoClient.exe"
 
 if exist "%CLIENT_DIR%\AureumRO 4Tools.exe" (
+    timeout /t 2 /nobreak >nul
     start "" /D "%CLIENT_DIR%" "AureumRO 4Tools.exe"
 )
 exit /b 0

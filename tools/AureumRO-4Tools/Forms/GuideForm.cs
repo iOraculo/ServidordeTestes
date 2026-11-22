@@ -204,22 +204,22 @@ namespace _4RTools.Forms
                 new GuideSectionData
                 {
                     Key = "spammer",
-                    TitlePt = "3. Spammer",
+                    TitlePt = "3. Spammer e Prioridade de Ações",
                     BodyPt =
                         "• 3 estados em cada caixinha de tecla (clique para alternar):\n" +
                         "   – Vazio: tecla desativada.\n" +
                         "   – Quadrado preenchido (■): spamma APENAS a tecla, sem clicar (ideal para skills sem alvo / self-cast como Impacto Explosivo, Crux Magnum, Rajada Congelante).\n" +
                         "   – Marcado (✓): spamma tecla + clique esquerdo do mouse (ideal para skills de alvo ou chão como Bomba Ácida, Rajada de Flechas, Lanças, Nevasca).\n" +
-                        "• Compatibilidade vs. Speed Boost: Compatibilidade é o modo mais estável e libera 'Sem Shift' e 'Mouse Flick' (micro-movimento do mouse para melhorar cliques em skills de alvo). Speed Boost foca na máxima velocidade de spam.\n" +
-                        "• Atraso (ms): quanto menor, mais rápido dispara (valores usuais: 10 a 30ms).",
-                    TitleEn = "3. Skill Spammer",
+                        "• Compatibilidade vs. Speed Boost: Compatibilidade é o modo mais estável e libera 'Sem Shift' e 'Mouse Flick'. Speed Boost foca na máxima velocidade de spam.\n" +
+                        "• Prioridade de Ações (4 níveis, configurável em 'Prioridade Jogador' nesta aba): 1º Input do jogador no jogo (pausa o 4Tools por alguns ms, padrão 120ms) → 2º Yggdrasil → 3º Poções comuns → 4º Skills e demais.",
+                    TitleEn = "3. Skill Spammer and Action Priority",
                     BodyEn =
                         "• 3 states on every key checkbox (click to cycle):\n" +
                         "   – Empty: disabled.\n" +
                         "   – Filled square (■): spams ONLY the key without clicking (ideal for self-cast skills like Magnum Break, Grand Cross, Frost Nova).\n" +
                         "   – Checked (✓): spams key + left mouse click (ideal for target/ground skills like Acid Demonstration, Double Strafe, Bolts, Storm Gust).\n" +
-                        "• Compatibility vs. Speed Boost: Compatibility is the most stable mode and enables 'No Shift' and 'Mouse Flick' (tiny cursor nudge for reliable target/ground clicks). Speed Boost prioritizes raw speed.\n" +
-                        "• Delay (ms): lower values fire faster (typical: 10–30ms)."
+                        "• Compatibility vs. Speed Boost: Compatibility is the most stable mode and enables 'No Shift' and 'Mouse Flick'. Speed Boost prioritizes raw speed.\n" +
+                        "• Action Priority (4 tiers, configurable via 'Player Priority' on this tab): 1st Player input in-game (briefly pauses 4Tools, default 120ms) → 2nd Yggdrasil → 3rd Standard potions → 4th Skills and others."
                 },
                 new GuideSectionData
                 {
@@ -296,24 +296,16 @@ namespace _4RTools.Forms
                 new GuideSectionData
                 {
                     Key = "mount_priority",
-                    TitlePt = "9. Montaria e Prioridade de Ações",
+                    TitlePt = "9. Montaria (Rédea)",
                     BodyPt =
                         "• Montaria (Rédea): informe a tecla da sua Rédea e ative 'Descer da montaria ao usar habilidade'. Sempre que você estiver montado e usar uma habilidade (manualmente ou pelo Spammer/Auto-skill/Temporizadores/Macros), o 4Tools desce da montaria automaticamente antes de disparar a skill!\n" +
-                        "• Pausar Auto-skill montado e Remontar após inatividade: opções extras para não desmontar enquanto caminha pela cidade/mapa ou para remontar sozinho após ficar alguns segundos sem atacar.\n" +
-                        "• Prioridade de Ações (4 níveis): o 4Tools sempre respeita a ordem fixa:\n" +
-                        "   1º Input do jogador no jogo (pausa o 4Tools por alguns milissegundos — padrão 120ms, ajustável na aba Montaria).\n" +
-                        "   2º Yggdrasil (tem prioridade sobre poções comuns e skills).\n" +
-                        "   3º Poções comuns (têm prioridade sobre skills e demais automações).\n" +
-                        "   4º Skills (Auto-skill), consumíveis, anti-debuffs e temporizadores.",
-                    TitleEn = "9. Mount and Action Priority",
+                        "• Teclas extras: além das teclas das outras abas, você pode cadastrar até 6 teclas manuais de habilidades para desmontar automaticamente.\n" +
+                        "• Pausar Auto-skill montado e Remontar após inatividade: opções extras para não desmontar enquanto caminha pelo mapa ou para remontar sozinho após ficar alguns segundos sem atacar.",
+                    TitleEn = "9. Mount (Halter Lead)",
                     BodyEn =
                         "• Mount (Halter Lead): bind your Halter Lead hotkey and enable 'Dismount when using skill'. Whenever you are mounted and cast a skill (manually or via Spammer/Auto-skill/Timers/Macros), 4Tools automatically dismounts before firing the skill!\n" +
-                        "• Pause Auto-skill while mounted and Auto remount after idle: optional helpers to stay mounted while traveling or automatically remount after a few idle seconds.\n" +
-                        "• Action Priority (4 tiers): 4Tools enforces a strict priority order:\n" +
-                        "   1st Player input in-game (briefly pauses 4Tools — default 120ms, adjustable in the Mount tab).\n" +
-                        "   2nd Yggdrasil (takes priority over regular potions and skills).\n" +
-                        "   3rd Standard potions (take priority over skills and other automations).\n" +
-                        "   4th Skills (Auto-skill), consumables, anti-debuffs, and timers."
+                        "• Extra skill keys: in addition to keys from other tabs, you can bind up to 6 extra manual skill hotkeys for automatic dismount.\n" +
+                        "• Pause Auto-skill while mounted and Auto remount after idle: optional helpers to stay mounted while traveling or automatically remount after a few idle seconds."
                 },
                 new GuideSectionData
                 {
