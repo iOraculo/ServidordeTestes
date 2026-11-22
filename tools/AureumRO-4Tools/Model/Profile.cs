@@ -101,6 +101,8 @@ namespace _4RTools.Model
                 loaded.DebuffsRecovery = DeserializeAction(rawObject, loaded.DebuffsRecovery);
                 loaded.AutoMount = DeserializeAction(rawObject, loaded.AutoMount);
                 loaded.AutoMount.EnsureExtraSkillSlotCount();
+                loaded.AutoRefreshCommand = DeserializeAction(rawObject, loaded.AutoRefreshCommand);
+                loaded.AutoEscape = DeserializeAction(rawObject, loaded.AutoEscape);
 
                 profile = loaded;
             }
@@ -457,6 +459,8 @@ namespace _4RTools.Model
         public ATKDEFMode AtkDefMode { get; set; }
         public DebuffsRecovery DebuffsRecovery { get; set; }
         public AutoMount AutoMount { get; set; }
+        public AutoRefreshCommand AutoRefreshCommand { get; set; }
+        public AutoEscape AutoEscape { get; set; }
 
         public Profile(string name)
         {
@@ -479,6 +483,8 @@ namespace _4RTools.Model
             this.AtkDefMode = new ATKDEFMode();
             this.DebuffsRecovery = new DebuffsRecovery();
             this.AutoMount = new AutoMount();
+            this.AutoRefreshCommand = new AutoRefreshCommand();
+            this.AutoEscape = new AutoEscape();
         }
 
         public static string GetByAction(JObject obj, Action action)

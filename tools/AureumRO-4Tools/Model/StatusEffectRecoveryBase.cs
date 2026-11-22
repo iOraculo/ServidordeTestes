@@ -140,8 +140,11 @@ namespace _4RTools.Model
             if (hWnd != IntPtr.Zero)
             {
                 Keys formsKey = KeyHelper.ToFormsKeys(key);
-                ActionPriorityCoordinator.NotifyAntiDebuffAction();
-                Interop.SendKeyPress(hWnd, formsKey);
+                if (formsKey != Keys.None)
+                {
+                    ActionPriorityCoordinator.NotifyAntiDebuffAction();
+                    Interop.SendKeyPress(hWnd, formsKey);
+                }
             }
         }
 
@@ -153,6 +156,7 @@ namespace _4RTools.Model
 
             return new _4RThread(token =>
             {
+                // Anti-debuffs / Panacea shares Tier 2 priority with Yggdrasil (yields only to Tier 1 player input).
                 if (client.HasMemorySupport && client.IsProcessAlive() && !client.ShouldPauseAutomation()
                     && !ActionPriorityCoordinator.ShouldYield(ActionPriority.Yggdrasil))
                 {

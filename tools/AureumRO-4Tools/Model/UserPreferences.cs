@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using System.Windows.Forms;
+using System.Windows.Input;
 using _4RTools.Utils;
 
 namespace _4RTools.Model
@@ -13,6 +14,8 @@ namespace _4RTools.Model
         public bool pauseOnChat { get; set; } = false;
         public string boundCharacter { get; set; } = string.Empty;
         public int playerInputYieldMs { get; set; } = ActionPriorityCoordinator.DEFAULT_PLAYER_INPUT_YIELD_MS;
+        public Key holdPauseKey { get; set; } = Key.None;
+        public bool holdPauseIncludeAutopot { get; set; } = false;
 
         public UserPreferences()
         {

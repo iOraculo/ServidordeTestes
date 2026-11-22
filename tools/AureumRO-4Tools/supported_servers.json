@@ -3,7 +3,8 @@
     "name": "AureumRO",
     "description": "AureumRO — O goldtimes que você sempre sonhou",
     "hpAddress": "0x015FF908",
-    "nameAddress": "0x01602568"
+    "nameAddress": "0x01602568",
+    "statusOffset": "0x480"
   },
   {
     "name": "FroggoClient",

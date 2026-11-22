@@ -5,6 +5,7 @@ namespace _4RTools.Utils
         public const int WM_HOTKEY_MSG_ID = 0x0312;
         public const int WM_KEYUP_MSG_ID = 0x0101;
         public const int WM_KEYDOWN_MSG_ID = 0x0100;
+        public const int WM_CHAR = 0x0102;
         public const int WM_MOUSEMOVE = 0x0200;
         public const int WM_LBUTTONDOWN = 0x0201;
         public const int WM_LBUTTONUP = 0x0202;

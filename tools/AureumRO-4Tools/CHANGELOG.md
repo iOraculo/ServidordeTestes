@@ -1,5 +1,70 @@
 # Changelogs
 
+## [v2.34.0] - 2026-11-22 — Pausa Momentânea (Segurar Tecla / Hold-to-Pause) na aba `Spammer`
+### Added
+- **Segurar para Pausar (*Hold-to-Pause*) dentro do card `Prioridade de Ações` na aba `Spammer` (`Forms/AHKForm.cs`, `Utils/ActionPriorityCoordinator.cs`, `Model/UserPreferences.cs`, `Model/Client.cs`, `Model/AutoEscape.cs`, `Model/AutoMount.cs`)**:
+  - Permite definir qualquer tecla (incluindo **`Ctrl`**, **`Shift`**, **`Alt`**, **`Tab`**, **`CapsLock`** ou teclas comuns) em **`Segurar pausa:`** — enquanto você segura a tecla, o 4Tools pausa instantaneamente via `GetAsyncKeyState` e retoma no milissegundo em que solta (sem risco de travar).
+  - Por padrão, **Autopot**, **Yggdrasil** e **Auto-Fuga** continuam protegendo você enquanto segura a tecla; basta marcar **`Pausar Autopot`** ao lado caso queira pausar 100% de tudo.
+  - Persistido por perfil, excluído do desmontar automático em `AutoMount` e verificado em `Verificar Conflitos`.
+
+## [v2.33.1] - 2026-11-22 — Correção Definitiva de Travamento ao Apertar `Alt` / `Alt+Tab`
+### Fixed
+- **Fim do travamento após apertar `Alt` (`Utils/KeyHelper.cs`, `Utils/KeyboardHook.cs`, `Model/AHK.cs`, `Model/ATKDEFMode.cs`, `Model/Macro.cs`, `Forms/Container.cs`)**:
+  - **Causa raiz corrigida:** `KeyHelper.IsAltPressed()` e `Keyboard.IsKeyDown()` (WPF / `GetKeyState`) liam o estado de teclado em cache da fila de mensagens — em threads de automação em background (sem *message pump*), após `Alt+Tab`, `Alt+E/Q/M` ou perda de foco, o estado de `Alt` ficava preso em `true` congelando todo o 4Tools (`Autopot`, `Auto-skill`, `Spammer`, `Anti-debuffs`, `Montaria`, `Timers`, `@refresh`, `Auto-Fuga` e até a tecla `End` de ON/OFF).
+  - Substituído por consulta em tempo real ao hardware via `GetAsyncKeyState` (`KeyHelper.IsVirtualKeyDown`, `KeyHelper.IsKeyDown`, `KeyHelper.IsAltPressed/IsControlPressed/IsShiftPressed/IsWinPressed`), além de `KeyboardHook.Alt/Control/Shift/Win` sincronizados ao vivo com o hardware, auto-limpeza de teclas presas em `heldPhysicalKeys` e supressão de `SC_KEYMENU` no `Container.WndProc` para um toque solto no `Alt` nunca prender o foco da janela WinForms.
+
+## [v2.33.0] - 2026-11-22 — Auto-Fuga de Emergência (Asa de Mosca / Teleporte) na aba `Utilidades`
+### Added
+- **Auto-Fuga de Emergência (`Model/AutoEscape.cs`, `Forms/UtilitiesForm.cs`, `Model/Profile.cs`)**:
+  - Dispara automaticamente a tecla configurada (**Asa de Mosca**, **Asa de Borboleta** ou **skill Teleporte**) quando o HP cair abaixo da `%` crítica escolhida (padrão `20%`, monitoramento a cada `40ms` em prioridade de emergência Nível 2).
+  - **Confirmar com Enter (`skill Teleporte`)**: opcionalmente pressiona `Enter` 80ms após a tecla para confirmar automaticamente o menu de Teleporte (Noviço/Sacerdote/Carta Creamy).
+  - **Proteções integradas**: desligado por padrão, recarga configurável (`500ms` a `30000ms`, padrão `2000ms`) para não desperdiçar várias asas, nunca dispara morto (`HP = 0`), opção **`Desativar em cidades`** (ligada por padrão), funciona mesmo com chat aberto se a tecla estiver em `F1–F24`, excluído do desmontar automático em `AutoMount` e checado em `Verificar Conflitos`.
+
+## [v2.32.1] - 2026-11-22 — Nova Aba Dedicada `Utilidades` (Anti-Bug Position / `@refresh`)
+### Changed
+- **Nova aba `Utilidades` na barra lateral (`Forms/UtilitiesForm.cs`, `Forms/Container.cs`, `Utils/ModernControls.cs`)**:
+  - Movido o recurso **Anti-Bug Position (`@refresh`)** da aba `Temporizadores` para sua própria aba dedicada **`Utilidades`** (`Utilities`) com ícone vetorial próprio, layout espaçoso e quadro explicativo **"Como funciona"**.
+  - A aba **`Temporizadores`** voltou a ficar 100% limpa e focada nos 6 timers de skills.
+
+## [v2.32.0] - 2026-11-22 — Anti-Bug Position (`@refresh`) com Atalho 1-Toque e Intervalo Automático
+### Added
+- **Anti-Bug Position (`@refresh`) na aba `Temporizadores` (`Model/AutoRefreshCommand.cs`, `Forms/SkillTimerForm.cs`, `Utils/Interop.cs`, `Model/Profile.cs`)**:
+  - Envio direto do comando no chat (`Enter` → `WM_CHAR` independente de layout de teclado → `Enter`) com bloqueio atômico contra corrupção por outras teclas de letra durante o envio (mantendo Autopot/Yggdrasil em `F1–F24` ativos) e proteção para nunca disparar enquanto o jogador estiver digitando no chat.
+  - **Atalho de 1 toque (`Hotkey`)**: corrige position bug instantaneamente no meio do combate (WoE/PvP/MVP) com debounce anti-duplo-toque de `1500ms`.
+  - **Intervalo automático opcional (`Auto a cada X seg`)**: ressincroniza periodicamente (mín. `3s`, padrão `30s`), pausando automaticamente em cidade, no chat e ao sentar (`Pausar sentado`), além de resetar o contador quando o atalho manual é acionado.
+  - **Comando editável** (padrão `@refresh`), botão **`Testar`**, persistência completa por perfil, exclusão do desmontar automático em `AutoMount` e detecção de conflitos em `Verificar Conflitos`.
+
+## [v2.31.2] - 2026-11-22 — Layout Unificado de Prioridade de Ações na aba Spammer
+### Changed
+- **Cartão dedicado e compacto de `Prioridade de Ações` na aba `Spammer` (`Forms/AHKForm.cs`, `Utils/LocalizationManager.cs`, `Forms/GuideForm.cs`)**:
+  - `Configuração do Spammer` compactada (`Compatibilidade/Velocidade Máx.`, `Config. Tecla` lado a lado e `Atraso (Delay)`), com o quadro **`Prioridade de Ações`** logo abaixo agrupando juntos **`Pausa p/ input do jogador: [120] ms`** e a linha de hierarquia **`1º Input do Jogador → 2º Fruto de Yggdrasil / Panaceia → 3º Consumíveis → 4º Auto-skills`** sem espaçamento excessivo entre os elementos.
+
+## [v2.31.1] - 2026-11-22 — Refinamentos de Detecção de Buffer (>100000), Legenda de Prioridade e Basílica por Último
+### Fixed & Changed
+- **Refinamento da detecção de cabeçalho e filtragem de lixo no buffer de status (`Model/Client.cs`)**:
+  - `DetectLeadingHeaderSkip(uint[] statusBuffer, int limit)` agora exige `limit >= 4` e `statusBuffer[1] > 100000` (exceto `IGNORE`/`IGNORE_2`), e valores isolados `> 100000` são ignorados automaticamente em `ExtractActiveStatuses` e `BuildActiveStatusReport`.
+- **Nível 2 (Fruto de Yggdrasil / Panaceia) e ajuste visual da legenda (`Utils/ActionPriorityCoordinator.cs`, `Model/StatusEffectRecoveryBase.cs`, `Utils/LocalizationManager.cs`, `Forms/GuideForm.cs`, `Forms/AHKForm.cs`)**:
+  - Adicionado `ActionPriorityCoordinator.NotifyAntiDebuffAction()` chamado em `StatusEffectRecoveryBase.SendRecoveryKey`.
+  - Atualizada a legenda de prioridade para: `1º Input do Jogador → 2º Fruto de Yggdrasil / Panaceia → 3º Consumíveis → 4º Auto-skills` (e equivalente em EN-US), com fonte `Segoe UI 7.75F Bold` e `lblPriorityOrder` em `(10, 93)` / `(538, 20)` cabendo em 1 linha.
+- **Basílica sempre conjurada por último e guarda reduzida para `1200ms` (`Model/Autobuff.cs`)**:
+  - `Auto-skill` agora ordena `EFST_BASILICA` sempre por último via `OrderBuffsForCast` e adia sua conjuração se qualquer outro buff foi conjurado no mesmo ciclo.
+  - Adicionado `SyncActiveBuffTransitions` (limpando imediatamente `lastCastTimesMs[EFST_BASILICA]` quando `EFST_BASILICA` / `EFST_BASILICA_BUFF` deixa de estar ativo) e ajustado `BASILICA_ICON_CAST_GUARD_MS = 1200`.
+
+## [v2.31.0] - 2026-11-21 — Correção Definitiva do Offset de Status (+0x480 Ragexe 2022), Pós-Conjuração (EFST_POSTDELAY) e Basílica/Angelus/Vigor
+### Fixed
+- **Offset real do buffer de status no Ragexe 2022 / FroggoClient (`supported_servers.json`, `assets/etc/supported_servers.txt`, `Model/Client.cs`)**:
+  - Adicionado `"statusOffset": "0x480"` para o **AureumRO** (corrigindo os 3 slots fixos de cabeçalho em `+0x474`: `[9, ponteiro, 1]`, que mascaravam permanentemente **`ANGELUS = 9`** e **`ENDURE / Vigor = 1`**!).
+  - Adicionada auto-detecção `Client.DetectLeadingHeaderSkip` em `ExtractActiveStatuses` e `BuildActiveStatusReport` para pular automaticamente o cabeçalho de 3 slots mesmo em perfis locais antigos ou outros clientes Ragexe 2022+.
+- **Aguardo de Pós-Conjuração (`EFST_POSTDELAY = 46`) e renovação imediata de Basílica (`Utils/EffectStatusIDs.cs`, `Model/Autobuff.cs`)**:
+  - `Auto-skill` agora aguarda `EFST_POSTDELAY (46)` terminar antes de tentar disparar buffs (sem desperdiçar cooldown durante a pós-conjuração).
+  - Ao detectar que um buff expirou (ex.: `EFST_BASILICA = 111` saiu do buffer), o cooldown em cache é limpo imediatamente via `SyncActiveStatusTransitions`, renovando no instante exato em que a pós-conjuração acaba.
+  - Frequência de leitura do `Auto-skill` reduzida de `300ms` para **`150ms`** para resposta mais rápida.
+
+## [v2.30.1] - 2026-11-21 — Panaceia / Anti-debuffs elevada ao Nível 2 junto com Yggdrasil
+### Changed
+- **Prioridade Nível 2 compartilhada entre Yggdrasil e Anti-debuffs / Panaceia (`Model/StatusEffectRecoveryBase.cs`, `Utils/ActionPriorityCoordinator.cs`, `Utils/LocalizationManager.cs`, `Forms/GuideForm.cs`)**:
+  - Panaceia e demais curas de **Anti-debuffs** agora operam no **Nível 2** junto com o **Fruto/Semente de Yggdrasil** — cedem passagem apenas para o **1º Input do jogador** e têm prioridade imediata sobre **3º Poções comuns** e **4º Skills e demais**.
+
 ## [v2.30.0] - 2026-11-21 — Correção Definitiva de Basílica (Anti-Spam), Leitura de Buffer para Angelus e Melhorias em Anti-Debuffs
 ### Fixed
 - **Basílica de volta ao `Auto-skill` (Modo Pré-Renewal) com proteção anti-spam inteligente (`Model/Buff.cs`, `Model/Autobuff.cs`)**:

@@ -163,7 +163,7 @@ namespace _4RTools.Model
                     continue;
                 }
 
-                bool triggerDown = Keyboard.IsKeyDown(chainConfig.trigger);
+                bool triggerDown = !KeyHelper.IsAltPressed() && KeyHelper.IsKeyDown(chainConfig.trigger);
                 bool shouldExecute = false;
 
                 if (chainConfig.infinityLoop)

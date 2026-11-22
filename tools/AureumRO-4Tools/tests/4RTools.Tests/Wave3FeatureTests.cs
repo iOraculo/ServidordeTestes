@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Windows.Input;
+using Newtonsoft.Json;
 using _4RTools.Forms;
 using _4RTools.Model;
 using _4RTools.Utils;
@@ -367,7 +368,7 @@ namespace _4RTools.Tests
             string[] sectionKeys = new string[]
             {
                 "spammer", "debuff", "buff_skills", "buff_stuffs", "timers",
-                "macros", "macro_switch", "macro_songs", "atkdef", "profiles", "servers"
+                "macros", "macro_switch", "macro_songs", "atkdef", "mount", "utilities", "profiles", "servers"
             };
 
             string[] langs = new string[] { LocalizationManager.LANG_PT_BR, LocalizationManager.LANG_EN_US };
@@ -491,6 +492,7 @@ namespace _4RTools.Tests
             Assert.NotNull(aureum);
             Assert.Equal("0x015FF908", aureum.hpAddress);
             Assert.Equal("0x01602568", aureum.nameAddress);
+            Assert.Equal("0x480", aureum.statusOffset);
             Assert.True(ClientUpdaterForm.IsExclusiveServer(aureum));
             Assert.True(ClientUpdaterForm.IsAllowedServer(aureum, isLocalOverride: false));
 
@@ -1001,8 +1003,8 @@ namespace _4RTools.Tests
             Subject subject = new Subject();
             using (GuideForm guide = new GuideForm(subject))
             {
-                Assert.Equal(10, guide.TotalSectionCount);
-                Assert.Equal(10, guide.VisibleSectionCount);
+                Assert.Equal(11, guide.TotalSectionCount);
+                Assert.Equal(11, guide.VisibleSectionCount);
 
                 // Accent-insensitive Portuguese search for ATK x DEF / Macros
                 guide.ApplySearchFilter("musicas");
@@ -1013,13 +1015,17 @@ namespace _4RTools.Tests
                 guide.ApplySearchFilter("montaria");
                 Assert.True(guide.VisibleSectionCount >= 1);
 
+                // Search for @refresh / Utilities topic
+                guide.ApplySearchFilter("refresh");
+                Assert.True(guide.VisibleSectionCount >= 1);
+
                 // Nonsense search shows 0 cards
                 guide.ApplySearchFilter("zzzz_nao_existe_12345");
                 Assert.Equal(0, guide.VisibleSectionCount);
 
-                // Clearing filter restores all 10 cards
+                // Clearing filter restores all 11 cards
                 guide.ApplySearchFilter(string.Empty);
-                Assert.Equal(10, guide.VisibleSectionCount);
+                Assert.Equal(11, guide.VisibleSectionCount);
 
                 // Live language switch updates titles to English
                 LocalizationManager.SetLanguage(LocalizationManager.LANG_EN_US);
@@ -1078,23 +1084,94 @@ namespace _4RTools.Tests
             // Without an observed EFST icon, Basilica must NOT spam within 25s.
             Assert.False(basilicaBuff.ShouldCastBuff(EffectStatusIDs.EFST_BASILICA, 5000, false, false, 100, 100));
             Assert.True(basilicaBuff.ShouldCastBuff(EffectStatusIDs.EFST_BASILICA, 1000 + AutoBuff.BASILICA_NO_ICON_RECAST_MS, false, false, 100, 100));
-            // Once an EFST icon is observed from the server, recast guard drops to cast-time protection
-            // and resets immediately when the icon transitions from active -> ended.
+            // Once an EFST icon is observed from the server, recast guard drops to 1200ms cast protection,
+            // and SyncActiveBuffTransitions clears Basilica's timer immediately when EFST_BASILICA or EFST_BASILICA_BUFF expires.
+            Assert.Equal(1200, AutoBuff.BASILICA_ICON_CAST_GUARD_MS);
             basilicaBuff.MarkStatusObserved(EffectStatusIDs.EFST_BASILICA);
+            Assert.False(basilicaBuff.ShouldCastBuff(EffectStatusIDs.EFST_BASILICA, 1000 + 1199, false, false, 100, 100));
             Assert.True(basilicaBuff.ShouldCastBuff(EffectStatusIDs.EFST_BASILICA, 1000 + AutoBuff.BASILICA_ICON_CAST_GUARD_MS, false, false, 100, 100));
-            // Must never cast while EFST_POSTDELAY (46) is active.
-            Assert.False(basilicaBuff.ShouldCastBuff(EffectStatusIDs.EFST_BASILICA, 1000 + AutoBuff.BASILICA_ICON_CAST_GUARD_MS, false, false, 100, 100, false, true, true));
-            // Simulate Basilica becoming active, then ending before cast guard elapsed -> cooldown clears immediately.
-            basilicaBuff.RecordBuffCast(EffectStatusIDs.EFST_BASILICA, 20000);
-            Assert.False(basilicaBuff.ShouldCastBuff(EffectStatusIDs.EFST_BASILICA, 21000, false, false, 100, 100));
+
+            // EFST_POSTDELAY (46) must pause casting without burning cooldowns.
+            Assert.Equal(46u, (uint)EffectStatusIDs.EFST_POSTDELAY);
+            Assert.False(basilicaBuff.ShouldCastBuff(EffectStatusIDs.EFST_BASILICA, 50000, false, false, 100, 100, false, true, true));
+
+            // Transition: Basilica active (EFST_BASILICA or EFST_BASILICA_BUFF) -> expired resets lastCastTimesMs immediately.
+            basilicaBuff.RecordBuffCast(EffectStatusIDs.EFST_BASILICA, 10000);
             basilicaBuff.SyncActiveBuffTransitions(new HashSet<EffectStatusIDs> { EffectStatusIDs.EFST_BASILICA });
             basilicaBuff.SyncActiveBuffTransitions(new HashSet<EffectStatusIDs>());
-            Assert.True(basilicaBuff.ShouldCastBuff(EffectStatusIDs.EFST_BASILICA, 21000, false, false, 100, 100));
+            Assert.True(basilicaBuff.ShouldCastBuff(EffectStatusIDs.EFST_BASILICA, 10500, false, false, 100, 100, false, true, false));
 
-            // Status buffer boundary check: ExtractActiveStatuses tolerates small gaps (< 6 IGNORE)
-            // and stops after 6 consecutive IGNORE slots so trailing memory containing 9 (ANGELUS) never blocks Angelus!
+            basilicaBuff.RecordBuffCast(EffectStatusIDs.EFST_BASILICA, 20000);
+            basilicaBuff.SyncActiveBuffTransitions(new HashSet<EffectStatusIDs> { EffectStatusIDs.EFST_BASILICA_BUFF });
+            basilicaBuff.SyncActiveBuffTransitions(new HashSet<EffectStatusIDs>());
+            Assert.True(basilicaBuff.ShouldCastBuff(EffectStatusIDs.EFST_BASILICA, 20500, false, false, 100, 100, false, true, false));
+
+            // OrderBuffsForCast must always place EFST_BASILICA last.
+            Dictionary<EffectStatusIDs, Key> unorderedBuffs = new Dictionary<EffectStatusIDs, Key>
+            {
+                { EffectStatusIDs.EFST_BASILICA, Key.F1 },
+                { EffectStatusIDs.BLESSING, Key.F2 },
+                { EffectStatusIDs.INC_AGI, Key.F3 }
+            };
+            List<KeyValuePair<EffectStatusIDs, Key>> orderedBuffs = AutoBuff.OrderBuffsForCast(unorderedBuffs);
+            Assert.Equal(3, orderedBuffs.Count);
+            Assert.Equal(EffectStatusIDs.EFST_BASILICA, orderedBuffs[orderedBuffs.Count - 1].Key);
+
+            // Ragexe 2022+ (FroggoClient) 3-slot leading header auto-skip + 0x480 offset verification!
+            // Real AureumRO memory dump at +0x474: [9 (ANGELUS), 1004240168 (ptr), 1 (ENDURE), 110 (ASSUMPTIO), ...]
             uint ig = (uint)EffectStatusIDs.IGNORE;
-            uint[] fakeBuffer = new uint[]
+            uint[] froggoDump = new uint[]
+            {
+                9u, 1004240168u, 1u,
+                (uint)EffectStatusIDs.ASSUMPTIO,
+                (uint)EffectStatusIDs.IMPOSITIO,
+                (uint)EffectStatusIDs.ASPERSIO,
+                (uint)EffectStatusIDs.BLESSING,
+                (uint)EffectStatusIDs.INC_AGI,
+                (uint)EffectStatusIDs.GLORIA,
+                (uint)EffectStatusIDs.MAGNIFICAT,
+                ig, ig, ig, ig, ig, ig,
+                (uint)EffectStatusIDs.ANGELUS
+            };
+            Assert.Equal(0, Client.DetectLeadingHeaderSkip(froggoDump, 3)); // requires limit >= 4
+            Assert.Equal(3, Client.DetectLeadingHeaderSkip(froggoDump, froggoDump.Length));
+            List<uint> extractedFroggo = new List<uint>();
+            Client.ExtractActiveStatuses(froggoDump, froggoDump.Length, extractedFroggo);
+            Assert.Equal(7, extractedFroggo.Count);
+            Assert.Contains((uint)EffectStatusIDs.ASSUMPTIO, extractedFroggo);
+            Assert.Contains((uint)EffectStatusIDs.BLESSING, extractedFroggo);
+            Assert.Contains((uint)EffectStatusIDs.INC_AGI, extractedFroggo);
+            Assert.DoesNotContain((uint)EffectStatusIDs.ANGELUS, extractedFroggo);
+            Assert.DoesNotContain((uint)EffectStatusIDs.ENDURE, extractedFroggo);
+
+            // Isolated out-of-range values (> 100000, not IGNORE/IGNORE_2) must be ignored cleanly.
+            uint[] bufferWithStrayValue = new uint[]
+            {
+                (uint)EffectStatusIDs.BLESSING,
+                500000u,
+                (uint)EffectStatusIDs.INC_AGI,
+                ig, ig, ig, ig, ig, ig
+            };
+            Assert.Equal(3, Client.DetectLeadingHeaderSkip(bufferWithStrayValue, bufferWithStrayValue.Length)); // slot 1 > 100000 triggers header skip
+            uint[] bufferWithMidStray = new uint[]
+            {
+                (uint)EffectStatusIDs.BLESSING,
+                (uint)EffectStatusIDs.INC_AGI,
+                500000u,
+                (uint)EffectStatusIDs.ASSUMPTIO,
+                ig, ig, ig, ig, ig, ig
+            };
+            Assert.Equal(0, Client.DetectLeadingHeaderSkip(bufferWithMidStray, bufferWithMidStray.Length));
+            List<uint> extractedMidStray = new List<uint>();
+            Client.ExtractActiveStatuses(bufferWithMidStray, bufferWithMidStray.Length, extractedMidStray);
+            Assert.Equal(3, extractedMidStray.Count);
+            Assert.Contains((uint)EffectStatusIDs.BLESSING, extractedMidStray);
+            Assert.Contains((uint)EffectStatusIDs.INC_AGI, extractedMidStray);
+            Assert.Contains((uint)EffectStatusIDs.ASSUMPTIO, extractedMidStray);
+            Assert.DoesNotContain(500000u, extractedMidStray);
+
+            // Already-aligned +0x480 buffer must NOT skip any slots.
+            uint[] alignedBuffer = new uint[]
             {
                 (uint)EffectStatusIDs.BLESSING,
                 ig,
@@ -1102,32 +1179,20 @@ namespace _4RTools.Tests
                 ig, ig, ig, ig, ig, ig,
                 (uint)EffectStatusIDs.ANGELUS
             };
+            Assert.Equal(0, Client.DetectLeadingHeaderSkip(alignedBuffer, alignedBuffer.Length));
             List<uint> extracted = new List<uint>();
-            Client.ExtractActiveStatuses(fakeBuffer, fakeBuffer.Length, extracted);
+            Client.ExtractActiveStatuses(alignedBuffer, alignedBuffer.Length, extracted);
             Assert.Contains((uint)EffectStatusIDs.BLESSING, extracted);
             Assert.Contains((uint)EffectStatusIDs.INC_AGI, extracted);
             Assert.DoesNotContain((uint)EffectStatusIDs.ANGELUS, extracted);
 
-            // 2022+ Ragexe leading 3-slot CSession header check (+0x474..+0x47F):
-            // Slot 0 = 9 (collides with ANGELUS), Slot 1 = 1004240168 (non-EFST sentinel), Slot 2 = 1 (collides with ENDURE).
-            uint[] shifted2022Buffer = new uint[]
-            {
-                9u,
-                1004240168u,
-                1u,
-                (uint)EffectStatusIDs.ASSUMPTIO,
-                (uint)EffectStatusIDs.BLESSING,
-                (uint)EffectStatusIDs.INC_AGI,
-                ig, ig, ig, ig, ig, ig
-            };
-            Assert.Equal(3, Client.DetectLeadingHeaderSkip(shifted2022Buffer, shifted2022Buffer.Length));
-            List<uint> extracted2022 = new List<uint>();
-            Client.ExtractActiveStatuses(shifted2022Buffer, shifted2022Buffer.Length, extracted2022);
-            Assert.DoesNotContain((uint)EffectStatusIDs.ANGELUS, extracted2022);
-            Assert.DoesNotContain((uint)EffectStatusIDs.ENDURE, extracted2022);
-            Assert.Contains((uint)EffectStatusIDs.ASSUMPTIO, extracted2022);
-            Assert.Contains((uint)EffectStatusIDs.BLESSING, extracted2022);
-            Assert.Contains((uint)EffectStatusIDs.INC_AGI, extracted2022);
+            // Embedded AureumRO server config uses statusOffset 0x480.
+            List<ClientDTO> embeddedServers = JsonConvert.DeserializeObject<List<ClientDTO>>(ClientUpdaterForm.LoadResourceServerFile());
+            ClientDTO aureumDto = embeddedServers.FirstOrDefault(s => string.Equals(s.name, "AureumRO", StringComparison.OrdinalIgnoreCase));
+            Assert.NotNull(aureumDto);
+            Assert.Equal("0x480", aureumDto.statusOffset);
+            Client aureumClient = new Client(aureumDto);
+            Assert.Equal(Convert.ToInt32(aureumDto.hpAddress, 16) + 0x480, aureumClient.StatusBufferAddress);
 
             // Equivalent EFST IDs: EFST_HEALTHSTATE_ANGELUS (888) satisfies ANGELUS (9); EFST_BASILICA_BUFF (1122) satisfies EFST_BASILICA (111).
             EffectStatusIDs equivalent;
@@ -1203,20 +1268,14 @@ namespace _4RTools.Tests
                 Assert.True(ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, 1200, false));
                 ActionPriorityCoordinator.SetYggEmergencyActive(false);
 
-                // Tier 2: Recent Yggdrasil or Panacea/Anti-debuff cast blocks Tier 3 & 4 for 250ms, then expires.
-                ActionPriorityCoordinator.NotifyYggAction(2000);
+                // Tier 2: Anti-debuff / Panacea actions (NotifyAntiDebuffAction) share Tier 2 with Yggdrasil:
+                // they block Tier 3 & 4 for 250ms, never block Tier 2, and expire cleanly.
+                ActionPriorityCoordinator.NotifyAntiDebuffAction(2000);
                 Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.Yggdrasil, 2100));
                 Assert.True(ActionPriorityCoordinator.ShouldYield(ActionPriority.Potion, 2100));
                 Assert.True(ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, 2100));
                 Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.Potion, 2250));
                 Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, 2250));
-
-                ActionPriorityCoordinator.NotifyAntiDebuffAction(2500);
-                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.Yggdrasil, 2600));
-                Assert.True(ActionPriorityCoordinator.ShouldYield(ActionPriority.Potion, 2600));
-                Assert.True(ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, 2600));
-                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.Potion, 2750));
-                Assert.False(ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, 2750));
 
                 // Tier 3: Standard Potion blocks Tier 4 (Skills) for 150ms, but NEVER blocks Tier 2 (Yggdrasil).
                 ActionPriorityCoordinator.NotifyPotionAction(3000);
@@ -1299,12 +1358,313 @@ namespace _4RTools.Tests
                 Assert.Equal("F9", mountForm.Controls.Find("txtMountKey", true)[0].Text);
                 Assert.Equal("A", mountForm.Controls.Find("txtExtraSkill1", true)[0].Text);
                 Assert.Empty(mountForm.Controls.Find("numPlayerYield", true));
-                Assert.Single(ahkForm.Controls.Find("numPlayerYield", true));
-                Assert.Single(ahkForm.Controls.Find("lblPriorityOrder", true));
+                System.Windows.Forms.Control gbPriority = Assert.Single(ahkForm.Controls.Find("gbPlayerPriority", true));
+                System.Windows.Forms.Control numYield = Assert.Single(ahkForm.Controls.Find("numPlayerYield", true));
+                System.Windows.Forms.Control lblYieldTitle = Assert.Single(ahkForm.Controls.Find("lblPlayerYieldTitle", true));
+                System.Windows.Forms.Control lblPriority = Assert.Single(ahkForm.Controls.Find("lblPriorityOrder", true));
+                Assert.Same(gbPriority, numYield.Parent);
+                Assert.Same(gbPriority, lblYieldTitle.Parent);
+                Assert.Same(gbPriority, lblPriority.Parent);
+                Assert.Equal(new System.Drawing.Point(12, 38), lblPriority.Location);
+                Assert.Equal(new System.Drawing.Size(534, 19), lblPriority.Size);
+                Assert.Equal(7.75F, lblPriority.Font.Size);
+                Assert.Equal("1º Input do Jogador → 2º Fruto de Yggdrasil / Panaceia → 3º Consumíveis → 4º Auto-skills", lblPriority.Text);
+                LocalizationManager.SetLanguage(LocalizationManager.LANG_EN_US);
+                Assert.Equal("1st Player Input → 2nd Yggdrasil Berry / Panacea → 3rd Consumables → 4th Auto-skills", LocalizationManager.T("mount.priority_order"));
+                LocalizationManager.SetLanguage(LocalizationManager.LANG_PT_BR);
                 Assert.Equal(150, ActionPriorityCoordinator.PlayerInputYieldMs);
             }
 
             ActionPriorityCoordinator.Reset();
+        }
+
+        [Fact]
+        public void AutoRefreshCommand_NormalizesDebouncesPersistsDetectsConflictsAndRendersInSkillTimerForm()
+        {
+            // Command normalization & interval clamping.
+            Assert.Equal("@refresh", AutoRefreshCommand.NormalizeCommand(null));
+            Assert.Equal("@refresh", AutoRefreshCommand.NormalizeCommand("   "));
+            Assert.Equal("@refresh", AutoRefreshCommand.NormalizeCommand(" @refresh \r\n"));
+            Assert.Equal("/refresh", AutoRefreshCommand.NormalizeCommand("/refresh"));
+
+            AutoRefreshCommand cmd = new AutoRefreshCommand
+            {
+                Enabled = true,
+                Hotkey = Key.F10,
+                AutoIntervalEnabled = true,
+                IntervalSeconds = 1, // below minimum -> clamps to 3s
+                PauseWhenSitting = true
+            };
+            Assert.Equal(AutoRefreshCommand.MIN_INTERVAL_SECONDS, cmd.GetEffectiveIntervalSeconds());
+            cmd.IntervalSeconds = 99999;
+            Assert.Equal(AutoRefreshCommand.MAX_INTERVAL_SECONDS, cmd.GetEffectiveIntervalSeconds());
+            cmd.IntervalSeconds = 20;
+
+            // Manual hotkey debounce (1500ms) + periodic timer reset after manual trigger.
+            Assert.True(cmd.CanTriggerManual(1000));
+            cmd.RecordRefreshExecuted(1000, true);
+            Assert.False(cmd.CanTriggerManual(1000 + AutoRefreshCommand.MANUAL_DEBOUNCE_MS - 1));
+            Assert.True(cmd.CanTriggerManual(1000 + AutoRefreshCommand.MANUAL_DEBOUNCE_MS));
+
+            // Periodic trigger respects interval (20s) and PauseWhenSitting.
+            Assert.False(cmd.ShouldTriggerPeriodic(1000 + 19999, false));
+            Assert.False(cmd.ShouldTriggerPeriodic(1000 + 25000, true));
+            Assert.True(cmd.ShouldTriggerPeriodic(1000 + 20000, false));
+            cmd.PauseWhenSitting = false;
+            Assert.True(cmd.ShouldTriggerPeriodic(1000 + 20000, true));
+
+            // Profile persistence, legacy JSON fallback, AutoMount exclusion, and KeybindConflictDetector integration.
+            ProfileSingleton.Create("RefreshCmdTest");
+            ProfileSingleton.Load("RefreshCmdTest");
+            Profile prof = ProfileSingleton.GetCurrent();
+            prof.AutoRefreshCommand.Enabled = true;
+            prof.AutoRefreshCommand.Hotkey = Key.F10;
+            prof.AutoRefreshCommand.AutoIntervalEnabled = true;
+            prof.AutoRefreshCommand.IntervalSeconds = 45;
+            prof.AutoRefreshCommand.CommandText = "@refresh";
+            prof.AutoRefreshCommand.PauseWhenSitting = false;
+            ProfileSingleton.SetConfiguration(prof.AutoRefreshCommand);
+
+            ProfileSingleton.Load("RefreshCmdTest");
+            Profile reloaded = ProfileSingleton.GetCurrent();
+            Assert.True(reloaded.AutoRefreshCommand.Enabled);
+            Assert.Equal(Key.F10, reloaded.AutoRefreshCommand.Hotkey);
+            Assert.True(reloaded.AutoRefreshCommand.AutoIntervalEnabled);
+            Assert.Equal(45, reloaded.AutoRefreshCommand.IntervalSeconds);
+            Assert.Equal("@refresh", reloaded.AutoRefreshCommand.CommandText);
+            Assert.False(reloaded.AutoRefreshCommand.PauseWhenSitting);
+
+            // AutoMount must NOT treat the @refresh hotkey as a skill key requiring dismount.
+            reloaded.AutoMount.Enabled = true;
+            reloaded.AutoMount.MountKey = Key.F9;
+            Assert.False(reloaded.AutoMount.IsTrackedSkillKey(Key.F10, reloaded));
+
+            // Conflict detector flags duplicate binding with @refresh hotkey when enabled.
+            reloaded.AutoRefreshSpammer1.RefreshKey = Key.F10;
+            List<KeybindConflict> conflicts = KeybindConflictDetector.DetectConflicts(reloaded);
+            Assert.Contains(conflicts, c => c.Key == Key.F10);
+
+            // UtilitiesForm renders the dedicated Anti-Position Bug and Auto-Escape cards and syncs from profile,
+            // while SkillTimerForm stays clean for timers only.
+            Subject subject = new Subject();
+            using (UtilitiesForm utilitiesForm = new UtilitiesForm(subject))
+            using (SkillTimerForm timerForm = new SkillTimerForm(subject))
+            {
+                subject.Notify(new _4RTools.Utils.Message(MessageCode.PROFILE_CHANGED, null));
+                Assert.Single(utilitiesForm.Controls.Find("gbAntiPositionBug", true));
+                Assert.Single(utilitiesForm.Controls.Find("gbAutoEscape", true));
+                Assert.Empty(timerForm.Controls.Find("gbAntiPositionBug", true));
+                Assert.Equal("F10", utilitiesForm.Controls.Find("txtRefreshHotkey", true)[0].Text);
+                Assert.Equal("@refresh", utilitiesForm.Controls.Find("txtRefreshCmd", true)[0].Text);
+                Assert.True(((System.Windows.Forms.CheckBox)utilitiesForm.Controls.Find("chkRefreshEnabled", true)[0]).Checked);
+                Assert.True(((System.Windows.Forms.CheckBox)utilitiesForm.Controls.Find("chkRefreshAutoInterval", true)[0]).Checked);
+                Assert.Equal(45m, ((System.Windows.Forms.NumericUpDown)utilitiesForm.Controls.Find("numRefreshInterval", true)[0]).Value);
+                Assert.Single(utilitiesForm.Controls.Find("btnTestRefresh", true));
+            }
+        }
+
+        [Fact]
+        public void AutoEscape_EnforcesHpThresholdDeadGuardTownGuardCooldownPersistsAndRendersInUtilitiesForm()
+        {
+            AutoEscape escape = new AutoEscape
+            {
+                Enabled = true,
+                EscapeKey = Key.F8,
+                HpPercent = 0, // below min -> clamps to 1
+                CooldownMs = 100, // below min -> clamps to 500
+                ConfirmWithEnter = true,
+                PauseInTown = true
+            };
+            Assert.Equal(AutoEscape.MIN_HP_PERCENT, escape.GetEffectiveHpPercent());
+            Assert.Equal(AutoEscape.MIN_COOLDOWN_MS, escape.GetEffectiveCooldownMs());
+            escape.HpPercent = 200;
+            escape.CooldownMs = 999999;
+            Assert.Equal(AutoEscape.MAX_HP_PERCENT, escape.GetEffectiveHpPercent());
+            Assert.Equal(AutoEscape.MAX_COOLDOWN_MS, escape.GetEffectiveCooldownMs());
+
+            escape.HpPercent = 20;
+            escape.CooldownMs = 2000;
+
+            // Never triggers when dead (HP == 0) or at/above threshold (20%) or in town when PauseInTown is true.
+            Assert.False(escape.ShouldTriggerEscape(0, 10000, 1000, false));
+            Assert.False(escape.ShouldTriggerEscape(2000, 10000, 1000, false));
+            Assert.False(escape.ShouldTriggerEscape(1500, 10000, 1000, true));
+            Assert.True(escape.ShouldTriggerEscape(1999, 10000, 1000, false));
+
+            // Cooldown blocks repeat triggers until elapsed.
+            escape.RecordEscapeTriggered(1000);
+            Assert.False(escape.ShouldTriggerEscape(1500, 10000, 2999, false));
+            Assert.True(escape.ShouldTriggerEscape(1500, 10000, 3000, false));
+
+            // Disabling PauseInTown permits escaping in town.
+            escape.PauseInTown = false;
+            Assert.True(escape.ShouldTriggerEscape(1500, 10000, 3000, true));
+
+            // Profile persistence, AutoMount exclusion, KeybindConflictDetector, and UtilitiesForm sync.
+            ProfileSingleton.Create("AutoEscapeTest");
+            ProfileSingleton.Load("AutoEscapeTest");
+            Profile prof = ProfileSingleton.GetCurrent();
+            prof.AutoEscape.Enabled = true;
+            prof.AutoEscape.EscapeKey = Key.F8;
+            prof.AutoEscape.HpPercent = 25;
+            prof.AutoEscape.CooldownMs = 2500;
+            prof.AutoEscape.ConfirmWithEnter = true;
+            prof.AutoEscape.PauseInTown = false;
+            ProfileSingleton.SetConfiguration(prof.AutoEscape);
+
+            ProfileSingleton.Load("AutoEscapeTest");
+            Profile reloaded = ProfileSingleton.GetCurrent();
+            Assert.True(reloaded.AutoEscape.Enabled);
+            Assert.Equal(Key.F8, reloaded.AutoEscape.EscapeKey);
+            Assert.Equal(25, reloaded.AutoEscape.HpPercent);
+            Assert.Equal(2500, reloaded.AutoEscape.CooldownMs);
+            Assert.True(reloaded.AutoEscape.ConfirmWithEnter);
+            Assert.False(reloaded.AutoEscape.PauseInTown);
+
+            // AutoMount must never treat the EscapeKey as a skill key requiring dismount.
+            reloaded.AutoMount.Enabled = true;
+            reloaded.AutoMount.MountKey = Key.F9;
+            Assert.False(reloaded.AutoMount.IsTrackedSkillKey(Key.F8, reloaded));
+
+            // Conflict detector catches duplicate binding with EscapeKey when enabled.
+            reloaded.Autopot.hpKey = Key.F8;
+            List<KeybindConflict> conflicts = KeybindConflictDetector.DetectConflicts(reloaded);
+            Assert.Contains(conflicts, c => c.Key == Key.F8);
+
+            // UtilitiesForm syncs all Auto-Escape controls from profile.
+            Subject subject = new Subject();
+            using (UtilitiesForm form = new UtilitiesForm(subject))
+            {
+                subject.Notify(new _4RTools.Utils.Message(MessageCode.PROFILE_CHANGED, null));
+                Assert.True(((System.Windows.Forms.CheckBox)form.Controls.Find("chkEscapeEnabled", true)[0]).Checked);
+                Assert.Equal("F8", form.Controls.Find("txtEscapeKey", true)[0].Text);
+                Assert.Equal(25m, ((System.Windows.Forms.NumericUpDown)form.Controls.Find("numEscapeHp", true)[0]).Value);
+                Assert.Equal(2500m, ((System.Windows.Forms.NumericUpDown)form.Controls.Find("numEscapeCooldown", true)[0]).Value);
+                Assert.True(((System.Windows.Forms.CheckBox)form.Controls.Find("chkEscapeConfirmEnter", true)[0]).Checked);
+                Assert.False(((System.Windows.Forms.CheckBox)form.Controls.Find("chkEscapePauseTown", true)[0]).Checked);
+            }
+        }
+
+        [Fact]
+        public void KeyHelperAndKeyboardHook_ReadLiveAsyncModifierAndKeyStatesWithoutSticking()
+        {
+            HashSet<int> pressed = new HashSet<int>();
+            KeyHelper.VirtualKeyDownOverride = vk => pressed.Contains(vk);
+            try
+            {
+                Assert.False(KeyHelper.IsAltPressed());
+                Assert.False(KeyboardHook.Alt);
+                Assert.False(KeyHelper.IsControlPressed());
+                Assert.False(KeyboardHook.Control);
+                Assert.False(KeyHelper.IsKeyDown(Key.None));
+                Assert.False(KeyHelper.IsKeyDown(Key.F1));
+
+                // Left Alt pressed -> immediately detected by both KeyHelper and KeyboardHook.
+                pressed.Add(KeyHelper.VK_LMENU);
+                Assert.True(KeyHelper.IsAltPressed());
+                Assert.True(KeyboardHook.Alt);
+
+                // Released (e.g. after Alt+Tab without WM_KEYUP delivered to background thread) -> immediately false!
+                pressed.Remove(KeyHelper.VK_LMENU);
+                Assert.False(KeyHelper.IsAltPressed());
+                Assert.False(KeyboardHook.Alt);
+
+                // Right Alt / AltGr -> immediately tracked & released.
+                pressed.Add(KeyHelper.VK_RMENU);
+                Assert.True(KeyHelper.IsAltPressed());
+                Assert.True(KeyboardHook.Alt);
+                pressed.Remove(KeyHelper.VK_RMENU);
+                Assert.False(KeyHelper.IsAltPressed());
+                Assert.False(KeyboardHook.Alt);
+
+                // Regular key (F1) read via KeyHelper.IsKeyDown using live VK state.
+                int f1Vk = KeyInterop.VirtualKeyFromKey(Key.F1);
+                pressed.Add(f1Vk);
+                Assert.True(KeyHelper.IsKeyDown(Key.F1));
+                pressed.Remove(f1Vk);
+                Assert.False(KeyHelper.IsKeyDown(Key.F1));
+            }
+            finally
+            {
+                KeyHelper.VirtualKeyDownOverride = null;
+            }
+        }
+
+        [Fact]
+        public void HoldToPause_PausesAutomationOptionallyProtectsAutopotPersistsAndRendersInAHKForm()
+        {
+            // Generic WinForms modifier KeyCodes map cleanly for Hold-to-Pause binding.
+            Assert.Equal(Key.LeftCtrl, KeyHelper.FromFormsKeys(System.Windows.Forms.Keys.ControlKey));
+            Assert.Equal(Key.LeftShift, KeyHelper.FromFormsKeys(System.Windows.Forms.Keys.ShiftKey));
+            Assert.Equal(Key.LeftAlt, KeyHelper.FromFormsKeys(System.Windows.Forms.Keys.Menu));
+
+            HashSet<int> pressed = new HashSet<int>();
+            KeyHelper.VirtualKeyDownOverride = vk => pressed.Contains(vk);
+            ActionPriorityCoordinator.Reset();
+            try
+            {
+                ActionPriorityCoordinator.HoldPauseKey = Key.LeftCtrl;
+                ActionPriorityCoordinator.HoldPauseIncludeAutopot = false;
+
+                Assert.False(ActionPriorityCoordinator.IsHoldPauseActive());
+                Assert.False(ActionPriorityCoordinator.IsHoldPauseBlockingAutopot());
+
+                // Pressing EITHER LeftCtrl or RightCtrl activates Hold-to-Pause.
+                pressed.Add(KeyHelper.VK_RCONTROL);
+                Assert.True(ActionPriorityCoordinator.IsHoldPauseActive());
+                // By default, Autopot / Yggdrasil / Auto-Escape remain active while holding pause key.
+                Assert.False(ActionPriorityCoordinator.IsHoldPauseBlockingAutopot());
+
+                // Enabling HoldPauseIncludeAutopot blocks Autopot / Yggdrasil / Auto-Escape too.
+                ActionPriorityCoordinator.HoldPauseIncludeAutopot = true;
+                Assert.True(ActionPriorityCoordinator.IsHoldPauseBlockingAutopot());
+
+                // Releasing immediately resumes everything with zero stuck state.
+                pressed.Remove(KeyHelper.VK_RCONTROL);
+                Assert.False(ActionPriorityCoordinator.IsHoldPauseActive());
+                Assert.False(ActionPriorityCoordinator.IsHoldPauseBlockingAutopot());
+
+                // Profile persistence, AutoMount exclusion, KeybindConflictDetector, and AHKForm UI sync.
+                ProfileSingleton.Create("HoldPauseTest");
+                ProfileSingleton.Load("HoldPauseTest");
+                Profile prof = ProfileSingleton.GetCurrent();
+                prof.UserPreferences.holdPauseKey = Key.Tab;
+                prof.UserPreferences.holdPauseIncludeAutopot = true;
+                ProfileSingleton.SetConfiguration(prof.UserPreferences);
+
+                ProfileSingleton.Load("HoldPauseTest");
+                Profile reloaded = ProfileSingleton.GetCurrent();
+                Assert.Equal(Key.Tab, reloaded.UserPreferences.holdPauseKey);
+                Assert.True(reloaded.UserPreferences.holdPauseIncludeAutopot);
+
+                reloaded.AutoMount.Enabled = true;
+                reloaded.AutoMount.MountKey = Key.F9;
+                Assert.False(reloaded.AutoMount.IsTrackedSkillKey(Key.Tab, reloaded));
+
+                reloaded.AutoRefreshSpammer1.RefreshKey = Key.Tab;
+                List<KeybindConflict> conflicts = KeybindConflictDetector.DetectConflicts(reloaded);
+                Assert.Contains(conflicts, c => c.Key == Key.Tab);
+
+                Subject subject = new Subject();
+                using (AHKForm ahkForm = new AHKForm(subject))
+                {
+                    subject.Notify(new _4RTools.Utils.Message(MessageCode.PROFILE_CHANGED, null));
+                    System.Windows.Forms.Control gbPriority = Assert.Single(ahkForm.Controls.Find("gbPlayerPriority", true));
+                    System.Windows.Forms.Control txtHold = Assert.Single(ahkForm.Controls.Find("txtHoldPauseKey", true));
+                    System.Windows.Forms.CheckBox chkHoldPot = (System.Windows.Forms.CheckBox)Assert.Single(ahkForm.Controls.Find("chkHoldPauseAutopot", true));
+                    Assert.Same(gbPriority, txtHold.Parent);
+                    Assert.Same(gbPriority, chkHoldPot.Parent);
+                    Assert.Equal("Tab", txtHold.Text);
+                    Assert.True(chkHoldPot.Checked);
+                    Assert.Equal(Key.Tab, ActionPriorityCoordinator.HoldPauseKey);
+                    Assert.True(ActionPriorityCoordinator.HoldPauseIncludeAutopot);
+                }
+            }
+            finally
+            {
+                KeyHelper.VirtualKeyDownOverride = null;
+                ActionPriorityCoordinator.Reset();
+            }
         }
 
         [Fact]

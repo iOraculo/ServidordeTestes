@@ -180,6 +180,9 @@ namespace _4RTools.Model
             "ecl_in01", "lasagna_in"
         };
 
+        public const int DEFAULT_STATUS_BUFFER_OFFSET = 0x474;
+        public const int RAGEXE_2022_STATUS_BUFFER_OFFSET = 0x480;
+
         public Process process { get; private set; }
         public string processName { get; private set; }
         private ProcessMemoryReader PMR { get; set; }
@@ -187,6 +190,7 @@ namespace _4RTools.Model
         public int currentHPBaseAddress { get; set; }
         public int currentMapAddress { get; set; }
         private int statusBufferAddress { get; set; }
+        public int StatusBufferAddress { get { return this.statusBufferAddress; } }
         private readonly Stopwatch mapCacheClock = Stopwatch.StartNew();
         private long lastMapReadMs = -10000;
         private string cachedMapName = string.Empty;
@@ -204,14 +208,13 @@ namespace _4RTools.Model
             }
         }
 
-        public const int DEFAULT_STATUS_BUFFER_OFFSET = 0x474;
-
-        public Client(string processName, int currentHPBaseAddress, int currentNameAddress)
+        public Client(string processName, int currentHPBaseAddress, int currentNameAddress, int statusOffset = DEFAULT_STATUS_BUFFER_OFFSET)
         {
             this.currentNameAddress = currentNameAddress;
             this.currentHPBaseAddress = currentHPBaseAddress;
             this.processName = processName;
-            this.statusBufferAddress = currentHPBaseAddress + DEFAULT_STATUS_BUFFER_OFFSET;
+            int resolvedOffset = statusOffset > 0 ? statusOffset : DEFAULT_STATUS_BUFFER_OFFSET;
+            this.statusBufferAddress = currentHPBaseAddress + resolvedOffset;
             this.IsSupported = currentHPBaseAddress != 0;
         }
 
@@ -221,8 +224,11 @@ namespace _4RTools.Model
             this.currentHPBaseAddress = Convert.ToInt32(dto.hpAddress, 16);
             this.currentNameAddress = Convert.ToInt32(dto.nameAddress, 16);
             this.currentMapAddress = ClientDTO.TryParseOptionalHex(dto.mapAddress);
-            int customStatusOffset = ClientDTO.TryParseOptionalHex(dto.statusOffset);
-            this.statusBufferAddress = this.currentHPBaseAddress + (customStatusOffset > 0 ? customStatusOffset : DEFAULT_STATUS_BUFFER_OFFSET);
+            int parsedStatusOffset = dto.statusOffsetValue > 0
+                ? dto.statusOffsetValue
+                : ClientDTO.TryParseOptionalHex(dto.statusOffset);
+            int resolvedOffset = parsedStatusOffset > 0 ? parsedStatusOffset : DEFAULT_STATUS_BUFFER_OFFSET;
+            this.statusBufferAddress = this.currentHPBaseAddress + resolvedOffset;
             this.IsSupported = this.currentHPBaseAddress != 0;
         }
 
@@ -406,17 +412,21 @@ namespace _4RTools.Model
 
         public bool ShouldPauseAutomation()
         {
-            return ShouldPauseForFocus() || ChatPauseState.IsChatting || ShouldPauseForTown();
+            return ShouldPauseForFocus()
+                || ChatPauseState.IsChatting
+                || AutoRefreshCommand.IsSendingCommand
+                || ActionPriorityCoordinator.IsHoldPauseActive()
+                || ShouldPauseForTown();
         }
 
         public bool ShouldPauseAutopotKey(System.Windows.Input.Key key)
         {
-            if (ShouldPauseForFocus() || ShouldPauseForTown())
+            if (ShouldPauseForFocus() || ShouldPauseForTown() || ActionPriorityCoordinator.IsHoldPauseBlockingAutopot())
             {
                 return true;
             }
 
-            if (ChatPauseState.IsChatting && ChatPauseState.IsTypingKey(key))
+            if ((ChatPauseState.IsChatting || AutoRefreshCommand.IsSendingCommand) && ChatPauseState.IsTypingKey(key))
             {
                 return true;
             }
@@ -515,40 +525,31 @@ namespace _4RTools.Model
             return entriesRead;
         }
 
-        private const uint MAX_VALID_EFST_CODE = 100000u;
-
-        private static bool IsIgnoreStatusCode(uint code)
-        {
-            return code == (uint)EffectStatusIDs.IGNORE || code == (uint)EffectStatusIDs.IGNORE_2;
-        }
-
-        private static bool IsNonEfstSentinel(uint code)
-        {
-            return !IsIgnoreStatusCode(code) && code > MAX_VALID_EFST_CODE;
-        }
-
         /// <summary>
-        /// Some 2022+ Ragexe clients place the status buffer 12 bytes (3 uint32 slots) later
-        /// (+0x480 instead of +0x474). When read from +0x474, slot 0 holds a CSession field
-        /// that collides with ANGELUS (9), slot 1 holds a large non-EFST value (e.g. 1004240168),
-        /// and slot 2 holds 1 (colliding with ENDURE). Detecting the non-EFST sentinel at slot 1
-        /// lets us skip the 3-slot header cleanly on any such client.
+        /// Detects the 3-uint (12-byte) leading header present on Ragexe 2022+ (e.g. FroggoClient) when
+        /// reading from the legacy +0x474 offset instead of +0x480:
+        /// [Slot 0: fixed int (e.g. 9), Slot 1: out-of-range EFST value (&gt; 100000, e.g. 1004240168), Slot 2: fixed int (e.g. 1)].
+        /// Valid Ragnarok Online EFST IDs are always &lt;= 100000 (except IGNORE/IGNORE_2 sentinels).
         /// </summary>
         public static int DetectLeadingHeaderSkip(uint[] statusBuffer, int limit)
         {
-            if (statusBuffer == null || limit < 4)
+            if (statusBuffer == null || limit < 4 || statusBuffer.Length < 4)
             {
                 return 0;
             }
 
-            return IsNonEfstSentinel(statusBuffer[1]) ? 3 : 0;
+            uint slot1 = statusBuffer[1];
+            bool slot1OutOfEfstRange = slot1 > 100000u
+                && slot1 != (uint)EffectStatusIDs.IGNORE
+                && slot1 != (uint)EffectStatusIDs.IGNORE_2;
+
+            return slot1OutOfEfstRange ? 3 : 0;
         }
 
         /// <summary>
-        /// Extracts active EFST codes from a raw status buffer while skipping any 3-slot leading
-        /// CSession header and stopping after a run of consecutive IGNORE (0xFFFFFFFF) slots.
-        /// This tolerates small gaps in active buff lists without scanning past the end of the
-        /// client's status array into unrelated CSession memory.
+        /// Extracts active EFST codes from a raw status buffer while skipping any Ragexe 2022+ leading
+        /// 3-slot header, ignoring isolated out-of-range values (&gt; 100000), and stopping after a run
+        /// of consecutive IGNORE (0xFFFFFFFF) slots.
         /// </summary>
         public static int ExtractActiveStatuses(uint[] statusBuffer, int count, List<uint> activeOutput)
         {
@@ -565,7 +566,7 @@ namespace _4RTools.Model
             for (int i = startIndex; i < limit; i++)
             {
                 uint code = statusBuffer[i];
-                if (IsIgnoreStatusCode(code))
+                if (code == (uint)EffectStatusIDs.IGNORE || code == (uint)EffectStatusIDs.IGNORE_2)
                 {
                     consecutiveIgnores++;
                     if (consecutiveIgnores >= Constants.STATUS_END_CONSECUTIVE_IGNORES)
@@ -575,12 +576,12 @@ namespace _4RTools.Model
                     continue;
                 }
 
-                if (IsNonEfstSentinel(code))
+                consecutiveIgnores = 0;
+                if (code > 100000u)
                 {
                     continue;
                 }
 
-                consecutiveIgnores = 0;
                 activeOutput.Add(code);
                 added++;
             }
@@ -630,7 +631,7 @@ namespace _4RTools.Model
             for (int i = startIndex; i < count; i++)
             {
                 uint code = statusBuffer[i];
-                if (IsIgnoreStatusCode(code))
+                if (code == (uint)EffectStatusIDs.IGNORE || code == (uint)EffectStatusIDs.IGNORE_2)
                 {
                     consecutiveIgnores++;
                     if (consecutiveIgnores >= Constants.STATUS_END_CONSECUTIVE_IGNORES)
@@ -641,12 +642,12 @@ namespace _4RTools.Model
                     continue;
                 }
 
-                if (IsNonEfstSentinel(code))
+                consecutiveIgnores = 0;
+                if (code > 100000u)
                 {
                     continue;
                 }
 
-                consecutiveIgnores = 0;
                 string enumName = Enum.IsDefined(typeof(EffectStatusIDs), code)
                     ? ((EffectStatusIDs)code).ToString()
                     : (LocalizationManager.IsPortuguese ? "(desconhecido)" : "(unknown)");
@@ -902,20 +903,15 @@ namespace _4RTools.Model
                     }
 
                     byte[] statusRaw = new byte[Constants.STATUS_BUFFER_BYTE_SIZE];
-                    if (reader.ReadProcessMemory((IntPtr)(hpAddress + 0x474), statusRaw, statusRaw.Length, out bytesRead)
+                    if (reader.ReadProcessMemory((IntPtr)(hpAddress + DEFAULT_STATUS_BUFFER_OFFSET), statusRaw, statusRaw.Length, out bytesRead)
                         && bytesRead >= sizeof(uint))
                     {
                         int entries = bytesRead / sizeof(uint);
-                        int activeCount = 0;
-                        for (int i = 0; i < entries; i++)
-                        {
-                            uint code = BitConverter.ToUInt32(statusRaw, i * sizeof(uint));
-                            if (code != 0 && code != (uint)EffectStatusIDs.IGNORE && code != (uint)EffectStatusIDs.IGNORE_2)
-                            {
-                                activeCount++;
-                            }
-                        }
-                        result.ActiveBuffCount = activeCount;
+                        uint[] parsedStatuses = new uint[entries];
+                        Buffer.BlockCopy(statusRaw, 0, parsedStatuses, 0, entries * sizeof(uint));
+                        List<uint> activeStatuses = new List<uint>(32);
+                        ExtractActiveStatuses(parsedStatuses, entries, activeStatuses);
+                        result.ActiveBuffCount = activeStatuses.Count;
                     }
                 }
             }

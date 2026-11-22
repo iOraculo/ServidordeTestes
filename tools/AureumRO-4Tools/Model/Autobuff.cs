@@ -63,7 +63,7 @@ namespace _4RTools.Model
         private readonly object mappingLock = new object();
         private readonly Dictionary<EffectStatusIDs, long> lastCastTimesMs = new Dictionary<EffectStatusIDs, long>();
         private readonly HashSet<EffectStatusIDs> observedStatusIcons = new HashSet<EffectStatusIDs>();
-        private readonly HashSet<EffectStatusIDs> previouslyActiveBuffs = new HashSet<EffectStatusIDs>();
+        private readonly HashSet<EffectStatusIDs> previouslyActiveStatuses = new HashSet<EffectStatusIDs>();
         private readonly Stopwatch clock = Stopwatch.StartNew();
         private _4RThread thread;
 
@@ -167,8 +167,7 @@ namespace _4RTools.Model
                             }
                         }
 
-                        // If an icon-tracked buff (e.g. Basilica) was active and just ended,
-                        // clear its cast-guard timer so it reactivates cleanly once post-delay ends.
+                        // Clear cached recast timers for buffs whose status icon just expired (e.g. Basilica).
                         SyncActiveBuffTransitions(activeStatuses);
 
                         AutoMount autoMount = ProfileSingleton.GetCurrent() != null ? ProfileSingleton.GetCurrent().AutoMount : null;
@@ -184,21 +183,20 @@ namespace _4RTools.Model
                             if (hasVitals && currentHp >= Constants.MINIMUM_HP_TO_RECOVER)
                             {
                                 long nowMs = this.clock.ElapsedMilliseconds;
-                                Key deferredBasilicaKey = Key.None;
-                                bool castNonBasilicaBuff = false;
+                                List<KeyValuePair<EffectStatusIDs, Key>> orderedBuffs = OrderBuffsForCast(missingBuffs);
+                                bool castAnyOtherBuff = false;
 
-                                foreach (KeyValuePair<EffectStatusIDs, Key> item in missingBuffs)
+                                foreach (KeyValuePair<EffectStatusIDs, Key> item in orderedBuffs)
                                 {
                                     if (token.IsCancellationRequested || ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther))
                                     {
                                         break;
                                     }
 
-                                    // Always cast Basilica LAST (after other buffs are up) so it neither blocks
-                                    // other Pre-Renewal buffs nor gets eaten by another skill's after-cast delay.
-                                    if (item.Key == EffectStatusIDs.EFST_BASILICA)
+                                    // Always cast Basilica last and defer to the next cycle if another buff was cast
+                                    // in this cycle (avoids locking other skills or misfiring during post-delay).
+                                    if (item.Key == EffectStatusIDs.EFST_BASILICA && castAnyOtherBuff)
                                     {
-                                        deferredBasilicaKey = item.Value;
                                         continue;
                                     }
 
@@ -223,29 +221,13 @@ namespace _4RTools.Model
 
                                     UseAutobuff(c, item.Key, item.Value, token);
                                     RecordBuffCast(item.Key, nowMs);
-                                    castNonBasilicaBuff = true;
+                                    if (item.Key != EffectStatusIDs.EFST_BASILICA)
+                                    {
+                                        castAnyOtherBuff = true;
+                                    }
                                     if (!_4RThread.Sleep(50, token))
                                     {
                                         break;
-                                    }
-                                }
-
-                                if (deferredBasilicaKey != Key.None
-                                    && !castNonBasilicaBuff
-                                    && !token.IsCancellationRequested
-                                    && !ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther)
-                                    && ShouldCastBuff(EffectStatusIDs.EFST_BASILICA, nowMs, foundQuag, foundBlockingDebuff, currentSp, maxSp, isSitting, true, isInPostDelay))
-                                {
-                                    if (isMounted && autoMount != null && autoMount.IsActiveForDismount())
-                                    {
-                                        autoMount.DismountNow(c, token);
-                                        isMounted = false;
-                                    }
-
-                                    if (!token.IsCancellationRequested && !ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther))
-                                    {
-                                        UseAutobuff(c, EffectStatusIDs.EFST_BASILICA, deferredBasilicaKey, token);
-                                        RecordBuffCast(EffectStatusIDs.EFST_BASILICA, nowMs);
                                     }
                                 }
                             }
@@ -268,12 +250,7 @@ namespace _4RTools.Model
             bool prerequisiteSatisfied = true,
             bool isInPostDelay = false)
         {
-            if (isInPostDelay)
-            {
-                return false;
-            }
-
-            if (!prerequisiteSatisfied)
+            if (isInPostDelay || !prerequisiteSatisfied)
             {
                 return false;
             }
@@ -314,51 +291,6 @@ namespace _4RTools.Model
             return true;
         }
 
-        public void SyncActiveBuffTransitions(HashSet<EffectStatusIDs> activeStatuses)
-        {
-            if (activeStatuses == null)
-            {
-                return;
-            }
-
-            lock (this.mappingLock)
-            {
-                if (this.previouslyActiveBuffs.Count > 0)
-                {
-                    List<EffectStatusIDs> expired = null;
-                    foreach (EffectStatusIDs prev in this.previouslyActiveBuffs)
-                    {
-                        if (!activeStatuses.Contains(prev))
-                        {
-                            if (expired == null)
-                            {
-                                expired = new List<EffectStatusIDs>();
-                            }
-                            expired.Add(prev);
-                        }
-                    }
-
-                    if (expired != null)
-                    {
-                        for (int i = 0; i < expired.Count; i++)
-                        {
-                            EffectStatusIDs ended = expired[i];
-                            this.previouslyActiveBuffs.Remove(ended);
-                            if (ended == EffectStatusIDs.EFST_BASILICA)
-                            {
-                                this.lastCastTimesMs.Remove(ended);
-                            }
-                        }
-                    }
-                }
-
-                if (activeStatuses.Contains(EffectStatusIDs.EFST_BASILICA))
-                {
-                    this.previouslyActiveBuffs.Add(EffectStatusIDs.EFST_BASILICA);
-                }
-            }
-        }
-
         public int GetEffectiveCooldownMs(EffectStatusIDs status)
         {
             int cooldown = Math.Max(0, this.buffCooldownMs);
@@ -385,6 +317,75 @@ namespace _4RTools.Model
             }
         }
 
+        public static List<KeyValuePair<EffectStatusIDs, Key>> OrderBuffsForCast(Dictionary<EffectStatusIDs, Key> missingBuffs)
+        {
+            List<KeyValuePair<EffectStatusIDs, Key>> ordered = new List<KeyValuePair<EffectStatusIDs, Key>>();
+            if (missingBuffs == null || missingBuffs.Count == 0)
+            {
+                return ordered;
+            }
+
+            KeyValuePair<EffectStatusIDs, Key>? basilicaEntry = null;
+            foreach (KeyValuePair<EffectStatusIDs, Key> item in missingBuffs)
+            {
+                if (item.Key == EffectStatusIDs.EFST_BASILICA)
+                {
+                    basilicaEntry = item;
+                }
+                else
+                {
+                    ordered.Add(item);
+                }
+            }
+
+            if (basilicaEntry.HasValue)
+            {
+                ordered.Add(basilicaEntry.Value);
+            }
+
+            return ordered;
+        }
+
+        public void SyncActiveBuffTransitions(HashSet<EffectStatusIDs> currentActiveStatuses)
+        {
+            bool basilicaActiveNow = currentActiveStatuses != null
+                && (currentActiveStatuses.Contains(EffectStatusIDs.EFST_BASILICA)
+                    || currentActiveStatuses.Contains(EffectStatusIDs.EFST_BASILICA_BUFF));
+
+            lock (this.mappingLock)
+            {
+                bool basilicaWasActive = this.previouslyActiveStatuses.Contains(EffectStatusIDs.EFST_BASILICA)
+                    || this.previouslyActiveStatuses.Contains(EffectStatusIDs.EFST_BASILICA_BUFF);
+
+                foreach (EffectStatusIDs prev in this.previouslyActiveStatuses)
+                {
+                    if (currentActiveStatuses == null || !currentActiveStatuses.Contains(prev))
+                    {
+                        this.lastCastTimesMs.Remove(prev);
+                    }
+                }
+
+                if (basilicaWasActive && !basilicaActiveNow)
+                {
+                    this.lastCastTimesMs.Remove(EffectStatusIDs.EFST_BASILICA);
+                }
+
+                this.previouslyActiveStatuses.Clear();
+                if (currentActiveStatuses != null)
+                {
+                    foreach (EffectStatusIDs active in currentActiveStatuses)
+                    {
+                        this.previouslyActiveStatuses.Add(active);
+                    }
+                }
+            }
+        }
+
+        public void SyncActiveStatusTransitions(HashSet<EffectStatusIDs> currentActiveStatuses)
+        {
+            SyncActiveBuffTransitions(currentActiveStatuses);
+        }
+
         public void RecordBuffCast(EffectStatusIDs status, long nowMs)
         {
             lock (this.mappingLock)
@@ -399,7 +400,7 @@ namespace _4RTools.Model
             {
                 this.lastCastTimesMs.Clear();
                 this.observedStatusIcons.Clear();
-                this.previouslyActiveBuffs.Clear();
+                this.previouslyActiveStatuses.Clear();
             }
         }
 

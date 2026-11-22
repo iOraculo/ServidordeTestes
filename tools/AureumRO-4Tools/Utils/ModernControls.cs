@@ -16,6 +16,7 @@ namespace _4RTools.Utils
         MacroSongs,
         AtkDef,
         Mount,
+        Utilities,
         Profiles,
         Servers,
         Guide
@@ -295,6 +296,13 @@ namespace _4RTools.Utils
                         g.DrawArc(pen, r.X + 2, r.Y + 2, r.Width - 4, r.Height - 4, 150, 240);
                         g.FillEllipse(brush, r.X + 2, r.Bottom - 4, 3, 3);
                         g.FillEllipse(brush, r.Right - 5, r.Bottom - 4, 3, 3);
+                        break;
+
+                    case SidebarIconKind.Utilities:
+                        // Refresh / sync circular arrow
+                        g.DrawArc(pen, r.X + 2, r.Y + 2, r.Width - 4, r.Height - 4, 35, 285);
+                        g.DrawLine(pen, r.Right - 3, r.Y + 2, r.Right - 3, r.Y + 6);
+                        g.DrawLine(pen, r.Right - 7, r.Y + 6, r.Right - 3, r.Y + 6);
                         break;
 
                     case SidebarIconKind.Profiles:

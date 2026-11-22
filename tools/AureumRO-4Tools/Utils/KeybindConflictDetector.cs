@@ -41,6 +41,11 @@ namespace _4RTools.Utils
                 }
             }
 
+            if (profile.UserPreferences != null && FormUtils.IsValidKey(profile.UserPreferences.holdPauseKey))
+            {
+                AddUsage(usagesByKey, profile.UserPreferences.holdPauseKey, LocalizationManager.T("usage.hold_pause"));
+            }
+
             if (profile.Autopot != null)
             {
                 AddUsage(usagesByKey, profile.Autopot.hpKey, LocalizationManager.T("usage.autopot_hp"));
@@ -142,6 +147,16 @@ namespace _4RTools.Utils
             if (profile.AutoMount != null && profile.AutoMount.Enabled)
             {
                 AddUsage(usagesByKey, profile.AutoMount.MountKey, LocalizationManager.T("usage.mount_key"));
+            }
+
+            if (profile.AutoRefreshCommand != null && profile.AutoRefreshCommand.Enabled)
+            {
+                AddUsage(usagesByKey, profile.AutoRefreshCommand.Hotkey, LocalizationManager.T("usage.refresh_hotkey"));
+            }
+
+            if (profile.AutoEscape != null && profile.AutoEscape.Enabled)
+            {
+                AddUsage(usagesByKey, profile.AutoEscape.EscapeKey, LocalizationManager.T("usage.escape_key"));
             }
 
             foreach (KeyValuePair<Key, List<string>> pair in usagesByKey.OrderBy(p => p.Key.ToString(), StringComparer.OrdinalIgnoreCase))

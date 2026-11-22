@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Threading;
+using System.Windows.Input;
 
 namespace _4RTools.Utils
 {
@@ -15,7 +16,7 @@ namespace _4RTools.Utils
     /// <summary>
     /// Enforces the 4-tier action priority order across all 4RTools automation threads:
     /// 1) Player input in the game (highest — pauses 4RTools briefly on fresh physical keypresses)
-    /// 2) Yggdrasil emergency autopot & Panacea / Anti-debuffs (takes precedence over standard potions and skills)
+    /// 2) Yggdrasil emergency autopot and Anti-Debuffs / Panacea (takes precedence over standard potions and skills)
     /// 3) Standard potions (takes precedence over skills, buffs, and timers)
     /// 4) Skills, Auto-skill, consumables, timers, and other automations (lowest)
     /// </summary>
@@ -38,6 +39,31 @@ namespace _4RTools.Utils
         private static int playerInputYieldMs = DEFAULT_PLAYER_INPUT_YIELD_MS;
         private static int yggPriorityWindowMs = DEFAULT_YGG_PRIORITY_WINDOW_MS;
         private static int potionPriorityWindowMs = DEFAULT_POTION_PRIORITY_WINDOW_MS;
+        private static int holdPauseKeyCode = (int)Key.None;
+        private static int holdPauseIncludeAutopot = 0;
+
+        public static Key HoldPauseKey
+        {
+            get { return (Key)Volatile.Read(ref holdPauseKeyCode); }
+            set { Volatile.Write(ref holdPauseKeyCode, (int)value); }
+        }
+
+        public static bool HoldPauseIncludeAutopot
+        {
+            get { return Volatile.Read(ref holdPauseIncludeAutopot) != 0; }
+            set { Volatile.Write(ref holdPauseIncludeAutopot, value ? 1 : 0); }
+        }
+
+        public static bool IsHoldPauseActive()
+        {
+            Key key = HoldPauseKey;
+            return FormUtils.IsValidKey(key) && KeyHelper.IsHoldPauseKeyDown(key);
+        }
+
+        public static bool IsHoldPauseBlockingAutopot()
+        {
+            return HoldPauseIncludeAutopot && IsHoldPauseActive();
+        }
 
         public static int PlayerInputYieldMs
         {
@@ -89,6 +115,11 @@ namespace _4RTools.Utils
         }
 
         public static void NotifyAntiDebuffAction(long? nowMs = null)
+        {
+            NotifyYggAction(nowMs);
+        }
+
+        public static void NotifyEmergencyAction(long? nowMs = null)
         {
             NotifyYggAction(nowMs);
         }
@@ -188,6 +219,8 @@ namespace _4RTools.Utils
             Volatile.Write(ref playerInputYieldMs, DEFAULT_PLAYER_INPUT_YIELD_MS);
             Volatile.Write(ref yggPriorityWindowMs, DEFAULT_YGG_PRIORITY_WINDOW_MS);
             Volatile.Write(ref potionPriorityWindowMs, DEFAULT_POTION_PRIORITY_WINDOW_MS);
+            Volatile.Write(ref holdPauseKeyCode, (int)Key.None);
+            Volatile.Write(ref holdPauseIncludeAutopot, 0);
         }
     }
 }

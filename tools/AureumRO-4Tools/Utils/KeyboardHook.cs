@@ -42,10 +42,12 @@ namespace _4RTools.Utils
         // Keep delegate alive for the lifetime of the hook to prevent GC collection.
         private static readonly HookProc hookproc = new HookProc(Filter);
 
-        public static bool Control = false;
-        public static bool Shift = false;
-        public static bool Alt = false;
-        public static bool Win = false;
+        // Always query real-time hardware modifier state via GetAsyncKeyState so a missed WM_KEYUP / WM_SYSKEYUP
+        // (e.g. after Alt+Tab, Alt+E, or UAC focus switch) can never leave Alt/Ctrl/Shift stuck as true.
+        public static bool Control { get { return KeyHelper.IsControlPressed(); } }
+        public static bool Shift { get { return KeyHelper.IsShiftPressed(); } }
+        public static bool Alt { get { return KeyHelper.IsAltPressed(); } }
+        public static bool Win { get { return KeyHelper.IsWinPressed(); } }
 
         public delegate bool KeyPressed();
 
@@ -142,14 +144,13 @@ namespace _4RTools.Utils
                         Keys key = (Keys)hookData.vkCode;
                         bool isInjected = (hookData.flags & LLKHF_INJECTED) != 0;
 
-                        if (key == Keys.LControlKey || key == Keys.RControlKey)
-                            Control = true;
-                        else if (key == Keys.LShiftKey || key == Keys.RShiftKey)
-                            Shift = true;
-                        else if (key == Keys.RMenu || key == Keys.LMenu)
-                            Alt = true;
-                        else if (key == Keys.RWin || key == Keys.LWin)
-                            Win = true;
+                        if (key == Keys.LControlKey || key == Keys.RControlKey
+                            || key == Keys.LShiftKey || key == Keys.RShiftKey
+                            || key == Keys.RMenu || key == Keys.LMenu
+                            || key == Keys.RWin || key == Keys.LWin)
+                        {
+                            // Modifier state is read live from GetAsyncKeyState via Control/Shift/Alt/Win properties.
+                        }
                         else
                         {
                             if (!isInjected)
@@ -157,6 +158,12 @@ namespace _4RTools.Utils
                                 bool isFreshPress;
                                 lock (SyncRoot)
                                 {
+                                    // Clear any stale held key whose WM_KEYUP was missed during Alt+Tab / focus change.
+                                    if (heldPhysicalKeys.Contains(key) && !KeyHelper.IsVirtualKeyDown((int)(key & Keys.KeyCode)))
+                                    {
+                                        heldPhysicalKeys.Remove(key);
+                                    }
+
                                     isFreshPress = heldPhysicalKeys.Add(key);
                                 }
 
@@ -175,14 +182,20 @@ namespace _4RTools.Utils
                         Keys key = (Keys)hookData.vkCode;
                         bool isInjected = (hookData.flags & LLKHF_INJECTED) != 0;
 
-                        if (key == Keys.LControlKey || key == Keys.RControlKey)
-                            Control = false;
-                        else if (key == Keys.LShiftKey || key == Keys.RShiftKey)
-                            Shift = false;
-                        else if (key == Keys.RMenu || key == Keys.LMenu)
-                            Alt = false;
-                        else if (key == Keys.RWin || key == Keys.LWin)
-                            Win = false;
+                        if (key == Keys.LControlKey || key == Keys.RControlKey
+                            || key == Keys.LShiftKey || key == Keys.RShiftKey
+                            || key == Keys.RMenu || key == Keys.LMenu
+                            || key == Keys.RWin || key == Keys.LWin)
+                        {
+                            // Release any keys whose KEYUP may have been swallowed during an Alt/Ctrl combo (e.g. Alt+Tab).
+                            if (key == Keys.LMenu || key == Keys.RMenu)
+                            {
+                                lock (SyncRoot)
+                                {
+                                    heldPhysicalKeys.RemoveWhere(k => !KeyHelper.IsVirtualKeyDown((int)(k & Keys.KeyCode)));
+                                }
+                            }
+                        }
                         else
                         {
                             if (!isInjected)

@@ -109,6 +109,7 @@ namespace _4RTools.Forms
             SetSkillTimerWindow();
             SetMacrosWindow();
             SetMountWindow();
+            SetUtilitiesWindow();
             SetProfileWindow();
             SetGuideWindow();
 
@@ -337,21 +338,22 @@ namespace _4RTools.Forms
                 AddSidebarButton("timers", "Skill timers", SidebarIconKind.Timers, ref y);
                 AddSidebarButton("macros", "Macros", SidebarIconKind.MacroSwitch, ref y);
                 AddSidebarButton("mount", "Mount", SidebarIconKind.Mount, ref y);
+                AddSidebarButton("utilities", "Utilities", SidebarIconKind.Utilities, ref y);
 
-                this.panelSidebar.Controls.Add(CreateDivider(new Point(14, 292), new Size(176, 1)));
+                this.panelSidebar.Controls.Add(CreateDivider(new Point(14, 326), new Size(176, 1)));
 
                 Label lblGroupManagement = new Label
                 {
                     AutoSize = true,
                     Font = sidebarGroupFont,
-                    Location = new Point(14, 304),
+                    Location = new Point(14, 336),
                     Name = "lblGroupManagement",
                     Text = "MANAGEMENT",
                     Tag = ThemeManager.TAG_MUTED_TEXT
                 };
                 this.panelSidebar.Controls.Add(lblGroupManagement);
 
-                y = 324;
+                y = 356;
                 AddSidebarButton("profiles", "Profiles", SidebarIconKind.Profiles, ref y);
                 AddSidebarButton("guide", "Guide / Help", SidebarIconKind.Guide, ref y);
 
@@ -1738,9 +1740,27 @@ namespace _4RTools.Forms
             RegisterSectionForm("mount", new MountForm(this.subject));
         }
 
+        public void SetUtilitiesWindow()
+        {
+            RegisterSectionForm("utilities", new UtilitiesForm(this.subject));
+        }
+
         public void SetGuideWindow()
         {
             RegisterSectionForm("guide", new GuideForm(this.subject));
+        }
+
+        protected override void WndProc(ref System.Windows.Forms.Message m)
+        {
+            const int WM_SYSCOMMAND = 0x0112;
+            const int SC_KEYMENU = 0xF100;
+            // Ignore standalone Alt key menu activation on this borderless/menu-free WinForms window so tapping Alt never traps focus.
+            if (m.Msg == WM_SYSCOMMAND && ((int)m.WParam & 0xFFF0) == SC_KEYMENU && m.LParam == IntPtr.Zero)
+            {
+                return;
+            }
+
+            base.WndProc(ref m);
         }
 
         private void OnPhysicalPlayerKeyDown(Keys key)

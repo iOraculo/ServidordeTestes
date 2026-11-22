@@ -211,7 +211,7 @@ namespace _4RTools.Forms
                         "   – Quadrado preenchido (■): spamma APENAS a tecla, sem clicar (ideal para skills sem alvo / self-cast como Impacto Explosivo, Crux Magnum, Rajada Congelante).\n" +
                         "   – Marcado (✓): spamma tecla + clique esquerdo do mouse (ideal para skills de alvo ou chão como Bomba Ácida, Rajada de Flechas, Lanças, Nevasca).\n" +
                         "• Compatibilidade vs. Speed Boost: Compatibilidade é o modo mais estável e libera 'Sem Shift' e 'Mouse Flick'. Speed Boost foca na máxima velocidade de spam.\n" +
-                        "• Prioridade de Ações (4 níveis, configurável em 'Prioridade Jogador' nesta aba): 1º Input do Jogador (pausa o 4Tools por alguns ms, padrão 120ms) → 2º Fruto de Yggdrasil / Panaceia → 3º Consumíveis → 4º Auto-skills.",
+                        "• Prioridade de Ações (4 níveis, configurável em 'Prioridade de Ações' nesta aba): 1º Input do Jogador → 2º Fruto de Yggdrasil / Panaceia → 3º Consumíveis → 4º Auto-skills. Você também pode definir uma tecla em 'Segurar pausa' (ex.: Ctrl, Shift, Alt, Tab) para pausar o 4Tools momentaneamente enquanto segura (mantendo Autopot/Yggdrasil ativos, salvo se marcar 'Pausar Autopot').",
                     TitleEn = "3. Skill Spammer and Action Priority",
                     BodyEn =
                         "• 3 states on every key checkbox (click to cycle):\n" +
@@ -219,7 +219,7 @@ namespace _4RTools.Forms
                         "   – Filled square (■): spams ONLY the key without clicking (ideal for self-cast skills like Magnum Break, Grand Cross, Frost Nova).\n" +
                         "   – Checked (✓): spams key + left mouse click (ideal for target/ground skills like Acid Demonstration, Double Strafe, Bolts, Storm Gust).\n" +
                         "• Compatibility vs. Speed Boost: Compatibility is the most stable mode and enables 'No Shift' and 'Mouse Flick'. Speed Boost prioritizes raw speed.\n" +
-                        "• Action Priority (4 tiers, configurable via 'Player Priority' on this tab): 1st Player Input (briefly pauses 4Tools, default 120ms) → 2nd Yggdrasil Berry / Panacea → 3rd Consumables → 4th Auto-skills."
+                        "• Action Priority (4 tiers, configurable via 'Action Priority' on this tab): 1st Player Input → 2nd Yggdrasil Berry / Panacea → 3rd Consumables → 4th Auto-skills. You can also bind a 'Hold pause' key (e.g., Ctrl, Shift, Alt, Tab) to temporarily pause 4Tools while held (keeping Autopot/Yggdrasil active unless 'Pause Autopot' is checked)."
                 },
                 new GuideSectionData
                 {
@@ -309,14 +309,28 @@ namespace _4RTools.Forms
                 },
                 new GuideSectionData
                 {
+                    Key = "utilities",
+                    TitlePt = "10. Utilidades (@refresh e Auto-Fuga de Emergência)",
+                    BodyPt =
+                        "• Anti-Bug Position (@refresh): envia Enter → @refresh → Enter direto no chat sem precisar digitar! Configure um Atalho de 1 toque para ressincronizar na hora (debounce de 1,5s) e/ou ative o modo 'Auto a cada X seg' (pausa no chat, em cidade e sentado).\n" +
+                        "• Auto-Fuga de Emergência (Asa de Mosca / Teleporte): se o HP cair abaixo da % crítica configurada (ex.: < 20%), dispara automaticamente a tecla de fuga em prioridade de emergência (Nível 2), com recarga configurável (padrão 2000ms) para não gastar várias asas.\n" +
+                        "• Skill Teleporte e segurança: marque 'Confirmar com Enter' caso use a skill Teleporte (Noviço/Sacerdote/Carta Creamy); nunca dispara morto (HP = 0) nem em cidades quando marcado.",
+                    TitleEn = "10. Utilities (@refresh and Emergency Auto-Escape)",
+                    BodyEn =
+                        "• Anti-Position Bug (@refresh): sends Enter → @refresh → Enter directly into game chat without manual typing! Bind a 1-tap Hotkey to resync instantly (1.5s debounce) and/or enable 'Auto every X sec' (pauses while chatting, in town, or sitting).\n" +
+                        "• Emergency Auto-Escape (Fly Wing / Teleport): whenever HP drops below your critical % threshold (e.g., < 20%), automatically fires your escape key at emergency priority (Tier 2), with a configurable cooldown (default 2000ms) to avoid wasting multiple wings.\n" +
+                        "• Teleport skill and safety: enable 'Press Enter after key' for Teleport skill (Acolyte/Priest/Creamy Card); never triggers when dead (HP = 0) or in towns when disabled."
+                },
+                new GuideSectionData
+                {
                     Key = "profiles",
-                    TitlePt = "10. Perfis, Backup, Conflitos e Dicas Rápidas",
+                    TitlePt = "11. Perfis, Backup, Conflitos e Dicas Rápidas",
                     BodyPt =
                         "• Perfis por personagem/build: crie perfis separados (ex.: PvM, MVP, WoE), copie ou renomeie com 1 clique.\n" +
                         "• Troca automática por personagem: vincule um perfil ao nome do seu personagem ('Usar Personagem Ativo' → 'Salvar') e marque 'Ativar Troca Automática' para carregar o perfil sozinho ao trocar de char (enquanto em OFF).\n" +
                         "• Verificar Conflitos e Backup .zip: use 'Verificar Conflitos' para descobrir teclas duplicadas entre abas, e 'Backup Geral (.zip)' para salvar todos os seus perfis com segurança.\n" +
                         "• Popups em todo o app: sempre que tiver dúvida em qualquer botão, caixa ou opção, basta parar o mouse em cima por um instante para ver a explicação detalhada!",
-                    TitleEn = "10. Profiles, Backup, Conflicts, and Quick Tips",
+                    TitleEn = "11. Profiles, Backup, Conflicts, and Quick Tips",
                     BodyEn =
                         "• Per-character/build profiles: create separate profiles (e.g., PvM, MVP, WoE), copy, or rename in 1 click.\n" +
                         "• Auto-Switch by Character: bind a profile to your character name ('Use Active Character' → 'Save') and enable 'Enable Auto-Switch' to auto-load when switching characters (while OFF).\n" +

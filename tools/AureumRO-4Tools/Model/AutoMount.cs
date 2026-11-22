@@ -159,6 +159,21 @@ namespace _4RTools.Model
                 {
                     return false;
                 }
+
+                if (profile.AutoRefreshCommand != null && key == profile.AutoRefreshCommand.Hotkey)
+                {
+                    return false;
+                }
+
+                if (profile.AutoEscape != null && key == profile.AutoEscape.EscapeKey)
+                {
+                    return false;
+                }
+
+                if (profile.UserPreferences != null && key == profile.UserPreferences.holdPauseKey)
+                {
+                    return false;
+                }
             }
 
             lock (this.stateLock)
@@ -394,7 +409,7 @@ namespace _4RTools.Model
 
         private void OnPhysicalKeyDown(Keys formsKey)
         {
-            if (!IsActiveForDismount() || KeyboardHook.Alt || KeyboardHook.Control)
+            if (!IsActiveForDismount() || KeyboardHook.Alt || KeyboardHook.Control || ActionPriorityCoordinator.IsHoldPauseActive())
             {
                 return;
             }

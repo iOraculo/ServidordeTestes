@@ -83,7 +83,7 @@ namespace _4RTools.Model
                         break;
                     }
 
-                    if (config == null || config.key == Key.None || !Keyboard.IsKeyDown(config.key))
+                    if (config == null || config.key == Key.None || !KeyHelper.IsKeyDown(config.key))
                     {
                         continue;
                     }
@@ -136,7 +136,7 @@ namespace _4RTools.Model
                         break;
                     }
 
-                    if (config == null || config.key == Key.None || !Keyboard.IsKeyDown(config.key))
+                    if (config == null || config.key == Key.None || !KeyHelper.IsKeyDown(config.key))
                     {
                         continue;
                     }
@@ -168,7 +168,7 @@ namespace _4RTools.Model
 
             if (this.mouseFlick)
             {
-                while (!token.IsCancellationRequested && Keyboard.IsKeyDown(config.key))
+                while (!token.IsCancellationRequested && KeyHelper.IsKeyDown(config.key))
                 {
                     if (ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, null, false))
                     {
@@ -198,7 +198,7 @@ namespace _4RTools.Model
             }
             else
             {
-                while (!token.IsCancellationRequested && Keyboard.IsKeyDown(config.key))
+                while (!token.IsCancellationRequested && KeyHelper.IsKeyDown(config.key))
                 {
                     if (ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, null, false))
                     {
@@ -230,7 +230,7 @@ namespace _4RTools.Model
 
             int delay = Math.Max(1, this.AhkDelay);
 
-            while (!token.IsCancellationRequested && !KeyHelper.IsAltPressed() && Keyboard.IsKeyDown(config.key))
+            while (!token.IsCancellationRequested && !KeyHelper.IsAltPressed() && KeyHelper.IsKeyDown(config.key))
             {
                 if (ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, null, false))
                 {
@@ -264,7 +264,7 @@ namespace _4RTools.Model
 
             int delay = Math.Max(1, this.AhkDelay);
 
-            while (!token.IsCancellationRequested && Keyboard.IsKeyDown(config.key))
+            while (!token.IsCancellationRequested && KeyHelper.IsKeyDown(config.key))
             {
                 if (ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, null, false))
                 {

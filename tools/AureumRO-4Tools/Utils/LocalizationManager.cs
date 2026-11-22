@@ -195,7 +195,27 @@ namespace _4RTools.Utils
             { "Extra skill keys:", "Teclas extras:" },
             { "Action Priority", "Prioridade de Ações" },
             { "Player Priority", "Prioridade Jogador" },
+            { "Player pause:", "Pausa jogador:" },
+            { "Hold pause:", "Segurar pausa:" },
+            { "Pause Autopot", "Pausar Autopot" },
+            { "Player input pause:", "Pausa p/ input do jogador:" },
             { "Pause 4RTools on player key (ms):", "Pausa ao input do jogador (ms):" },
+
+            // Anti-Position Bug (@refresh) & Utilities
+            { "Utilities", "Utilidades" },
+            { "How it works", "Como funciona" },
+            { "Anti-Position Bug (@refresh)", "Anti-Bug Position (@refresh)" },
+            { "Enable @refresh", "Ativar @refresh" },
+            { "Command:", "Comando:" },
+            { "Hotkey (1-tap):", "Atalho (1 toque):" },
+            { "Auto every:", "Auto a cada:" },
+            { "Emergency Auto-Escape (Fly Wing / Teleport)", "Auto-Fuga de Emergência (Asa de Mosca / Teleporte)" },
+            { "Enable Auto-Escape", "Ativar Auto-Fuga" },
+            { "Escape Key:", "Tecla Fuga:" },
+            { "Trigger HP <", "Fugir se HP <" },
+            { "Cooldown (ms):", "Recarga (ms):" },
+            { "Press Enter after key (Teleport skill)", "Confirmar com Enter (skill Teleporte)" },
+            { "Disable in towns", "Desativar em cidades" },
 
             // ProfileForm & EditProfileName
             { "Create a new profile", "Criar um novo perfil" },
@@ -294,6 +314,8 @@ namespace _4RTools.Utils
             { "section.macros.subtitle", "Gerencie Macro Troca, Macro Músicas e Macro ATK x DEF em um só lugar." },
             { "section.mount.title", "Montaria" },
             { "section.mount.subtitle", "Desça automaticamente da montaria (Rédea) ao usar habilidades e configure teclas extras." },
+            { "section.utilities.title", "Utilidades" },
+            { "section.utilities.subtitle", "Anti-Bug Position (@refresh) e Auto-Fuga de Emergência (Asa de Mosca / Teleporte)." },
             { "section.profiles.title", "Perfis, Backup e Diagnóstico" },
             { "section.profiles.subtitle", "Gerencie perfis, vínculo automático por personagem, backup .zip e conflitos de tecla." },
             { "section.guide.title", "Guia Completo do AureumRO 4Tools" },
@@ -317,6 +339,7 @@ namespace _4RTools.Utils
             { "tooltip.nav_timers", "Temporizadores: aperta até 6 teclas automaticamente em intervalos fixos de tempo (em segundos)." },
             { "tooltip.nav_macros", "Macros: reúne Macro Troca (sequência de equips), Macro Músicas (Bardo/Odalisca) e Macro ATK x DEF (troca + spammer)." },
             { "tooltip.nav_mount", "Montaria: desce automaticamente da montaria (Rédea) ao usar habilidades manuais ou automatizadas." },
+            { "tooltip.nav_utilities", "Utilidades: Anti-Bug Position (@refresh) e Auto-Fuga de Emergência (Asa de Mosca / Teleporte)." },
             { "tooltip.nav_profiles", "Perfis & Backup: crie, renomeie, copie, faça backup .zip, verifique conflitos de teclas e vincule perfis ao personagem." },
             { "tooltip.nav_guide", "Guia / Ajuda: manual completo e pesquisável explicando todas as funcionalidades do AureumRO 4Tools." },
             { "tooltip.autopot_hp_key", "Tecla da poção de HP (ex.: Poção Branca, Mastela, Compacta). Aperte Backspace/Esc para limpar." },
@@ -500,6 +523,7 @@ namespace _4RTools.Utils
             { "conflicts.none", "Nenhum conflito de tecla detectado no perfil '{0}'!" },
             { "conflicts.header", "Encontrado(s) {0} conflito(s) de tecla no perfil '{1}':" },
             { "usage.toggle", "Tecla Ligar/Desligar" },
+            { "usage.hold_pause", "Segurar para Pausar (Hold-to-Pause)" },
             { "usage.autopot_hp", "Autopot (HP)" },
             { "usage.autopot_sp", "Autopot (SP)" },
             { "usage.ygg_hp", "Autopot Yggdrasil (HP)" },
@@ -520,6 +544,8 @@ namespace _4RTools.Utils
             { "usage.macro_dagger", "{0} (Adaga)" },
             { "usage.macro_slot", "{0} (Linha {1} Slot)" },
             { "usage.mount_key", "Montaria (Tecla da Rédea)" },
+            { "usage.refresh_hotkey", "Anti-Bug Position (@refresh)" },
+            { "usage.escape_key", "Auto-Fuga (Asa de Mosca / Teleporte)" },
 
             // MountForm & Action Priority
             { "mount.priority_order", "1º Input do Jogador → 2º Fruto de Yggdrasil / Panaceia → 3º Consumíveis → 4º Auto-skills" },
@@ -534,7 +560,31 @@ namespace _4RTools.Utils
             { "tooltip.mount_extra_skill", "Tecla extra de habilidade usada manualmente no jogo: ao apertar montado, o 4Tools desce da montaria e dispara a habilidade." },
             { "tooltip.mount_clear_extra", "Limpa as 6 teclas extras de habilidade." },
             { "tooltip.priority_player_yield", "Tempo em milissegundos (ms) que o 4Tools aguarda sempre que você aperta uma tecla no jogo, garantindo prioridade total às suas ações (padrão: 120ms; 0 = desativado)." },
-            { "tooltip.priority_order", "Hierarquia fixa de prioridade: 1º Input do Jogador → 2º Fruto de Yggdrasil / Panaceia (Anti-debuffs) → 3º Consumíveis (Poções) → 4º Auto-skills e demais." }
+            { "tooltip.hold_pause_key", "Tecla de pausa momentânea (Hold-to-Pause): enquanto você SEGURAR esta tecla (ex.: Ctrl, Shift, Alt, Tab, CapsLock), o 4Tools pausa na hora e retoma ao soltar. Aperte Esc/Backspace para limpar." },
+            { "tooltip.hold_pause_autopot", "Por padrão, Autopot, Yggdrasil e Auto-Fuga continuam protegendo você enquanto segura a tecla de pausa. Marque esta opção para pausar 100% de tudo." },
+            { "tooltip.priority_order", "Hierarquia fixa de prioridade: 1º Input do Jogador → 2º Fruto de Yggdrasil / Panaceia → 3º Consumíveis → 4º Auto-skills." },
+
+            // Anti-Position Bug (@refresh)
+            { "refresh.hint", "Dica: envia Enter → @refresh → Enter direto no chat (não dispara enquanto você digita)." },
+            { "utilities.info_body", "• Atalho (1 toque): corrige position bug na hora durante WoE/PvP/MVP (funciona mesmo em cidade ou sentado, com debounce de 1,5s).\n• Auto periódico: ressincroniza automaticamente no intervalo definido, pausando no chat, em cidade e ao sentar.\n• Segurança no chat: pausa teclas de letra do 4Tools durante o envio (~80ms) para não corromper @refresh, mantendo Autopot/Ygg (F1–F24) ativos." },
+            { "tooltip.refresh_enabled", "Ativa o recurso Anti-Bug Position (@refresh) enquanto o 4Tools estiver ligado (ON)." },
+            { "tooltip.refresh_cmd", "Comando enviado no chat do jogo para ressincronizar sua posição (padrão: @refresh)." },
+            { "tooltip.refresh_pause_sit", "Se marcado, o @refresh automático periódico não dispara enquanto o personagem estiver sentado." },
+            { "tooltip.refresh_hotkey", "Tecla de atalho de 1 toque: ao apertar no jogo, envia @refresh na hora para corrigir bug de posição." },
+            { "tooltip.refresh_clear", "Limpa a tecla de atalho do @refresh." },
+            { "tooltip.refresh_auto", "Opcional: dispara @refresh automaticamente de tempos em tempos (pausa em cidade e no chat)." },
+            { "tooltip.refresh_interval", "Intervalo em segundos entre cada @refresh automático (mínimo: 3s, padrão: 30s)." },
+            { "tooltip.refresh_test", "Envia o comando @refresh agora para testar na janela do jogo conectada." },
+
+            // Emergency Auto-Escape
+            { "escape.hint", "Dica: não dispara morto (HP = 0); coloque a tecla em F1–F24 para funcionar mesmo com chat aberto." },
+            { "tooltip.escape_enabled", "Ativa o Auto-Fuga de Emergência: usa Asa de Mosca, Asa de Borboleta ou Teleporte quando o HP cair abaixo da % definida." },
+            { "tooltip.escape_key", "Tecla da Asa de Mosca, Asa de Borboleta ou habilidade Teleporte na sua barra do jogo." },
+            { "tooltip.escape_clear", "Limpa a tecla de Auto-Fuga." },
+            { "tooltip.escape_hp", "Porcentagem crítica de HP abaixo da qual o 4Tools aciona a fuga automaticamente (ex.: 20%)." },
+            { "tooltip.escape_cooldown", "Intervalo mínimo em milissegundos (ms) entre disparos para evitar gastar várias asas durante o teleporte (padrão: 2000ms)." },
+            { "tooltip.escape_confirm_enter", "Marque se usar a skill Teleporte (Noviço/Sacerdote/Carta Creamy): pressiona Enter automaticamente 80ms após a tecla para confirmar." },
+            { "tooltip.escape_pause_town", "Mantém o Auto-Fuga desativado dentro de cidades para evitar gastar asas acidentalmente." }
         };
 
         private static readonly Dictionary<string, string> MessagesEn = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -588,6 +638,8 @@ namespace _4RTools.Utils
             { "section.macros.subtitle", "Manage Switch Macro, Song Macro, and ATK x DEF Macro in one unified tab." },
             { "section.mount.title", "Mount" },
             { "section.mount.subtitle", "Automatically dismount Halter Lead mounts when casting skills and manage extra skill keys." },
+            { "section.utilities.title", "Utilities" },
+            { "section.utilities.subtitle", "Anti-Position Bug (@refresh) and Emergency Auto-Escape (Fly Wing / Teleport)." },
             { "section.profiles.title", "Profiles, Backup & Diagnostics" },
             { "section.profiles.subtitle", "Manage profiles, auto-switch by character, full .zip backups, and keybind conflicts." },
             { "section.guide.title", "Complete AureumRO 4Tools Guide" },
@@ -611,6 +663,7 @@ namespace _4RTools.Utils
             { "tooltip.nav_timers", "Skill Timers: presses up to 6 keys automatically on fixed second intervals." },
             { "tooltip.nav_macros", "Macros: combines Switch Macro (gear chains), Song Macro (Bard/Dancer), and ATK x DEF Macro (swap + spammer)." },
             { "tooltip.nav_mount", "Mount: automatically dismounts Halter Lead mounts when casting manual or automated skills." },
+            { "tooltip.nav_utilities", "Utilities: Anti-Position Bug (@refresh) and Emergency Auto-Escape (Fly Wing / Teleport)." },
             { "tooltip.nav_profiles", "Profiles & Backup: create, rename, copy, export .zip backups, detect key conflicts, and auto-switch by character." },
             { "tooltip.nav_guide", "Guide / Help: complete searchable handbook explaining every feature in AureumRO 4Tools." },
             { "tooltip.autopot_hp_key", "HP potion hotkey (e.g., White Potion, Mastela, Slim White). Press Backspace/Esc to clear." },
@@ -784,6 +837,7 @@ namespace _4RTools.Utils
             { "conflicts.none", "No keybind conflicts detected in profile '{0}'!" },
             { "conflicts.header", "Found {0} keybind conflict(s) in profile '{1}':" },
             { "usage.toggle", "ON/OFF Toggle Hotkey" },
+            { "usage.hold_pause", "Hold-to-Pause Key" },
             { "usage.autopot_hp", "Autopot (HP)" },
             { "usage.autopot_sp", "Autopot (SP)" },
             { "usage.ygg_hp", "Yggdrasil Autopot (HP)" },
@@ -804,6 +858,8 @@ namespace _4RTools.Utils
             { "usage.macro_dagger", "{0} (Dagger)" },
             { "usage.macro_slot", "{0} (Lane {1} Slot)" },
             { "usage.mount_key", "Mount (Halter Lead Key)" },
+            { "usage.refresh_hotkey", "Anti-Position Bug (@refresh)" },
+            { "usage.escape_key", "Auto-Escape (Fly Wing / Teleport)" },
 
             { "mount.priority_order", "1st Player Input → 2nd Yggdrasil Berry / Panacea → 3rd Consumables → 4th Auto-skills" },
             { "tooltip.mount_enabled", "Enables automatic Mount (Halter Lead — EFST_ALL_RIDING) management while 4Tools is ON." },
@@ -817,7 +873,31 @@ namespace _4RTools.Utils
             { "tooltip.mount_extra_skill", "Extra manual skill hotkey: pressing it while mounted automatically dismounts and fires the skill." },
             { "tooltip.mount_clear_extra", "Clears all 6 extra skill hotkeys." },
             { "tooltip.priority_player_yield", "Duration in milliseconds (ms) that 4Tools yields whenever you press a key in-game, giving your actions top priority (default: 120ms; 0 = disabled)." },
-            { "tooltip.priority_order", "Fixed priority hierarchy: 1st Player Input → 2nd Yggdrasil Berry / Panacea (Anti-debuffs) → 3rd Consumables (Potions) → 4th Auto-skills and others." }
+            { "tooltip.hold_pause_key", "Hold-to-Pause key: while HELD (e.g., Ctrl, Shift, Alt, Tab, CapsLock), 4Tools pauses immediately and resumes the moment you release it. Press Esc/Backspace to clear." },
+            { "tooltip.hold_pause_autopot", "By default, Autopot, Yggdrasil, and Auto-Escape keep protecting you while holding the pause key. Check this to pause 100% of automations." },
+            { "tooltip.priority_order", "Fixed priority hierarchy: 1st Player Input → 2nd Yggdrasil Berry / Panacea → 3rd Consumables → 4th Auto-skills." },
+
+            // Anti-Position Bug (@refresh)
+            { "refresh.hint", "Tip: sends Enter → @refresh → Enter directly in chat (never triggers while you are typing)." },
+            { "utilities.info_body", "• 1-tap Hotkey: fixes position desync instantly in WoE/PvP/MVP (works in town or sitting, with a 1.5s debounce).\n• Periodic Auto: automatically resyncs on your chosen interval, pausing while chatting, in town, or sitting.\n• Chat Safety: pauses 4Tools letter keys during the ~80ms send so @refresh is never corrupted, while keeping F1–F24 Autopot/Ygg active." },
+            { "tooltip.refresh_enabled", "Enables the Anti-Position Bug (@refresh) helper while 4Tools is ON." },
+            { "tooltip.refresh_cmd", "Chat command sent to resync your character position (default: @refresh)." },
+            { "tooltip.refresh_pause_sit", "When checked, periodic auto @refresh pauses while your character is sitting." },
+            { "tooltip.refresh_hotkey", "1-tap hotkey: press it in-game to immediately send @refresh and fix position desync." },
+            { "tooltip.refresh_clear", "Clears the @refresh hotkey." },
+            { "tooltip.refresh_auto", "Optional: sends @refresh periodically on a fixed interval (pauses in town and while chatting)." },
+            { "tooltip.refresh_interval", "Interval in seconds between automatic @refresh commands (minimum: 3s, default: 30s)." },
+            { "tooltip.refresh_test", "Sends the @refresh command once right now to test on the connected game window." },
+
+            // Emergency Auto-Escape
+            { "escape.hint", "Tip: never triggers when dead (HP = 0); bind to F1–F24 to escape even while chat is open." },
+            { "tooltip.escape_enabled", "Enables Emergency Auto-Escape: triggers your Fly Wing, Butterfly Wing, or Teleport key whenever HP drops below the set %." },
+            { "tooltip.escape_key", "Hotkey assigned to Fly Wing, Butterfly Wing, or Teleport skill on your in-game hotbar." },
+            { "tooltip.escape_clear", "Clears the Auto-Escape hotkey." },
+            { "tooltip.escape_hp", "Critical HP percentage threshold below which 4Tools triggers escape automatically (e.g., 20%)." },
+            { "tooltip.escape_cooldown", "Minimum cooldown in milliseconds (ms) between triggers so you don't waste multiple wings while teleporting (default: 2000ms)." },
+            { "tooltip.escape_confirm_enter", "Enable when using the Teleport skill (Acolyte/Priest/Creamy Card): automatically presses Enter 80ms later to confirm." },
+            { "tooltip.escape_pause_town", "Keeps Auto-Escape disabled in towns so you never accidentally burn wings in Prontera." }
         };
 
         public static string CurrentLanguage
