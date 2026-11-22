@@ -201,6 +201,7 @@ namespace _4RTools.Model
                 if (this.Enabled
                     && this.AutoIntervalEnabled
                     && client.IsProcessAlive()
+                    && client.IsGameWindowFocused()
                     && !client.ShouldPauseAutomation()
                     && !KeyHelper.IsAltPressed()
                     && !ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther))
@@ -233,9 +234,14 @@ namespace _4RTools.Model
             }, ACTION_NAME);
         }
 
-        public bool SendRefreshCommand(Client client)
+        public bool SendRefreshCommand(Client client, bool bringToFront = false)
         {
-            if (client == null || !client.IsProcessAlive() || ChatPauseState.IsChatting)
+            if (client == null || !client.IsProcessAlive())
+            {
+                return false;
+            }
+
+            if (!bringToFront && ChatPauseState.IsChatting)
             {
                 return false;
             }
@@ -253,8 +259,15 @@ namespace _4RTools.Model
 
             try
             {
+                if (bringToFront && ChatPauseState.IsChatting)
+                {
+                    ChatPauseState.Resume();
+                }
+
                 string cmd = NormalizeCommand(this.CommandText);
-                return Interop.SendChatCommand(hWnd, cmd);
+                bool sent = Interop.SendChatCommand(hWnd, cmd, bringToFront);
+                Thread.Sleep(60);
+                return sent;
             }
             catch (Exception ex)
             {

@@ -171,9 +171,9 @@ namespace _4RTools.Utils
                                 {
                                     NotifyPhysicalKeyDown(key);
                                 }
-                            }
 
-                            result = OnKeyDown(key);
+                                result = OnKeyDown(key);
+                            }
                         }
                     }
                     else if (wParam == (IntPtr)Constants.WM_KEYUP_MSG_ID || wParam == (IntPtr)Constants.WM_SYSKEYUP)
@@ -204,9 +204,9 @@ namespace _4RTools.Utils
                                 {
                                     heldPhysicalKeys.Remove(key);
                                 }
-                            }
 
-                            result = OnKeyUp(key);
+                                result = OnKeyUp(key);
+                            }
                         }
                     }
                 }

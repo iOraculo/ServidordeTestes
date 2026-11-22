@@ -141,6 +141,7 @@ namespace _4RTools.Forms
             if (this.isApplicationOn
                 && this.cbChatPause != null
                 && this.cbChatPause.Checked
+                && !AutoRefreshCommand.IsSendingCommand
                 && !KeyboardHook.Alt
                 && !KeyboardHook.Control)
             {
@@ -272,6 +273,12 @@ namespace _4RTools.Forms
 
         private void btnToggleStatusHandler(object sender, EventArgs e)
         {
+            if (this.isApplicationOn && ChatPauseState.IsChatting)
+            {
+                ChatPauseState.Resume();
+                return;
+            }
+
             ToggleStatus();
         }
 
