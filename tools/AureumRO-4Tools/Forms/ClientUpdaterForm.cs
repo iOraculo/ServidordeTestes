@@ -72,10 +72,10 @@ namespace _4RTools.Forms
 
                 // 4. Guaranteed built-in fallback for AureumRO Servidor de Testes (FroggoClient / Ragexe 2022-04-06).
                 clients.Add(new KeyValuePair<ClientDTO, bool>(
-                    new ClientDTO("FroggoClient", "AureumRO Servidor de Testes (FroggoClient)", "0x01138DDC", "0x0113B7B0", "0x00D2A3BC"),
+                    new ClientDTO("FroggoClient", "AureumRO Servidor de Testes (FroggoClient)", "0x01138DDC", "0x0113B7B0", "0x00D2A3BC", "0x480"),
                     false));
                 clients.Add(new KeyValuePair<ClientDTO, bool>(
-                    new ClientDTO("Ragexe", "AureumRO Servidor de Testes (Ragexe)", "0x01138DDC", "0x0113B7B0", "0x00D2A3BC"),
+                    new ClientDTO("Ragexe", "AureumRO Servidor de Testes (Ragexe)", "0x01138DDC", "0x0113B7B0", "0x00D2A3BC", "0x480"),
                     false));
             }
             finally

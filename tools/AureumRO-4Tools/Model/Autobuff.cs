@@ -58,11 +58,12 @@ namespace _4RTools.Model
 
         // Minimum recast guards for skills that have long cast time or no Pre-Renewal EFST icon (e.g. Basilica).
         public const int BASILICA_NO_ICON_RECAST_MS = 25000;
-        public const int BASILICA_ICON_CAST_GUARD_MS = 3000;
+        public const int BASILICA_ICON_CAST_GUARD_MS = 5000;
 
         private readonly object mappingLock = new object();
         private readonly Dictionary<EffectStatusIDs, long> lastCastTimesMs = new Dictionary<EffectStatusIDs, long>();
         private readonly HashSet<EffectStatusIDs> observedStatusIcons = new HashSet<EffectStatusIDs>();
+        private readonly HashSet<EffectStatusIDs> previouslyActiveBuffs = new HashSet<EffectStatusIDs>();
         private readonly Stopwatch clock = Stopwatch.StartNew();
         private _4RThread thread;
 
@@ -117,6 +118,7 @@ namespace _4RTools.Model
                     bool foundBlockingDebuff = false;
                     bool isSitting = false;
                     bool isMounted = false;
+                    bool isInPostDelay = false;
                     Dictionary<EffectStatusIDs, Key> missingBuffs = GetBuffMappingSnapshot();
 
                     if (missingBuffs.Count > 0)
@@ -155,16 +157,24 @@ namespace _4RTools.Model
                             {
                                 isMounted = true;
                             }
+                            else if (status == EffectStatusIDs.EFST_POSTDELAY)
+                            {
+                                isInPostDelay = true;
+                            }
                             else if (IncapacitatingDebuffs.Contains(status))
                             {
                                 foundBlockingDebuff = true;
                             }
                         }
 
+                        // If an icon-tracked buff (e.g. Basilica) was active and just ended,
+                        // clear its cast-guard timer so it reactivates cleanly once post-delay ends.
+                        SyncActiveBuffTransitions(activeStatuses);
+
                         AutoMount autoMount = ProfileSingleton.GetCurrent() != null ? ProfileSingleton.GetCurrent().AutoMount : null;
                         bool pauseForMount = isMounted && autoMount != null && autoMount.Enabled && autoMount.PauseAutobuffWhileMounted;
 
-                        if (missingBuffs.Count > 0 && !(this.pauseWhenSitting && isSitting) && !pauseForMount)
+                        if (missingBuffs.Count > 0 && !isInPostDelay && !(this.pauseWhenSitting && isSitting) && !pauseForMount)
                         {
                             uint currentHp;
                             uint maxHp;
@@ -185,7 +195,7 @@ namespace _4RTools.Model
                                     bool prerequisiteSatisfied = !TryGetPrerequisite(item.Key, out prerequisite)
                                         || activeStatuses.Contains(prerequisite);
 
-                                    if (!ShouldCastBuff(item.Key, nowMs, foundQuag, foundBlockingDebuff, currentSp, maxSp, isSitting, prerequisiteSatisfied))
+                                    if (!ShouldCastBuff(item.Key, nowMs, foundQuag, foundBlockingDebuff, currentSp, maxSp, isSitting, prerequisiteSatisfied, isInPostDelay))
                                     {
                                         continue;
                                     }
@@ -212,7 +222,7 @@ namespace _4RTools.Model
                     }
                 }
 
-                _4RThread.Sleep(300, token);
+                _4RThread.Sleep(150, token);
             }, ACTION_NAME_AUTOBUFF);
         }
 
@@ -224,8 +234,14 @@ namespace _4RTools.Model
             uint currentSp,
             uint maxSp,
             bool isSitting = false,
-            bool prerequisiteSatisfied = true)
+            bool prerequisiteSatisfied = true,
+            bool isInPostDelay = false)
         {
+            if (isInPostDelay)
+            {
+                return false;
+            }
+
             if (!prerequisiteSatisfied)
             {
                 return false;
@@ -265,6 +281,51 @@ namespace _4RTools.Model
             }
 
             return true;
+        }
+
+        public void SyncActiveBuffTransitions(HashSet<EffectStatusIDs> activeStatuses)
+        {
+            if (activeStatuses == null)
+            {
+                return;
+            }
+
+            lock (this.mappingLock)
+            {
+                if (this.previouslyActiveBuffs.Count > 0)
+                {
+                    List<EffectStatusIDs> expired = null;
+                    foreach (EffectStatusIDs prev in this.previouslyActiveBuffs)
+                    {
+                        if (!activeStatuses.Contains(prev))
+                        {
+                            if (expired == null)
+                            {
+                                expired = new List<EffectStatusIDs>();
+                            }
+                            expired.Add(prev);
+                        }
+                    }
+
+                    if (expired != null)
+                    {
+                        for (int i = 0; i < expired.Count; i++)
+                        {
+                            EffectStatusIDs ended = expired[i];
+                            this.previouslyActiveBuffs.Remove(ended);
+                            if (ended == EffectStatusIDs.EFST_BASILICA)
+                            {
+                                this.lastCastTimesMs.Remove(ended);
+                            }
+                        }
+                    }
+                }
+
+                if (activeStatuses.Contains(EffectStatusIDs.EFST_BASILICA))
+                {
+                    this.previouslyActiveBuffs.Add(EffectStatusIDs.EFST_BASILICA);
+                }
+            }
         }
 
         public int GetEffectiveCooldownMs(EffectStatusIDs status)
@@ -307,6 +368,7 @@ namespace _4RTools.Model
             {
                 this.lastCastTimesMs.Clear();
                 this.observedStatusIcons.Clear();
+                this.previouslyActiveBuffs.Clear();
             }
         }
 

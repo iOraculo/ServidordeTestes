@@ -1,0 +1,15 @@
+# AureumRO Servidor de Testes - Status DB Overrides
+# 1. Blind: emite o icone EFST_HEALTHSTATE_BLIND (ID 887) junto com OPT2_BLIND,
+#    permitindo ao AureumRO-4Tools detectar e curar Cegueira automaticamente.
+# 2. Basilica: emite o icone EFST_BASILICA (ID 111) durante toda a duracao da
+#    Basilica no Pre-Renewal, permitindo reativacao exata sem spam.
+
+Header:
+  Type: STATUS_DB
+  Version: 4
+
+Body:
+  - Status: Blind
+    Icon: EFST_HEALTHSTATE_BLIND
+  - Status: Basilica
+    Icon: EFST_BASILICA

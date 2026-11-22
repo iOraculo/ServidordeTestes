@@ -15,24 +15,28 @@ namespace _4RTools.Model
         public string hpAddress { get; set; }
         public string nameAddress { get; set; }
         public string mapAddress { get; set; }
+        public string statusOffset { get; set; }
 
         public int hpAddressPointer { get; set; }
         public int nameAddressPointer { get; set; }
         public int mapAddressPointer { get; set; }
+        public int statusOffsetValue { get; set; }
 
         public ClientDTO() { }
 
-        public ClientDTO(string name, string description, string hpAddress, string nameAddress, string mapAddress = null)
+        public ClientDTO(string name, string description, string hpAddress, string nameAddress, string mapAddress = null, string statusOffset = null)
         {
             this.name = name;
             this.description = description;
             this.hpAddress = hpAddress;
             this.nameAddress = nameAddress;
             this.mapAddress = mapAddress;
+            this.statusOffset = statusOffset;
 
             this.hpAddressPointer = Convert.ToInt32(hpAddress, 16);
             this.nameAddressPointer = Convert.ToInt32(nameAddress, 16);
             this.mapAddressPointer = TryParseOptionalHex(mapAddress);
+            this.statusOffsetValue = TryParseOptionalHex(statusOffset);
         }
 
         internal static int TryParseOptionalHex(string hex)
@@ -200,12 +204,14 @@ namespace _4RTools.Model
             }
         }
 
+        public const int DEFAULT_STATUS_BUFFER_OFFSET = 0x474;
+
         public Client(string processName, int currentHPBaseAddress, int currentNameAddress)
         {
             this.currentNameAddress = currentNameAddress;
             this.currentHPBaseAddress = currentHPBaseAddress;
             this.processName = processName;
-            this.statusBufferAddress = currentHPBaseAddress + 0x474;
+            this.statusBufferAddress = currentHPBaseAddress + DEFAULT_STATUS_BUFFER_OFFSET;
             this.IsSupported = currentHPBaseAddress != 0;
         }
 
@@ -215,7 +221,8 @@ namespace _4RTools.Model
             this.currentHPBaseAddress = Convert.ToInt32(dto.hpAddress, 16);
             this.currentNameAddress = Convert.ToInt32(dto.nameAddress, 16);
             this.currentMapAddress = ClientDTO.TryParseOptionalHex(dto.mapAddress);
-            this.statusBufferAddress = this.currentHPBaseAddress + 0x474;
+            int customStatusOffset = ClientDTO.TryParseOptionalHex(dto.statusOffset);
+            this.statusBufferAddress = this.currentHPBaseAddress + (customStatusOffset > 0 ? customStatusOffset : DEFAULT_STATUS_BUFFER_OFFSET);
             this.IsSupported = this.currentHPBaseAddress != 0;
         }
 
@@ -508,11 +515,40 @@ namespace _4RTools.Model
             return entriesRead;
         }
 
+        private const uint MAX_VALID_EFST_CODE = 100000u;
+
+        private static bool IsIgnoreStatusCode(uint code)
+        {
+            return code == (uint)EffectStatusIDs.IGNORE || code == (uint)EffectStatusIDs.IGNORE_2;
+        }
+
+        private static bool IsNonEfstSentinel(uint code)
+        {
+            return !IsIgnoreStatusCode(code) && code > MAX_VALID_EFST_CODE;
+        }
+
         /// <summary>
-        /// Extracts active EFST codes from a raw status buffer while stopping after a run of
-        /// consecutive IGNORE (0xFFFFFFFF) slots. This tolerates small gaps in active buff lists
-        /// without scanning past the end of the client's status array into unrelated CSession memory
-        /// (which can contain small integers like 9 / EFST_ANGELUS).
+        /// Some 2022+ Ragexe clients place the status buffer 12 bytes (3 uint32 slots) later
+        /// (+0x480 instead of +0x474). When read from +0x474, slot 0 holds a CSession field
+        /// that collides with ANGELUS (9), slot 1 holds a large non-EFST value (e.g. 1004240168),
+        /// and slot 2 holds 1 (colliding with ENDURE). Detecting the non-EFST sentinel at slot 1
+        /// lets us skip the 3-slot header cleanly on any such client.
+        /// </summary>
+        public static int DetectLeadingHeaderSkip(uint[] statusBuffer, int limit)
+        {
+            if (statusBuffer == null || limit < 4)
+            {
+                return 0;
+            }
+
+            return IsNonEfstSentinel(statusBuffer[1]) ? 3 : 0;
+        }
+
+        /// <summary>
+        /// Extracts active EFST codes from a raw status buffer while skipping any 3-slot leading
+        /// CSession header and stopping after a run of consecutive IGNORE (0xFFFFFFFF) slots.
+        /// This tolerates small gaps in active buff lists without scanning past the end of the
+        /// client's status array into unrelated CSession memory.
         /// </summary>
         public static int ExtractActiveStatuses(uint[] statusBuffer, int count, List<uint> activeOutput)
         {
@@ -522,19 +558,25 @@ namespace _4RTools.Model
             }
 
             int limit = Math.Min(count, statusBuffer.Length);
+            int startIndex = DetectLeadingHeaderSkip(statusBuffer, limit);
             int consecutiveIgnores = 0;
             int added = 0;
 
-            for (int i = 0; i < limit; i++)
+            for (int i = startIndex; i < limit; i++)
             {
                 uint code = statusBuffer[i];
-                if (code == (uint)EffectStatusIDs.IGNORE || code == (uint)EffectStatusIDs.IGNORE_2)
+                if (IsIgnoreStatusCode(code))
                 {
                     consecutiveIgnores++;
                     if (consecutiveIgnores >= Constants.STATUS_END_CONSECUTIVE_IGNORES)
                     {
                         break;
                     }
+                    continue;
+                }
+
+                if (IsNonEfstSentinel(code))
+                {
                     continue;
                 }
 
@@ -568,6 +610,7 @@ namespace _4RTools.Model
             byte[] rawBuffer = new byte[Constants.STATUS_BUFFER_BYTE_SIZE];
             uint[] statusBuffer = new uint[Constants.MAX_BUFF_LIST_INDEX_SIZE];
             int count = ReadBuffStatusBuffer(rawBuffer, statusBuffer);
+            int startIndex = DetectLeadingHeaderSkip(statusBuffer, count);
 
             StringBuilder sb = new StringBuilder();
             string charName = ReadCharacterName();
@@ -584,10 +627,10 @@ namespace _4RTools.Model
             int found = 0;
             int consecutiveIgnores = 0;
             int stopIndex = count;
-            for (int i = 0; i < count; i++)
+            for (int i = startIndex; i < count; i++)
             {
                 uint code = statusBuffer[i];
-                if (code == (uint)EffectStatusIDs.IGNORE || code == (uint)EffectStatusIDs.IGNORE_2)
+                if (IsIgnoreStatusCode(code))
                 {
                     consecutiveIgnores++;
                     if (consecutiveIgnores >= Constants.STATUS_END_CONSECUTIVE_IGNORES)
@@ -598,12 +641,17 @@ namespace _4RTools.Model
                     continue;
                 }
 
+                if (IsNonEfstSentinel(code))
+                {
+                    continue;
+                }
+
                 consecutiveIgnores = 0;
                 string enumName = Enum.IsDefined(typeof(EffectStatusIDs), code)
                     ? ((EffectStatusIDs)code).ToString()
                     : (LocalizationManager.IsPortuguese ? "(desconhecido)" : "(unknown)");
 
-                sb.AppendFormat("Slot {0:00}:  ID {1}  —  {2}", i, code, enumName);
+                sb.AppendFormat("Slot {0:00}:  ID {1}  —  {2}", i - startIndex, code, enumName);
                 sb.AppendLine();
                 found++;
             }

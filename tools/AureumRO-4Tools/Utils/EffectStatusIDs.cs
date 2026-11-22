@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
 using System.Runtime.Remoting.Metadata;
 
@@ -30,6 +30,7 @@ namespace _4RTools.Utils
         CRITICALWOUND = 286,
         OVERHEAT = 373,
         // New status 3RD / AureumRO Almas
+        EFST_POSTDELAY = 46,
         EFST_ALL_RIDING = 613,
         EFST_ALL_RIDING_REUSE_LIMIT = 614,
         EFST_SIT = 622,

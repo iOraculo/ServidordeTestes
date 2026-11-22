@@ -499,6 +499,7 @@ namespace _4RTools.Tests
             Assert.Equal("0x01138DDC", froggo.hpAddress);
             Assert.Equal("0x0113B7B0", froggo.nameAddress);
             Assert.Equal("0x00D2A3BC", froggo.mapAddress);
+            Assert.Equal("0x480", froggo.statusOffset);
             Assert.True(ClientUpdaterForm.IsBuiltInTestServer(froggo));
             Assert.True(ClientUpdaterForm.IsAllowedServer(froggo, isLocalOverride: false));
 
@@ -1077,9 +1078,18 @@ namespace _4RTools.Tests
             // Without an observed EFST icon, Basilica must NOT spam within 25s.
             Assert.False(basilicaBuff.ShouldCastBuff(EffectStatusIDs.EFST_BASILICA, 5000, false, false, 100, 100));
             Assert.True(basilicaBuff.ShouldCastBuff(EffectStatusIDs.EFST_BASILICA, 1000 + AutoBuff.BASILICA_NO_ICON_RECAST_MS, false, false, 100, 100));
-            // Once an EFST icon is observed from the server, recast guard drops to 3s cast protection.
+            // Once an EFST icon is observed from the server, recast guard drops to cast-time protection
+            // and resets immediately when the icon transitions from active -> ended.
             basilicaBuff.MarkStatusObserved(EffectStatusIDs.EFST_BASILICA);
             Assert.True(basilicaBuff.ShouldCastBuff(EffectStatusIDs.EFST_BASILICA, 1000 + AutoBuff.BASILICA_ICON_CAST_GUARD_MS, false, false, 100, 100));
+            // Must never cast while EFST_POSTDELAY (46) is active.
+            Assert.False(basilicaBuff.ShouldCastBuff(EffectStatusIDs.EFST_BASILICA, 1000 + AutoBuff.BASILICA_ICON_CAST_GUARD_MS, false, false, 100, 100, false, true, true));
+            // Simulate Basilica becoming active, then ending before cast guard elapsed -> cooldown clears immediately.
+            basilicaBuff.RecordBuffCast(EffectStatusIDs.EFST_BASILICA, 20000);
+            Assert.False(basilicaBuff.ShouldCastBuff(EffectStatusIDs.EFST_BASILICA, 21000, false, false, 100, 100));
+            basilicaBuff.SyncActiveBuffTransitions(new HashSet<EffectStatusIDs> { EffectStatusIDs.EFST_BASILICA });
+            basilicaBuff.SyncActiveBuffTransitions(new HashSet<EffectStatusIDs>());
+            Assert.True(basilicaBuff.ShouldCastBuff(EffectStatusIDs.EFST_BASILICA, 21000, false, false, 100, 100));
 
             // Status buffer boundary check: ExtractActiveStatuses tolerates small gaps (< 6 IGNORE)
             // and stops after 6 consecutive IGNORE slots so trailing memory containing 9 (ANGELUS) never blocks Angelus!
@@ -1097,6 +1107,27 @@ namespace _4RTools.Tests
             Assert.Contains((uint)EffectStatusIDs.BLESSING, extracted);
             Assert.Contains((uint)EffectStatusIDs.INC_AGI, extracted);
             Assert.DoesNotContain((uint)EffectStatusIDs.ANGELUS, extracted);
+
+            // 2022+ Ragexe leading 3-slot CSession header check (+0x474..+0x47F):
+            // Slot 0 = 9 (collides with ANGELUS), Slot 1 = 1004240168 (non-EFST sentinel), Slot 2 = 1 (collides with ENDURE).
+            uint[] shifted2022Buffer = new uint[]
+            {
+                9u,
+                1004240168u,
+                1u,
+                (uint)EffectStatusIDs.ASSUMPTIO,
+                (uint)EffectStatusIDs.BLESSING,
+                (uint)EffectStatusIDs.INC_AGI,
+                ig, ig, ig, ig, ig, ig
+            };
+            Assert.Equal(3, Client.DetectLeadingHeaderSkip(shifted2022Buffer, shifted2022Buffer.Length));
+            List<uint> extracted2022 = new List<uint>();
+            Client.ExtractActiveStatuses(shifted2022Buffer, shifted2022Buffer.Length, extracted2022);
+            Assert.DoesNotContain((uint)EffectStatusIDs.ANGELUS, extracted2022);
+            Assert.DoesNotContain((uint)EffectStatusIDs.ENDURE, extracted2022);
+            Assert.Contains((uint)EffectStatusIDs.ASSUMPTIO, extracted2022);
+            Assert.Contains((uint)EffectStatusIDs.BLESSING, extracted2022);
+            Assert.Contains((uint)EffectStatusIDs.INC_AGI, extracted2022);
 
             // Equivalent EFST IDs: EFST_HEALTHSTATE_ANGELUS (888) satisfies ANGELUS (9); EFST_BASILICA_BUFF (1122) satisfies EFST_BASILICA (111).
             EffectStatusIDs equivalent;

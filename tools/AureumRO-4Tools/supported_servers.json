@@ -10,13 +10,15 @@
     "description": "AureumRO Servidor de Testes (rAthena Pré-Renewal 13.3 · Ragexe 2022-04-06)",
     "hpAddress": "0x01138DDC",
     "nameAddress": "0x0113B7B0",
-    "mapAddress": "0x00D2A3BC"
+    "mapAddress": "0x00D2A3BC",
+    "statusOffset": "0x480"
   },
   {
     "name": "Ragexe",
     "description": "AureumRO Servidor de Testes (rAthena Pré-Renewal 13.3 · Ragexe 2022-04-06)",
     "hpAddress": "0x01138DDC",
     "nameAddress": "0x0113B7B0",
-    "mapAddress": "0x00D2A3BC"
+    "mapAddress": "0x00D2A3BC",
+    "statusOffset": "0x480"
   }
 ]
