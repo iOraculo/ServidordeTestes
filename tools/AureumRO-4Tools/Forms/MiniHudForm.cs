@@ -40,12 +40,12 @@ namespace _4RTools.Forms
             this.Opacity = 0.92;
             this.DoubleBuffered = true;
             this.ClientSize = new Size(252, 92);
-            this.Text = "AureumRO 4Tools Mini HUD";
+            this.Text = "AureumTools Mini HUD";
 
-            this.badgeFont = new Font("Microsoft Sans Serif", 7.25F, FontStyle.Bold);
-            this.headerFont = new Font("Microsoft Sans Serif", 8F, FontStyle.Bold);
-            this.closeFont = new Font("Microsoft Sans Serif", 8F, FontStyle.Bold);
-            this.telemetryFont = new Font("Microsoft Sans Serif", 7.25F, FontStyle.Regular);
+            this.badgeFont = FontManager.Bold(7.25F);
+            this.headerFont = FontManager.Bold(8F);
+            this.closeFont = FontManager.Bold(8F);
+            this.telemetryFont = FontManager.Regular(7.25F);
 
             this.lblStatusBadge = new Label
             {
@@ -347,26 +347,6 @@ namespace _4RTools.Forms
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing)
-            {
-                if (this.badgeFont != null)
-                {
-                    this.badgeFont.Dispose();
-                }
-                if (this.headerFont != null)
-                {
-                    this.headerFont.Dispose();
-                }
-                if (this.closeFont != null)
-                {
-                    this.closeFont.Dispose();
-                }
-                if (this.telemetryFont != null)
-                {
-                    this.telemetryFont.Dispose();
-                }
-            }
-
             base.Dispose(disposing);
         }
     }

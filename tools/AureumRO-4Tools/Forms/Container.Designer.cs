@@ -1,4 +1,4 @@
-﻿using System.Windows.Forms;
+using System.Windows.Forms;
 
 namespace _4RTools.Forms
 {
@@ -371,7 +371,7 @@ namespace _4RTools.Forms
             // Container
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(609, 624);
             this.Controls.Add(this.OnOffPanel);
@@ -393,7 +393,7 @@ namespace _4RTools.Forms
             this.MaximizeBox = false;
             this.Name = "Container";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "4ROTools - Versão Beta";
+            this.Text = "AureumTools";
             this.TransparencyKey = System.Drawing.Color.Red;
             this.Load += new System.EventHandler(this.Container_Load);
             this.Resize += new System.EventHandler(this.containerResize);

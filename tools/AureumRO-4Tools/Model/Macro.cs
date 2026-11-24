@@ -128,7 +128,9 @@ namespace _4RTools.Model
 
         private void MacroExecutionThread(Client roClient, CancellationToken token)
         {
-            if (!roClient.IsProcessAlive() || roClient.ShouldPauseAutomation())
+            if (!roClient.IsProcessAlive()
+                || roClient.ShouldPauseAutomation()
+                || (SessionContext.HasMultipleActiveSessions && !roClient.IsGameWindowFocused()))
             {
                 _4RThread.Sleep(50, token);
                 return;
@@ -141,61 +143,62 @@ namespace _4RTools.Model
                 return;
             }
 
-            List<ChainConfig> snapshot;
+            bool altPressed = KeyHelper.IsAltPressed();
+            List<ChainConfig> chainsToRun = null;
+
             lock (this.configLock)
             {
-                snapshot = new List<ChainConfig>(this.chainConfigs.Count);
-                foreach (ChainConfig cfg in this.chainConfigs)
+                for (int i = 0; i < this.chainConfigs.Count; i++)
                 {
-                    snapshot.Add(new ChainConfig(cfg));
-                }
-            }
-
-            foreach (ChainConfig chainConfig in snapshot)
-            {
-                if (token.IsCancellationRequested)
-                {
-                    break;
-                }
-
-                if (chainConfig.trigger == Key.None)
-                {
-                    continue;
-                }
-
-                bool triggerDown = !KeyHelper.IsAltPressed() && KeyHelper.IsKeyDown(chainConfig.trigger);
-                bool shouldExecute = false;
-
-                if (chainConfig.infinityLoop)
-                {
-                    bool wasDown = false;
-                    this.lastTriggerState.TryGetValue(chainConfig.id, out wasDown);
-                    this.lastTriggerState[chainConfig.id] = triggerDown;
-
-                    if (triggerDown && !wasDown)
+                    ChainConfig cfg = this.chainConfigs[i];
+                    if (cfg == null || cfg.trigger == Key.None)
                     {
-                        bool toggled = !GetLaneLoopState(chainConfig.id);
-                        SetLaneLoopState(chainConfig.id, toggled);
-                        chainConfig.infinityLoopOn = toggled;
+                        continue;
+                    }
+
+                    bool triggerDown = !altPressed && KeyHelper.IsKeyDown(cfg.trigger);
+                    bool shouldExecute = false;
+
+                    if (cfg.infinityLoop)
+                    {
+                        bool wasDown = false;
+                        this.lastTriggerState.TryGetValue(cfg.id, out wasDown);
+                        this.lastTriggerState[cfg.id] = triggerDown;
+
+                        if (triggerDown && !wasDown)
+                        {
+                            cfg.infinityLoopOn = !cfg.infinityLoopOn;
+                        }
+
+                        shouldExecute = cfg.infinityLoopOn;
                     }
                     else
                     {
-                        chainConfig.infinityLoopOn = GetLaneLoopState(chainConfig.id);
+                        shouldExecute = triggerDown;
                     }
 
-                    shouldExecute = chainConfig.infinityLoopOn;
+                    if (shouldExecute)
+                    {
+                        if (chainsToRun == null)
+                        {
+                            chainsToRun = new List<ChainConfig>(2);
+                        }
+                        chainsToRun.Add(new ChainConfig(cfg));
+                    }
                 }
-                else
-                {
-                    shouldExecute = triggerDown;
-                }
+            }
 
-                if (!shouldExecute)
+            if (chainsToRun != null)
+            {
+                for (int i = 0; i < chainsToRun.Count; i++)
                 {
-                    continue;
-                }
+                    if (token.IsCancellationRequested)
+                    {
+                        break;
+                    }
 
-                ExecuteChain(roClient, hWnd, chainConfig, token);
+                    ExecuteChain(roClient, hWnd, chainsToRun[i], token);
+                }
             }
 
             _4RThread.Sleep(100, token);

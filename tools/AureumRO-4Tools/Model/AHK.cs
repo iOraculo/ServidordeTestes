@@ -28,6 +28,7 @@ namespace _4RTools.Model
     {
         private const string ACTION_NAME = "AHK20";
         private readonly object entriesLock = new object();
+        private volatile KeyConfig[] cachedEntriesSnapshot;
         private _4RThread thread;
 
         public const string COMPATIBILITY = "ahkCompatibility";
@@ -46,6 +47,7 @@ namespace _4RTools.Model
         public void Start()
         {
             Stop();
+            InvalidateEntriesCache();
             Client roClient = ClientSingleton.GetClient();
             if (roClient != null)
             {
@@ -54,17 +56,41 @@ namespace _4RTools.Model
             }
         }
 
+        private void InvalidateEntriesCache()
+        {
+            this.cachedEntriesSnapshot = null;
+        }
+
+        private KeyConfig[] GetCachedEntriesSnapshot()
+        {
+            KeyConfig[] snapshot = this.cachedEntriesSnapshot;
+            if (snapshot != null)
+            {
+                return snapshot;
+            }
+
+            lock (this.entriesLock)
+            {
+                snapshot = this.AhkEntries.Values.ToArray();
+                this.cachedEntriesSnapshot = snapshot;
+                return snapshot;
+            }
+        }
+
         private void AHKThreadExecution(Client roClient, CancellationToken token)
         {
-            if (!roClient.IsProcessAlive() || roClient.ShouldPauseAutomation())
+            if (!roClient.IsProcessAlive()
+                || roClient.ShouldPauseAutomation()
+                || (SessionContext.HasMultipleActiveSessions && !roClient.IsGameWindowFocused()))
             {
                 return;
             }
 
-            KeyConfig[] entriesSnapshot;
-            lock (this.entriesLock)
+            KeyConfig[] entriesSnapshot = GetCachedEntriesSnapshot();
+            if (entriesSnapshot.Length == 0)
             {
-                entriesSnapshot = this.AhkEntries.Values.ToArray();
+                _4RThread.Sleep(50, token);
+                return;
             }
 
             bool isCompatibility = string.Equals(this.ahkMode, COMPATIBILITY, StringComparison.Ordinal);
@@ -289,6 +315,7 @@ namespace _4RTools.Model
             lock (this.entriesLock)
             {
                 this.AhkEntries[chkboxName] = value;
+                this.cachedEntriesSnapshot = null;
             }
         }
 
@@ -297,6 +324,7 @@ namespace _4RTools.Model
             lock (this.entriesLock)
             {
                 this.AhkEntries.Remove(chkboxName);
+                this.cachedEntriesSnapshot = null;
             }
         }
 
@@ -305,6 +333,7 @@ namespace _4RTools.Model
             lock (this.entriesLock)
             {
                 this.AhkEntries.Clear();
+                this.cachedEntriesSnapshot = null;
             }
         }
 

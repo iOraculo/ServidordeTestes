@@ -67,14 +67,14 @@ namespace _4RTools.Forms
             Label lblSearch = new Label
             {
                 AutoSize = true,
-                Location = new Point(8, 14),
+                Location = new Point(8, 13),
                 Text = "Filter:"
             };
 
             this.txtSearch = new TextBox
             {
-                Location = new Point(54, 10),
-                Size = new Size(142, 20),
+                Location = new Point(56, 9),
+                Size = new Size(148, 22),
                 Name = "txtStuffSearch",
                 Tag = FormUtils.SKIP_RESET_TAG
             };
@@ -83,14 +83,14 @@ namespace _4RTools.Forms
             Label lblMinSp = new Label
             {
                 AutoSize = true,
-                Location = new Point(204, 14),
+                Location = new Point(214, 13),
                 Text = "Min SP%:"
             };
 
             this.numMinSp = new NumericUpDown
             {
-                Location = new Point(264, 10),
-                Size = new Size(44, 20),
+                Location = new Point(278, 9),
+                Size = new Size(46, 22),
                 Minimum = 0,
                 Maximum = 99,
                 Name = "numStuffMinSp",
@@ -101,14 +101,14 @@ namespace _4RTools.Forms
             Label lblCooldown = new Label
             {
                 AutoSize = true,
-                Location = new Point(316, 14),
+                Location = new Point(334, 13),
                 Text = "CD(ms):"
             };
 
             this.numCooldown = new NumericUpDown
             {
-                Location = new Point(368, 10),
-                Size = new Size(62, 20),
+                Location = new Point(392, 9),
+                Size = new Size(68, 22),
                 Minimum = 0,
                 Maximum = 30000,
                 Increment = 250,
@@ -119,8 +119,8 @@ namespace _4RTools.Forms
 
             this.btnClearStuffs = new Button
             {
-                Location = new Point(438, 9),
-                Size = new Size(104, 22),
+                Location = new Point(474, 8),
+                Size = new Size(118, 25),
                 Text = "Clear Stuffs",
                 UseVisualStyleBackColor = true
             };

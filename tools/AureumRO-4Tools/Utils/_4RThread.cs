@@ -26,40 +26,44 @@ namespace _4RTools.Utils
             this.cts = new CancellationTokenSource();
             CancellationToken token = this.cts.Token;
             string threadName = string.IsNullOrWhiteSpace(name) ? "4RWorker" : name;
+            SessionContext capturedSession = SessionContext.Current;
 
             this.thread = new Thread(() =>
             {
-                try
+                using (SessionContext.Enter(capturedSession))
                 {
-                    while (!token.IsCancellationRequested)
+                    try
                     {
-                        try
+                        while (!token.IsCancellationRequested)
                         {
-                            toRun(token);
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            break;
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("_4RThread", "Error while executing thread method (" + threadName + ")", ex);
-                        }
+                            try
+                            {
+                                toRun(token);
+                            }
+                            catch (OperationCanceledException)
+                            {
+                                break;
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Error("_4RThread", "Error while executing thread method (" + threadName + ")", ex);
+                            }
 
-                        if (token.IsCancellationRequested)
-                        {
-                            break;
-                        }
+                            if (token.IsCancellationRequested)
+                            {
+                                break;
+                            }
 
-                        token.WaitHandle.WaitOne(5);
+                            token.WaitHandle.WaitOne(5);
+                        }
                     }
-                }
-                finally
-                {
-                    lock (this.stateLock)
+                    finally
                     {
-                        this.stopped = true;
-                        this.cts.Dispose();
+                        lock (this.stateLock)
+                        {
+                            this.stopped = true;
+                            this.cts.Dispose();
+                        }
                     }
                 }
             });

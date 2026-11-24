@@ -3248,5 +3248,82 @@ namespace _4RTools.Resources._4RTools {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
+        
+        internal static System.Drawing.Bitmap white_potion {
+            get {
+                object obj = ResourceManager.GetObject("white_potion", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        internal static System.Drawing.Bitmap blue_potion {
+            get {
+                object obj = ResourceManager.GetObject("blue_potion", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        internal static System.Drawing.Bitmap as_cloaking {
+            get {
+                object obj = ResourceManager.GetObject("as_cloaking", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        internal static System.Drawing.Bitmap st_chasewalk {
+            get {
+                object obj = ResourceManager.GetObject("st_chasewalk", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        internal static System.Drawing.Bitmap mo_steelbody {
+            get {
+                object obj = ResourceManager.GetObject("mo_steelbody", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        internal static System.Drawing.Bitmap al_ruwach {
+            get {
+                object obj = ResourceManager.GetObject("al_ruwach", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        internal static System.Drawing.Bitmap mg_sight {
+            get {
+                object obj = ResourceManager.GetObject("mg_sight", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        internal static System.Drawing.Bitmap sl_kaahi {
+            get {
+                object obj = ResourceManager.GetObject("sl_kaahi", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        internal static System.Drawing.Bitmap sl_kaupe {
+            get {
+                object obj = ResourceManager.GetObject("sl_kaupe", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        internal static System.Drawing.Bitmap sl_kaite {
+            get {
+                object obj = ResourceManager.GetObject("sl_kaite", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        internal static System.Drawing.Bitmap sl_kaizel {
+            get {
+                object obj = ResourceManager.GetObject("sl_kaizel", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
     }
 }

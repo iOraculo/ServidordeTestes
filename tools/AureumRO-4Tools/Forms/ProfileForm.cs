@@ -30,6 +30,7 @@ namespace _4RTools.Forms
             InitializeComponent();
             this.container = container;
             this.profileToolTip = FormUtils.CreateHelpToolTip(this.components);
+            NormalizeDesignerControlsLayout();
             InitializeImportExportButtons();
             InitializeCharacterBindingPanel();
             InitializeBackupAndDiagnosticsBar();
@@ -37,6 +38,31 @@ namespace _4RTools.Forms
             RefreshProfileList();
             RefreshCharacterBindingUi();
             RefreshTooltips();
+        }
+
+        private void NormalizeDesignerControlsLayout()
+        {
+            this.Size = new Size(616, 289);
+
+            this.label1.Location = new Point(16, 10);
+            this.txtProfileName.Location = new Point(16, 29);
+            this.txtProfileName.Size = new Size(228, 22);
+
+            this.btnSave.Location = new Point(252, 27);
+            this.btnSave.Size = new Size(88, 25);
+
+            this.lblProfilesList.Location = new Point(16, 60);
+            this.lbProfilesList.Location = new Point(16, 79);
+            this.lbProfilesList.Size = new Size(228, 150);
+
+            this.btnRemoveProfile.Location = new Point(252, 79);
+            this.btnRemoveProfile.Size = new Size(88, 25);
+
+            this.btnEditProfile.Location = new Point(252, 110);
+            this.btnEditProfile.Size = new Size(88, 25);
+
+            this.btnCopy.Location = new Point(252, 141);
+            this.btnCopy.Size = new Size(88, 25);
         }
 
         public void RefreshTooltips()
@@ -68,9 +94,9 @@ namespace _4RTools.Forms
         {
             this.btnExportProfile = new Button
             {
-                Location = new Point(267, 164),
+                Location = new Point(252, 172),
                 Name = "btnExportProfile",
-                Size = new Size(78, 23),
+                Size = new Size(88, 25),
                 Text = "Export",
                 UseVisualStyleBackColor = true
             };
@@ -78,9 +104,9 @@ namespace _4RTools.Forms
 
             this.btnImportProfile = new Button
             {
-                Location = new Point(267, 193),
+                Location = new Point(252, 203),
                 Name = "btnImportProfile",
-                Size = new Size(78, 23),
+                Size = new Size(88, 25),
                 Text = "Import",
                 UseVisualStyleBackColor = true
             };
@@ -94,9 +120,9 @@ namespace _4RTools.Forms
         {
             this.btnBackupZip = new Button
             {
-                Location = new Point(23, 224),
+                Location = new Point(16, 242),
                 Name = "btnBackupZip",
-                Size = new Size(115, 25),
+                Size = new Size(134, 27),
                 Text = "Backup All (.zip)",
                 UseVisualStyleBackColor = true
             };
@@ -104,9 +130,9 @@ namespace _4RTools.Forms
 
             this.btnRestoreZip = new Button
             {
-                Location = new Point(146, 224),
+                Location = new Point(158, 242),
                 Name = "btnRestoreZip",
-                Size = new Size(115, 25),
+                Size = new Size(134, 27),
                 Text = "Restore (.zip)",
                 UseVisualStyleBackColor = true
             };
@@ -114,9 +140,9 @@ namespace _4RTools.Forms
 
             this.btnCheckConflicts = new Button
             {
-                Location = new Point(267, 224),
+                Location = new Point(300, 242),
                 Name = "btnCheckConflicts",
-                Size = new Size(140, 25),
+                Size = new Size(148, 27),
                 Text = "Check Key Conflicts",
                 UseVisualStyleBackColor = true
             };
@@ -124,9 +150,9 @@ namespace _4RTools.Forms
 
             this.btnInspectStatus = new Button
             {
-                Location = new Point(413, 224),
+                Location = new Point(456, 242),
                 Name = "btnInspectStatus",
-                Size = new Size(135, 25),
+                Size = new Size(144, 27),
                 Text = "Inspect Status IDs",
                 UseVisualStyleBackColor = true
             };
@@ -142,9 +168,9 @@ namespace _4RTools.Forms
         {
             GroupBox gbAutoSwitch = new GroupBox
             {
-                Location = new Point(358, 13),
+                Location = new Point(352, 10),
                 Name = "gbAutoSwitchCharacter",
-                Size = new Size(190, 204),
+                Size = new Size(248, 220),
                 TabStop = false,
                 Text = "Auto-Switch by Character"
             };
@@ -152,7 +178,7 @@ namespace _4RTools.Forms
             this.cbAutoSwitch = new CheckBox
             {
                 AutoSize = true,
-                Location = new Point(10, 20),
+                Location = new Point(12, 22),
                 Name = "cbAutoSwitch",
                 Text = "Enable Auto-Switch",
                 UseVisualStyleBackColor = true,
@@ -162,33 +188,33 @@ namespace _4RTools.Forms
 
             this.lblTargetProfile = new Label
             {
-                Location = new Point(10, 44),
+                Location = new Point(12, 47),
                 Name = "lblTargetProfile",
-                Size = new Size(170, 15),
+                Size = new Size(224, 18),
                 Text = "Profile: Default"
             };
 
             Label lblBoundChar = new Label
             {
                 AutoSize = true,
-                Location = new Point(10, 64),
+                Location = new Point(12, 68),
                 Name = "lblBoundChar",
                 Text = "Character Name:"
             };
 
             this.txtBoundCharacter = new TextBox
             {
-                Location = new Point(10, 81),
+                Location = new Point(12, 87),
                 Name = "txtBoundCharacter",
-                Size = new Size(168, 20),
+                Size = new Size(224, 22),
                 Tag = FormUtils.SKIP_RESET_TAG
             };
 
             this.btnUseActiveChar = new Button
             {
-                Location = new Point(10, 108),
+                Location = new Point(12, 115),
                 Name = "btnUseActiveChar",
-                Size = new Size(168, 23),
+                Size = new Size(224, 25),
                 Text = "Use Active Character",
                 UseVisualStyleBackColor = true
             };
@@ -196,9 +222,9 @@ namespace _4RTools.Forms
 
             this.btnSaveBinding = new Button
             {
-                Location = new Point(10, 137),
+                Location = new Point(12, 146),
                 Name = "btnSaveBinding",
-                Size = new Size(80, 23),
+                Size = new Size(108, 25),
                 Text = "Save",
                 UseVisualStyleBackColor = true
             };
@@ -206,9 +232,9 @@ namespace _4RTools.Forms
 
             this.btnClearBinding = new Button
             {
-                Location = new Point(98, 137),
+                Location = new Point(128, 146),
                 Name = "btnClearBinding",
-                Size = new Size(80, 23),
+                Size = new Size(108, 25),
                 Text = "Clear",
                 UseVisualStyleBackColor = true
             };
@@ -216,10 +242,10 @@ namespace _4RTools.Forms
 
             Label lblBindingHint = new Label
             {
-                Font = new Font("Microsoft Sans Serif", 7.5F),
-                Location = new Point(10, 166),
+                Font = FontManager.Regular(8F),
+                Location = new Point(12, 177),
                 Name = "lblBindingHint",
-                Size = new Size(170, 32),
+                Size = new Size(224, 36),
                 Text = "Auto-loads profile when this character is detected (while OFF)."
             };
 

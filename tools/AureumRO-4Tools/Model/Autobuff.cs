@@ -53,7 +53,12 @@ namespace _4RTools.Model
             EffectStatusIDs.EFST_KYRIE,
             EffectStatusIDs.EFST_SUFFRAGIUM,
             EffectStatusIDs.IMPOSITIO,
-            EffectStatusIDs.ASPERSIO
+            EffectStatusIDs.ASPERSIO,
+            EffectStatusIDs.PROTECTARMOR,
+            EffectStatusIDs.EFST_KAAHI,
+            EffectStatusIDs.EFST_KAUPE,
+            EffectStatusIDs.EFST_KAITE,
+            EffectStatusIDs.EFST_KAIZEL
         };
 
         // Minimum recast guards for skills that have long cast time or no Pre-Renewal EFST icon (e.g. Basilica).
@@ -108,6 +113,8 @@ namespace _4RTools.Model
             uint[] statusBuffer = new uint[Constants.MAX_BUFF_LIST_INDEX_SIZE];
             byte[] vitalsBuffer = new byte[Constants.HP_SP_BLOCK_BYTE_SIZE];
             List<uint> extractedStatuses = new List<uint>(32);
+            HashSet<EffectStatusIDs> activeStatuses = new HashSet<EffectStatusIDs>();
+            Dictionary<EffectStatusIDs, Key> missingBuffs = new Dictionary<EffectStatusIDs, Key>();
 
             return new _4RThread(token =>
             {
@@ -119,11 +126,13 @@ namespace _4RTools.Model
                     bool isSitting = false;
                     bool isMounted = false;
                     bool isInPostDelay = false;
-                    Dictionary<EffectStatusIDs, Key> missingBuffs = GetBuffMappingSnapshot();
+
+                    missingBuffs.Clear();
+                    CopyBuffMappingInto(missingBuffs);
 
                     if (missingBuffs.Count > 0)
                     {
-                        HashSet<EffectStatusIDs> activeStatuses = new HashSet<EffectStatusIDs>();
+                        activeStatuses.Clear();
                         int count = c.ReadBuffStatusBuffer(rawBuffer, statusBuffer);
                         extractedStatuses.Clear();
                         Client.ExtractActiveStatuses(statusBuffer, count, extractedStatuses);
@@ -434,6 +443,17 @@ namespace _4RTools.Model
             lock (this.mappingLock)
             {
                 return new Dictionary<EffectStatusIDs, Key>(this.buffMapping);
+            }
+        }
+
+        private void CopyBuffMappingInto(Dictionary<EffectStatusIDs, Key> destination)
+        {
+            lock (this.mappingLock)
+            {
+                foreach (KeyValuePair<EffectStatusIDs, Key> pair in this.buffMapping)
+                {
+                    destination[pair.Key] = pair.Value;
+                }
             }
         }
 

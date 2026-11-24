@@ -22,39 +22,39 @@ namespace _4RTools.Forms
             this.FormBorderStyle = FormBorderStyle.None;
             this.Name = "MacrosHubForm";
             this.Text = "Macros";
-            this.Size = new Size(584, 281);
+            this.Size = new Size(616, 289);
             this.hubToolTip = FormUtils.CreateHelpToolTip();
 
             Panel tabBar = new Panel
             {
                 Location = new Point(0, 0),
                 Name = "panelMacrosTabBar",
-                Size = new Size(584, 34)
+                Size = new Size(616, 34)
             };
 
             this.btnTabSwitch = new SegmentedTabButton("Switch Macro")
             {
                 Location = new Point(10, 4),
                 Name = "btnMacroTabSwitch",
-                Size = new Size(180, 26),
+                Size = new Size(192, 26),
                 IsActive = true
             };
             this.btnTabSwitch.Click += delegate { SelectTab("switch"); };
 
             this.btnTabSongs = new SegmentedTabButton("Song Macro")
             {
-                Location = new Point(196, 4),
+                Location = new Point(208, 4),
                 Name = "btnMacroTabSongs",
-                Size = new Size(180, 26),
+                Size = new Size(192, 26),
                 IsActive = false
             };
             this.btnTabSongs.Click += delegate { SelectTab("songs"); };
 
             this.btnTabAtkDef = new SegmentedTabButton("ATK x DEF Macro")
             {
-                Location = new Point(382, 4),
+                Location = new Point(406, 4),
                 Name = "btnMacroTabAtkDef",
-                Size = new Size(188, 26),
+                Size = new Size(198, 26),
                 IsActive = false
             };
             this.btnTabAtkDef.Click += delegate { SelectTab("atkdef"); };
@@ -62,7 +62,7 @@ namespace _4RTools.Forms
             Panel divider = new Panel
             {
                 Location = new Point(0, 33),
-                Size = new Size(584, 1)
+                Size = new Size(616, 1)
             };
 
             tabBar.Controls.Add(this.btnTabSwitch);
@@ -74,7 +74,7 @@ namespace _4RTools.Forms
             {
                 Location = new Point(0, 35),
                 Name = "macrosContentHostPanel",
-                Size = new Size(584, 246)
+                Size = new Size(616, 254)
             };
 
             this.switchForm = new MacroSwitchForm(subject);

@@ -11,6 +11,8 @@ namespace _4RTools.Forms
     public partial class Container : Form, IObserver
     {
         private readonly Subject subject = new Subject();
+        private readonly SessionContext session;
+        private readonly bool isEmbeddedTab;
         private readonly Timer clientMonitorTimer;
         private readonly Timer vitalsTimer;
         private readonly byte[] vitalsBuffer = new byte[Constants.HP_SP_BLOCK_BYTE_SIZE];
@@ -21,15 +23,29 @@ namespace _4RTools.Forms
         private readonly List<Font> ownedFonts = new List<Font>();
 
         private AppSettings appSettings;
-        private CheckBox cbDarkMode;
+        private ToggleApplicationStateForm toggleForm;
+        private ThemeToggleButton btnThemeToggle;
         private CheckBox cbUseBuffsInTown;
-        private CheckBox cbMiniHud;
         private ComboBox cbLanguage;
         private VitalBar hpBar;
         private VitalBar spBar;
         private MiniHudForm miniHud;
         private ToolTip headerToolTip;
         private ProfileForm profileForm;
+        private AureumHubForm aureumHubForm;
+        private Func<HashSet<string>> assignedProcessProvider;
+
+        public SessionContext Session { get { return this.session; } }
+        public bool IsAutomationOn { get { return this.isAutomationOn; } }
+        public bool IsChatPaused { get { return this.session.IsChatting; } }
+        public string DetectedCharacterName { get { return this.lastDetectedCharacter; } }
+        public string SelectedProcessLabel { get { return this.processCB != null ? (this.processCB.SelectedItem as string) : string.Empty; } }
+
+        public event EventHandler SessionStateChanged;
+        public event Action<bool> DarkModeChangedByUser;
+        public event Action<string> LanguageChangedByUser;
+        public event Action<bool> UseBuffsInTownChangedByUser;
+        public event Action<string> VoteNotificationRequested;
 
         // Modern layout shell controls
         private Panel panelTopBar;
@@ -46,9 +62,8 @@ namespace _4RTools.Forms
         private Label lblSessionProfile;
         private Label lblSessionClient;
         private ModernCardPanel cardAutopot;
-        private SegmentedTabButton btnTabAutopot;
-        private SegmentedTabButton btnTabYgg;
         private Panel autopotHostPanel;
+        private Panel autopotYggHostPanel;
         private AutopotForm autopotForm;
         private AutopotForm autopotYggForm;
         private ModernCardPanel cardStatus;
@@ -70,59 +85,165 @@ namespace _4RTools.Forms
         private bool isShuttingDown;
 
         public Container()
+            : this(SessionContext.Default, false, null)
         {
-            this.subject.Attach(this);
-            this.appSettings = AppSettings.Load();
-            LocalizationManager.SetLanguage(this.appSettings.Language);
+        }
 
-            InitializeComponent();
-            this.Text = AppConfig.Name + " - " + AppConfig.Version;
-            this.TransparencyKey = Color.Empty;
-            this.DoubleBuffered = true;
-            this.Tag = ThemeManager.TAG_CANVAS;
+        public Container(SessionContext session, bool isEmbeddedTab, Func<HashSet<string>> assignedProcessProvider = null)
+        {
+            this.session = session ?? SessionContext.Default;
+            this.isEmbeddedTab = isEmbeddedTab;
+            this.assignedProcessProvider = assignedProcessProvider;
+            SessionContext.RegisterSession(this.session);
 
-            BuildModernLayout();
+            using (SessionContext.Enter(this.session))
+            {
+                this.subject.Attach(this);
+                this.appSettings = AppSettings.Load();
+                LocalizationManager.SetLanguage(this.appSettings.Language);
 
-            // Monitor active Ragnarok client so macros stop automatically if the game closes.
-            this.clientMonitorTimer = new Timer();
-            this.clientMonitorTimer.Interval = 1500;
-            this.clientMonitorTimer.Tick += ClientMonitorTimer_Tick;
+                InitializeComponent();
+                this.Text = AppConfig.Name + " - " + AppConfig.Version;
+                this.TransparencyKey = Color.Empty;
+                this.DoubleBuffered = true;
+                this.Tag = ThemeManager.TAG_CANVAS;
 
-            // Live HP/SP bars and character-change detection for profile auto-switch.
-            this.vitalsTimer = new Timer();
-            this.vitalsTimer.Interval = 300;
-            this.vitalsTimer.Tick += VitalsTimer_Tick;
+                BuildModernLayout();
 
-            ChatPauseState.StateChanged += OnChatPauseStateChanged;
-            KeyboardHook.PhysicalKeyDown += OnPhysicalPlayerKeyDown;
+                // Monitor active Ragnarok client so macros stop automatically if the game closes.
+                this.clientMonitorTimer = new Timer();
+                this.clientMonitorTimer.Interval = 1500;
+                this.clientMonitorTimer.Tick += ClientMonitorTimer_Tick;
 
-            // Embed all child forms inside the modern dashboard cards.
-            SetToggleApplicationStateWindow();
-            SetAutopotWindow();
-            SetAutopotYggWindow();
-            SelectAutopotTab(false);
+                // Live HP/SP bars and character-change detection for profile auto-switch.
+                this.vitalsTimer = new Timer();
+                this.vitalsTimer.Interval = 300;
+                this.vitalsTimer.Tick += VitalsTimer_Tick;
 
-            SetAHKWindow();
-            SetDebuffRecoveryWindow();
-            SetAutobuffSkillWindow();
-            SetAutobuffStuffWindow();
-            SetSkillTimerWindow();
-            SetMacrosWindow();
-            SetMountWindow();
-            SetUtilitiesWindow();
-            SetProfileWindow();
-            SetGuideWindow();
+                this.session.ChatStateChanged += OnChatPauseStateChanged;
+                KeyboardHook.PhysicalKeyDown += OnPhysicalPlayerKeyDown;
 
-            SelectSection("spammer");
-            ApplyAppSettingsToUi();
-            UpdateSessionSummaryUi();
+                // Embed all child forms inside the modern dashboard cards.
+                SetToggleApplicationStateWindow();
+                SetAutopotWindow();
+                SetAutopotYggWindow();
+
+                SetAHKWindow();
+                SetDebuffRecoveryWindow();
+                SetAutobuffSkillWindow();
+                SetAutobuffStuffWindow();
+                SetSkillTimerWindow();
+                SetMacrosWindow();
+                SetMountWindow();
+                SetUtilitiesWindow();
+                SetAureumHubWindow();
+                SetProfileWindow();
+                SetGuideWindow();
+
+                SelectSection("spammer");
+                ApplyAppSettingsToUi();
+                UpdateSessionSummaryUi();
+            }
+        }
+
+        public void SetAutomationState(bool turnOn)
+        {
+            if (this.toggleForm != null && !this.toggleForm.IsDisposed)
+            {
+                this.toggleForm.SetAutomationState(turnOn);
+            }
+        }
+
+        public void ApplyExternalTheme(bool darkMode)
+        {
+            using (SessionContext.Enter(this.session))
+            {
+                this.isApplyingSettings = true;
+                try
+                {
+                    this.appSettings.DarkMode = darkMode;
+                    if (this.btnThemeToggle != null)
+                    {
+                        this.btnThemeToggle.IsDarkMode = darkMode;
+                    }
+                    ThemeManager.ApplyTheme(this, darkMode);
+                    if (this.aureumHubForm != null && !this.aureumHubForm.IsDisposed)
+                    {
+                        this.aureumHubForm.ApplyCustomThemeStyling();
+                    }
+                    if (this.miniHud != null && !this.miniHud.IsDisposed)
+                    {
+                        this.miniHud.ApplyHudTheme(darkMode);
+                    }
+                }
+                finally
+                {
+                    this.isApplyingSettings = false;
+                }
+            }
+        }
+
+        public void ApplyExternalLanguage(string language)
+        {
+            using (SessionContext.Enter(this.session))
+            {
+                this.isApplyingSettings = true;
+                try
+                {
+                    this.appSettings.Language = language;
+                    LocalizationManager.SetLanguage(language);
+                    if (this.cbLanguage != null)
+                    {
+                        this.cbLanguage.SelectedItem = LocalizationManager.IsPortuguese ? "PT-BR" : "EN";
+                    }
+                    ApplyLanguageToUi();
+                }
+                finally
+                {
+                    this.isApplyingSettings = false;
+                }
+            }
+        }
+
+        public void ApplyExternalUseBuffsInTown(bool allowInTown)
+        {
+            using (SessionContext.Enter(this.session))
+            {
+                this.isApplyingSettings = true;
+                try
+                {
+                    this.appSettings.UseBuffsInTown = allowInTown;
+                    Client.AllowBuffsInTown = allowInTown;
+                    if (this.cbUseBuffsInTown != null)
+                    {
+                        this.cbUseBuffsInTown.Checked = !allowInTown;
+                    }
+                    UpdateSessionSummaryUi();
+                }
+                finally
+                {
+                    this.isApplyingSettings = false;
+                }
+            }
+        }
+
+        public void ShutdownEmbedded()
+        {
+            ShutdownApplication(false);
+        }
+
+        private void RaiseSessionStateChanged()
+        {
+            EventHandler handler = this.SessionStateChanged;
+            if (handler != null)
+            {
+                handler(this, EventArgs.Empty);
+            }
         }
 
         private Font TrackFont(string familyName, float emSize, FontStyle style)
         {
-            Font font = new Font(familyName, emSize, style);
-            this.ownedFonts.Add(font);
-            return font;
+            return FontManager.Get(emSize, style);
         }
 
         private static Panel CreateDivider(Point location, Size size)
@@ -139,7 +260,7 @@ namespace _4RTools.Forms
             this.SuspendLayout();
             try
             {
-                this.ClientSize = new Size(824, 644);
+                this.ClientSize = new Size(868, 676);
                 this.headerToolTip = FormUtils.CreateHelpToolTip();
 
                 // Remove legacy Designer layout containers while keeping reusable Designer controls intact.
@@ -151,24 +272,24 @@ namespace _4RTools.Forms
                 HideLegacyControl(this.panelDiscImage);
                 HideLegacyControl(this.label1);
 
-                Font brandTitleFont = TrackFont("Segoe UI", 11F, FontStyle.Bold);
-                Font brandVersionFont = TrackFont("Segoe UI", 8F, FontStyle.Regular);
-                Font uiRegularFont = TrackFont("Segoe UI", 8.5F, FontStyle.Regular);
-                Font uiBoldFont = TrackFont("Segoe UI", 8F, FontStyle.Bold);
-                Font sidebarGroupFont = TrackFont("Segoe UI", 7.5F, FontStyle.Bold);
-                Font sectionTitleFont = TrackFont("Segoe UI", 10.5F, FontStyle.Bold);
-                Font sectionSubtitleFont = TrackFont("Segoe UI", 8F, FontStyle.Regular);
-                Font charNameFont = TrackFont("Segoe UI", 9F, FontStyle.Bold);
-                Font footerFont = TrackFont("Segoe UI", 7.5F, FontStyle.Regular);
+                Font brandTitleFont = TrackFont("Segoe UI", 12F, FontStyle.Bold);
+                Font brandVersionFont = TrackFont("Segoe UI", 8.5F, FontStyle.Regular);
+                Font uiRegularFont = TrackFont("Segoe UI", 9F, FontStyle.Regular);
+                Font uiBoldFont = TrackFont("Segoe UI", 8.5F, FontStyle.Bold);
+                Font sidebarGroupFont = TrackFont("Segoe UI", 8F, FontStyle.Bold);
+                Font sectionTitleFont = TrackFont("Segoe UI", 11.5F, FontStyle.Bold);
+                Font sectionSubtitleFont = TrackFont("Segoe UI", 8.75F, FontStyle.Regular);
+                Font charNameFont = TrackFont("Segoe UI", 9.5F, FontStyle.Bold);
+                Font footerFont = TrackFont("Segoe UI", 8.25F, FontStyle.Regular);
 
                 LoadBrandLogos();
 
-                // 1. Topbar (0, 0, 824 x 60)
+                // 1. Topbar (0, 0, 868 x 64)
                 this.panelTopBar = new Panel
                 {
                     Location = new Point(0, 0),
                     Name = "panelTopBar",
-                    Size = new Size(824, 60),
+                    Size = new Size(868, 64),
                     Tag = ThemeManager.TAG_TOPBAR
                 };
 
@@ -176,7 +297,7 @@ namespace _4RTools.Forms
                 {
                     BackColor = Color.Transparent,
                     Image = this.brandLogoOffBitmap,
-                    Location = new Point(12, 11),
+                    Location = new Point(12, 13),
                     Name = "pbBrandLogo",
                     Size = new Size(38, 38),
                     SizeMode = PictureBoxSizeMode.Zoom
@@ -186,7 +307,7 @@ namespace _4RTools.Forms
                 {
                     AutoSize = true,
                     Font = brandTitleFont,
-                    Location = new Point(54, 10),
+                    Location = new Point(56, 10),
                     Name = "lblBrandTitle",
                     Text = AppConfig.Name,
                     Tag = ThemeManager.TAG_ACCENT_TEXT
@@ -196,15 +317,29 @@ namespace _4RTools.Forms
                 {
                     AutoSize = true,
                     Font = brandVersionFont,
-                    Location = new Point(55, 34),
+                    Location = new Point(57, 37),
                     Name = "lblBrandVersion",
-                    Text = AppConfig.Version + " · Oráculo",
+                    Text = AppConfig.Version,
                     Tag = ThemeManager.TAG_MUTED_TEXT
                 };
 
+                this.cbLanguage = new ComboBox
+                {
+                    DropDownStyle = ComboBoxStyle.DropDownList,
+                    Font = uiRegularFont,
+                    FormattingEnabled = true,
+                    Location = new Point(116, 33),
+                    Name = "cbLanguage",
+                    Size = new Size(72, 23),
+                    Tag = FormUtils.SKIP_RESET_TAG
+                };
+                this.cbLanguage.Items.Add("PT-BR");
+                this.cbLanguage.Items.Add("EN");
+                this.cbLanguage.SelectedIndexChanged += OnLanguageSelectedIndexChanged;
+
                 // Reparent client selector controls
                 this.lblProcessName.Font = uiBoldFont;
-                this.lblProcessName.Location = new Point(216, 7);
+                this.lblProcessName.Location = new Point(222, 7);
 
                 this.lblTestServerBadge = new Label
                 {
@@ -212,7 +347,7 @@ namespace _4RTools.Forms
                     BackColor = Color.FromArgb(236, 200, 97),
                     ForeColor = Color.FromArgb(18, 12, 3),
                     Font = TrackFont("Segoe UI", 6.75F, FontStyle.Bold),
-                    Location = new Point(326, 6),
+                    Location = new Point(358, 6),
                     Name = "lblTestServerBadge",
                     Size = new Size(90, 16),
                     Text = "MODO TESTE",
@@ -223,99 +358,69 @@ namespace _4RTools.Forms
 
                 this.processCB.DropDownStyle = ComboBoxStyle.DropDownList;
                 this.processCB.Font = uiRegularFont;
-                this.processCB.Location = new Point(216, 25);
-                this.processCB.Size = new Size(170, 23);
+                this.processCB.Location = new Point(222, 27);
+                this.processCB.Size = new Size(194, 24);
 
                 this.btnRefresh.Cursor = Cursors.Hand;
                 this.btnRefresh.ImageAlign = ContentAlignment.MiddleCenter;
-                this.btnRefresh.Location = new Point(390, 24);
-                this.btnRefresh.Size = new Size(26, 24);
+                this.btnRefresh.Location = new Point(420, 26);
+                this.btnRefresh.Size = new Size(28, 25);
 
                 // Reparent profile selector controls
                 this.labelProfile.Font = uiBoldFont;
-                this.labelProfile.Location = new Point(426, 7);
+                this.labelProfile.Location = new Point(460, 7);
 
                 this.profileCB.DropDownStyle = ComboBoxStyle.DropDownList;
                 this.profileCB.Font = uiRegularFont;
-                this.profileCB.Location = new Point(426, 25);
-                this.profileCB.Size = new Size(156, 23);
+                this.profileCB.Location = new Point(460, 27);
+                this.profileCB.Size = new Size(172, 24);
 
-                // Preferences block
-                this.cbDarkMode = new CheckBox
-                {
-                    AutoSize = true,
-                    Cursor = Cursors.Hand,
-                    Font = uiRegularFont,
-                    Location = new Point(594, 9),
-                    Name = "cbDarkMode",
-                    Text = "Dark Mode",
-                    UseVisualStyleBackColor = true,
-                    Tag = FormUtils.SKIP_RESET_TAG
-                };
-                this.cbDarkMode.CheckedChanged += OnDarkModeCheckedChanged;
-
-                this.cbMiniHud = new CheckBox
-                {
-                    AutoSize = true,
-                    Cursor = Cursors.Hand,
-                    Font = uiRegularFont,
-                    Location = new Point(708, 9),
-                    Name = "cbMiniHud",
-                    Text = "Mini HUD",
-                    UseVisualStyleBackColor = true,
-                    Tag = FormUtils.SKIP_RESET_TAG
-                };
-                this.cbMiniHud.CheckedChanged += OnMiniHudCheckedChanged;
-
+                // Compact preferences block
                 this.cbUseBuffsInTown = new CheckBox
                 {
                     AutoSize = true,
+                    Checked = true,
                     Cursor = Cursors.Hand,
                     Font = uiRegularFont,
-                    Location = new Point(594, 32),
+                    Location = new Point(650, 30),
                     Name = "cbUseBuffsInTown",
-                    Text = "Use buffs in town?",
+                    Text = "Pause in towns",
                     UseVisualStyleBackColor = true,
                     Tag = FormUtils.SKIP_RESET_TAG
                 };
                 this.cbUseBuffsInTown.CheckedChanged += OnUseBuffsInTownCheckedChanged;
 
-                this.cbLanguage = new ComboBox
+                this.btnThemeToggle = new ThemeToggleButton
                 {
-                    DropDownStyle = ComboBoxStyle.DropDownList,
-                    Font = uiRegularFont,
-                    FormattingEnabled = true,
-                    Location = new Point(750, 30),
-                    Name = "cbLanguage",
-                    Size = new Size(64, 22),
+                    Location = new Point(818, 22),
+                    Name = "btnThemeToggle",
+                    Size = new Size(34, 32),
                     Tag = FormUtils.SKIP_RESET_TAG
                 };
-                this.cbLanguage.Items.Add("PT-BR");
-                this.cbLanguage.Items.Add("EN");
-                this.cbLanguage.SelectedIndexChanged += OnLanguageSelectedIndexChanged;
+                this.btnThemeToggle.Click += OnThemeToggleClicked;
+                CenterPauseInTownCheckbox();
 
                 this.panelTopBar.Controls.Add(this.pbBrandLogo);
                 this.panelTopBar.Controls.Add(this.lblBrandTitle);
                 this.panelTopBar.Controls.Add(this.lblBrandVersion);
-                this.panelTopBar.Controls.Add(CreateDivider(new Point(203, 10), new Size(1, 40)));
+                this.panelTopBar.Controls.Add(this.cbLanguage);
+                this.panelTopBar.Controls.Add(CreateDivider(new Point(207, 10), new Size(1, 44)));
                 this.panelTopBar.Controls.Add(this.lblProcessName);
                 this.panelTopBar.Controls.Add(this.lblTestServerBadge);
                 this.panelTopBar.Controls.Add(this.processCB);
                 this.panelTopBar.Controls.Add(this.btnRefresh);
                 this.panelTopBar.Controls.Add(this.labelProfile);
                 this.panelTopBar.Controls.Add(this.profileCB);
-                this.panelTopBar.Controls.Add(this.cbDarkMode);
-                this.panelTopBar.Controls.Add(this.cbMiniHud);
                 this.panelTopBar.Controls.Add(this.cbUseBuffsInTown);
-                this.panelTopBar.Controls.Add(this.cbLanguage);
-                this.panelTopBar.Controls.Add(CreateDivider(new Point(0, 59), new Size(824, 1)));
+                this.panelTopBar.Controls.Add(this.btnThemeToggle);
+                this.panelTopBar.Controls.Add(CreateDivider(new Point(0, 63), new Size(868, 1)));
 
-                // 2. Left Sidebar (0, 60, 204 x 556)
+                // 2. Left Sidebar (0, 64, 208 x 582)
                 this.panelSidebar = new Panel
                 {
-                    Location = new Point(0, 60),
+                    Location = new Point(0, 64),
                     Name = "panelSidebar",
-                    Size = new Size(204, 556),
+                    Size = new Size(208, 582),
                     Tag = ThemeManager.TAG_SIDEBAR
                 };
 
@@ -340,34 +445,35 @@ namespace _4RTools.Forms
                 AddSidebarButton("mount", "Mount", SidebarIconKind.Mount, ref y);
                 AddSidebarButton("utilities", "Utilities", SidebarIconKind.Utilities, ref y);
 
-                this.panelSidebar.Controls.Add(CreateDivider(new Point(14, 326), new Size(176, 1)));
+                this.panelSidebar.Controls.Add(CreateDivider(new Point(14, 312), new Size(180, 1)));
 
                 Label lblGroupManagement = new Label
                 {
                     AutoSize = true,
                     Font = sidebarGroupFont,
-                    Location = new Point(14, 336),
+                    Location = new Point(14, 320),
                     Name = "lblGroupManagement",
                     Text = "MANAGEMENT",
                     Tag = ThemeManager.TAG_MUTED_TEXT
                 };
                 this.panelSidebar.Controls.Add(lblGroupManagement);
 
-                y = 356;
+                y = 339;
+                AddSidebarButton("aureum", "Aureum Hub", SidebarIconKind.AureumHub, ref y);
                 AddSidebarButton("profiles", "Profiles", SidebarIconKind.Profiles, ref y);
                 AddSidebarButton("guide", "Guide / Help", SidebarIconKind.Guide, ref y);
 
                 // Live Session Summary Card anchored at the bottom of the sidebar
                 this.cardQuickStatus = new ModernCardPanel
                 {
-                    Location = new Point(10, 456),
+                    Location = new Point(10, 476),
                     Name = "cardQuickStatus",
-                    Size = new Size(184, 86)
+                    Size = new Size(188, 92)
                 };
 
                 this.sessionStatusDot = new StatusDot
                 {
-                    Location = new Point(11, 14),
+                    Location = new Point(11, 15),
                     Name = "sessionStatusDot"
                 };
 
@@ -376,9 +482,9 @@ namespace _4RTools.Forms
                     AutoEllipsis = true,
                     AutoSize = false,
                     Font = uiBoldFont,
-                    Location = new Point(26, 10),
+                    Location = new Point(26, 11),
                     Name = "lblSessionStatus",
-                    Size = new Size(148, 18),
+                    Size = new Size(152, 19),
                     Text = "Ready (OFF)"
                 };
 
@@ -387,9 +493,9 @@ namespace _4RTools.Forms
                     AutoEllipsis = true,
                     AutoSize = false,
                     Font = uiRegularFont,
-                    Location = new Point(10, 39),
+                    Location = new Point(10, 42),
                     Name = "lblSessionProfile",
-                    Size = new Size(164, 17),
+                    Size = new Size(168, 19),
                     Text = "Profile: Default"
                 };
 
@@ -398,115 +504,103 @@ namespace _4RTools.Forms
                     AutoEllipsis = true,
                     AutoSize = false,
                     Font = footerFont,
-                    Location = new Point(10, 59),
+                    Location = new Point(10, 64),
                     Name = "lblSessionClient",
-                    Size = new Size(164, 16),
+                    Size = new Size(168, 18),
                     Text = "Client: not selected",
                     Tag = ThemeManager.TAG_MUTED_TEXT
                 };
 
                 this.cardQuickStatus.Controls.Add(this.sessionStatusDot);
                 this.cardQuickStatus.Controls.Add(this.lblSessionStatus);
-                this.cardQuickStatus.Controls.Add(CreateDivider(new Point(10, 32), new Size(164, 1)));
+                this.cardQuickStatus.Controls.Add(CreateDivider(new Point(10, 34), new Size(168, 1)));
                 this.cardQuickStatus.Controls.Add(this.lblSessionProfile);
                 this.cardQuickStatus.Controls.Add(this.lblSessionClient);
 
                 this.panelSidebar.Controls.Add(this.cardQuickStatus);
-                this.panelSidebar.Controls.Add(CreateDivider(new Point(203, 0), new Size(1, 556)));
+                this.panelSidebar.Controls.Add(CreateDivider(new Point(207, 0), new Size(1, 582)));
 
-                // 3. Dashboard Row - Card 1: Autopot / Yggdrasil (218, 72, 324 x 190)
+                // 3. Dashboard Row - Card 1: Unified Autopot & Yggdrasil (222, 76, 346 x 198)
                 this.cardAutopot = new ModernCardPanel
                 {
-                    Location = new Point(218, 72),
+                    Location = new Point(222, 76),
                     Name = "cardAutopot",
-                    Size = new Size(324, 190)
+                    Size = new Size(346, 198)
                 };
-
-                this.btnTabAutopot = new SegmentedTabButton("Autopot")
-                {
-                    Location = new Point(10, 8),
-                    Name = "btnTabAutopot",
-                    Size = new Size(148, 26),
-                    IsActive = true
-                };
-                this.btnTabAutopot.Click += delegate { SelectAutopotTab(false); };
-
-                this.btnTabYgg = new SegmentedTabButton("Yggdrasil")
-                {
-                    Location = new Point(164, 8),
-                    Name = "btnTabYgg",
-                    Size = new Size(148, 26),
-                    IsActive = false
-                };
-                this.btnTabYgg.Click += delegate { SelectAutopotTab(true); };
 
                 this.autopotHostPanel = new Panel
                 {
-                    Location = new Point(8, 44),
+                    Location = new Point(8, 6),
                     Name = "autopotHostPanel",
-                    Size = new Size(308, 140)
+                    Size = new Size(330, 90)
                 };
 
-                this.cardAutopot.Controls.Add(this.btnTabAutopot);
-                this.cardAutopot.Controls.Add(this.btnTabYgg);
-                this.cardAutopot.Controls.Add(CreateDivider(new Point(1, 40), new Size(322, 1)));
-                this.cardAutopot.Controls.Add(this.autopotHostPanel);
+                this.autopotYggHostPanel = new Panel
+                {
+                    Location = new Point(8, 102),
+                    Name = "autopotYggHostPanel",
+                    Size = new Size(330, 90)
+                };
 
-                // 4. Dashboard Row - Card 2: ON/OFF & Live Vitals (552, 72, 258 x 190)
+                this.cardAutopot.Controls.Add(this.autopotHostPanel);
+                this.cardAutopot.Controls.Add(CreateDivider(new Point(14, 99), new Size(318, 1)));
+                this.cardAutopot.Controls.Add(this.autopotYggHostPanel);
+
+                // 4. Dashboard Row - Card 2: ON/OFF & Live Vitals (578, 76, 276 x 198)
                 this.cardStatus = new ModernCardPanel
                 {
-                    Location = new Point(552, 72),
+                    Location = new Point(578, 76),
                     Name = "cardStatus",
-                    Size = new Size(258, 190)
+                    Size = new Size(276, 198)
                 };
 
-                this.OnOffPanel.Location = new Point(17, 5);
-                this.OnOffPanel.Size = new Size(224, 112);
+                this.OnOffPanel.Location = new Point(12, 6);
+                this.OnOffPanel.Size = new Size(252, 116);
 
                 this.statusDot = new StatusDot
                 {
-                    Location = new Point(13, 130),
+                    Location = new Point(14, 136),
                     Name = "statusDot"
                 };
 
                 this.lblCharacterName.AutoSize = true;
                 this.lblCharacterName.Font = uiRegularFont;
-                this.lblCharacterName.Location = new Point(26, 126);
+                this.lblCharacterName.Location = new Point(28, 132);
 
                 this.characterName.AutoEllipsis = true;
                 this.characterName.AutoSize = false;
                 this.characterName.Font = charNameFont;
-                this.characterName.Location = new Point(102, 125);
-                this.characterName.Size = new Size(144, 18);
+                this.characterName.Location = new Point(110, 131);
+                this.characterName.Size = new Size(152, 19);
 
                 this.hpBar = new VitalBar("HP", Color.FromArgb(220, 76, 76))
                 {
-                    Location = new Point(12, 147),
+                    Location = new Point(14, 154),
                     Name = "hpBar",
-                    Size = new Size(234, 16)
+                    Size = new Size(248, 17)
                 };
 
                 this.spBar = new VitalBar("SP", Color.FromArgb(66, 135, 245))
                 {
-                    Location = new Point(12, 167),
+                    Location = new Point(14, 175),
                     Name = "spBar",
-                    Size = new Size(234, 16)
+                    Size = new Size(248, 17)
                 };
 
                 this.cardStatus.Controls.Add(this.OnOffPanel);
-                this.cardStatus.Controls.Add(CreateDivider(new Point(12, 121), new Size(234, 1)));
+                this.cardStatus.Controls.Add(CreateDivider(new Point(14, 126), new Size(248, 1)));
                 this.cardStatus.Controls.Add(this.statusDot);
                 this.cardStatus.Controls.Add(this.lblCharacterName);
                 this.cardStatus.Controls.Add(this.characterName);
                 this.cardStatus.Controls.Add(this.hpBar);
                 this.cardStatus.Controls.Add(this.spBar);
 
-                // 5. Active Section Card (218, 272, 592 x 334)
+                // 5. Active Section Card (222, 284, 632 x 352)
                 this.cardSection = new ModernCardPanel
                 {
-                    Location = new Point(218, 272),
+                    Location = new Point(222, 284),
                     Name = "cardSection",
-                    Size = new Size(592, 334)
+                    Size = new Size(632, 352)
                 };
 
                 this.lblSectionTitle = new Label
@@ -514,9 +608,9 @@ namespace _4RTools.Forms
                     AutoEllipsis = true,
                     AutoSize = false,
                     Font = sectionTitleFont,
-                    Location = new Point(14, 8),
+                    Location = new Point(14, 9),
                     Name = "lblSectionTitle",
-                    Size = new Size(564, 20)
+                    Size = new Size(604, 22)
                 };
 
                 this.lblSectionSubtitle = new Label
@@ -524,30 +618,30 @@ namespace _4RTools.Forms
                     AutoEllipsis = true,
                     AutoSize = false,
                     Font = sectionSubtitleFont,
-                    Location = new Point(14, 28),
+                    Location = new Point(14, 32),
                     Name = "lblSectionSubtitle",
-                    Size = new Size(564, 16),
+                    Size = new Size(604, 18),
                     Tag = ThemeManager.TAG_MUTED_TEXT
                 };
 
                 this.sectionHostPanel = new Panel
                 {
-                    Location = new Point(4, 49),
+                    Location = new Point(8, 55),
                     Name = "sectionHostPanel",
-                    Size = new Size(584, 281)
+                    Size = new Size(616, 289)
                 };
 
                 this.cardSection.Controls.Add(this.lblSectionTitle);
                 this.cardSection.Controls.Add(this.lblSectionSubtitle);
-                this.cardSection.Controls.Add(CreateDivider(new Point(1, 47), new Size(590, 1)));
+                this.cardSection.Controls.Add(CreateDivider(new Point(14, 52), new Size(604, 1)));
                 this.cardSection.Controls.Add(this.sectionHostPanel);
 
-                // 6. Modern Footer (0, 616, 824 x 28)
+                // 6. Modern Footer (0, 646, 868 x 30)
                 this.panelModernFooter = new Panel
                 {
-                    Location = new Point(0, 616),
+                    Location = new Point(0, 646),
                     Name = "panelModernFooter",
-                    Size = new Size(824, 28),
+                    Size = new Size(868, 30),
                     Tag = ThemeManager.TAG_FOOTER
                 };
 
@@ -561,7 +655,7 @@ namespace _4RTools.Forms
                     AutoSize = true,
                     Font = uiRegularFont,
                     LinkBehavior = LinkBehavior.HoverUnderline,
-                    Location = new Point(588, 7),
+                    Location = new Point(628, 7),
                     Name = "lblLinkWebsite",
                     Text = "Site"
                 };
@@ -572,7 +666,7 @@ namespace _4RTools.Forms
                     AutoSize = true,
                     Font = uiRegularFont,
                     LinkBehavior = LinkBehavior.HoverUnderline,
-                    Location = new Point(648, 7),
+                    Location = new Point(688, 7),
                     Name = "lblLinkWiki",
                     Text = "Wiki"
                 };
@@ -581,7 +675,7 @@ namespace _4RTools.Forms
                 this.lblLinkDiscord.AutoSize = true;
                 this.lblLinkDiscord.Font = uiRegularFont;
                 this.lblLinkDiscord.LinkBehavior = LinkBehavior.HoverUnderline;
-                this.lblLinkDiscord.Location = new Point(692, 7);
+                this.lblLinkDiscord.Location = new Point(734, 7);
                 this.lblLinkDiscord.Text = "Discord";
 
                 this.lblLinkGithub = new LinkLabel
@@ -589,13 +683,13 @@ namespace _4RTools.Forms
                     AutoSize = true,
                     Font = uiRegularFont,
                     LinkBehavior = LinkBehavior.HoverUnderline,
-                    Location = new Point(754, 7),
+                    Location = new Point(798, 7),
                     Name = "lblLinkGithub",
                     Text = "GitHub"
                 };
                 this.lblLinkGithub.LinkClicked += lblLinkGithub_LinkClicked;
 
-                this.panelModernFooter.Controls.Add(CreateDivider(new Point(0, 0), new Size(824, 1)));
+                this.panelModernFooter.Controls.Add(CreateDivider(new Point(0, 0), new Size(868, 1)));
                 this.panelModernFooter.Controls.Add(this.lbPowered);
                 this.panelModernFooter.Controls.Add(this.lblLinkWebsite);
                 this.panelModernFooter.Controls.Add(this.lblLinkWiki);
@@ -660,7 +754,7 @@ namespace _4RTools.Forms
 
             this.navButtons[sectionKey] = btn;
             this.panelSidebar.Controls.Add(btn);
-            y += 36;
+            y += 34;
         }
 
         private void SelectSection(string sectionKey)
@@ -702,30 +796,6 @@ namespace _4RTools.Forms
             }
         }
 
-        private void SelectAutopotTab(bool showYgg)
-        {
-            this.btnTabAutopot.IsActive = !showYgg;
-            this.btnTabYgg.IsActive = showYgg;
-
-            if (this.autopotForm != null)
-            {
-                this.autopotForm.Visible = !showYgg;
-                if (!showYgg)
-                {
-                    this.autopotForm.BringToFront();
-                }
-            }
-
-            if (this.autopotYggForm != null)
-            {
-                this.autopotYggForm.Visible = showYgg;
-                if (showYgg)
-                {
-                    this.autopotYggForm.BringToFront();
-                }
-            }
-        }
-
         private void UpdateSectionHeader()
         {
             if (this.lblSectionTitle == null || this.lblSectionSubtitle == null)
@@ -745,9 +815,9 @@ namespace _4RTools.Forms
             }
 
             int startX = this.lblCharacterName.Right + 4;
-            int availableWidth = Math.Max(40, this.cardStatus.Width - 12 - startX);
-            this.characterName.Location = new Point(startX, 125);
-            this.characterName.Size = new Size(availableWidth, 18);
+            int availableWidth = Math.Max(40, this.cardStatus.Width - 14 - startX);
+            this.characterName.Location = new Point(startX, 131);
+            this.characterName.Size = new Size(availableWidth, 19);
         }
 
         private void UpdateSessionSummaryUi()
@@ -757,66 +827,71 @@ namespace _4RTools.Forms
                 this.pbBrandLogo.Image = this.isAutomationOn ? this.brandLogoOnBitmap : this.brandLogoOffBitmap;
             }
 
-            Client activeClient = ClientSingleton.GetClient();
-            bool hasClient = activeClient != null && activeClient.IsProcessAlive();
-
-            if (this.statusDot != null)
+            using (SessionContext.Enter(this.session))
             {
-                this.statusDot.IsConnected = hasClient;
+                Client activeClient = ClientSingleton.GetClient();
+                bool hasClient = activeClient != null && activeClient.IsProcessAlive();
+
+                if (this.statusDot != null)
+                {
+                    this.statusDot.IsConnected = hasClient;
+                }
+
+                if (this.sessionStatusDot != null && this.lblSessionStatus != null)
+                {
+                    if (this.isAutomationOn && this.session.IsChatting)
+                    {
+                        this.sessionStatusDot.CustomColor = Color.FromArgb(245, 158, 11);
+                        this.lblSessionStatus.Text = LocalizationManager.T("sidebar.status_chat");
+                    }
+                    else if (this.isAutomationOn && hasClient && activeClient.ShouldPauseForTown())
+                    {
+                        this.sessionStatusDot.CustomColor = Color.FromArgb(244, 217, 122);
+                        this.lblSessionStatus.Text = LocalizationManager.T("sidebar.status_town");
+                    }
+                    else if (this.isAutomationOn)
+                    {
+                        this.sessionStatusDot.CustomColor = Color.FromArgb(46, 204, 113);
+                        this.lblSessionStatus.Text = LocalizationManager.T("sidebar.status_on");
+                    }
+                    else
+                    {
+                        this.sessionStatusDot.CustomColor = Color.FromArgb(158, 140, 102);
+                        this.lblSessionStatus.Text = LocalizationManager.T("sidebar.status_off");
+                    }
+                }
+
+                if (this.lblSessionProfile != null)
+                {
+                    string profName = !string.IsNullOrWhiteSpace(this.currentProfile)
+                        ? this.currentProfile
+                        : ProfileSingleton.GetCurrent().Name;
+                    this.lblSessionProfile.Text = LocalizationManager.T("sidebar.profile_prefix", profName);
+                }
+
+                if (this.lblTestServerBadge != null)
+                {
+                    this.lblTestServerBadge.Visible = hasClient && ClientUpdaterForm.IsBuiltInTestServerName(activeClient.processName);
+                }
+
+                if (this.lblSessionClient != null)
+                {
+                    if (hasClient)
+                    {
+                        string currentMap = activeClient.ReadCurrentMap();
+                        string clientLabel = string.IsNullOrWhiteSpace(currentMap)
+                            ? activeClient.processName
+                            : string.Format("{0} ({1})", activeClient.processName, currentMap);
+                        this.lblSessionClient.Text = LocalizationManager.T("sidebar.client_connected", clientLabel);
+                    }
+                    else
+                    {
+                        this.lblSessionClient.Text = LocalizationManager.T("sidebar.client_none");
+                    }
+                }
             }
 
-            if (this.sessionStatusDot != null && this.lblSessionStatus != null)
-            {
-                if (this.isAutomationOn && ChatPauseState.IsChatting)
-                {
-                    this.sessionStatusDot.CustomColor = Color.FromArgb(245, 158, 11);
-                    this.lblSessionStatus.Text = LocalizationManager.T("sidebar.status_chat");
-                }
-                else if (this.isAutomationOn && hasClient && activeClient.ShouldPauseForTown())
-                {
-                    this.sessionStatusDot.CustomColor = Color.FromArgb(244, 217, 122);
-                    this.lblSessionStatus.Text = LocalizationManager.T("sidebar.status_town");
-                }
-                else if (this.isAutomationOn)
-                {
-                    this.sessionStatusDot.CustomColor = Color.FromArgb(46, 204, 113);
-                    this.lblSessionStatus.Text = LocalizationManager.T("sidebar.status_on");
-                }
-                else
-                {
-                    this.sessionStatusDot.CustomColor = Color.FromArgb(158, 140, 102);
-                    this.lblSessionStatus.Text = LocalizationManager.T("sidebar.status_off");
-                }
-            }
-
-            if (this.lblSessionProfile != null)
-            {
-                string profName = !string.IsNullOrWhiteSpace(this.currentProfile)
-                    ? this.currentProfile
-                    : ProfileSingleton.GetCurrent().Name;
-                this.lblSessionProfile.Text = LocalizationManager.T("sidebar.profile_prefix", profName);
-            }
-
-            if (this.lblTestServerBadge != null)
-            {
-                this.lblTestServerBadge.Visible = hasClient && ClientUpdaterForm.IsBuiltInTestServerName(activeClient.processName);
-            }
-
-            if (this.lblSessionClient != null)
-            {
-                if (hasClient)
-                {
-                    string currentMap = activeClient.ReadCurrentMap();
-                    string clientLabel = string.IsNullOrWhiteSpace(currentMap)
-                        ? activeClient.processName
-                        : string.Format("{0} ({1})", activeClient.processName, currentMap);
-                    this.lblSessionClient.Text = LocalizationManager.T("sidebar.client_connected", clientLabel);
-                }
-                else
-                {
-                    this.lblSessionClient.Text = LocalizationManager.T("sidebar.client_none");
-                }
-            }
+            RaiseSessionStateChanged();
         }
 
         private void ApplyAppSettingsToUi()
@@ -826,12 +901,22 @@ namespace _4RTools.Forms
             {
                 LocalizationManager.SetLanguage(this.appSettings.Language);
                 this.cbLanguage.SelectedItem = LocalizationManager.IsPortuguese ? "PT-BR" : "EN";
-                this.cbDarkMode.Checked = this.appSettings.DarkMode;
-                this.cbUseBuffsInTown.Checked = this.appSettings.UseBuffsInTown;
-                this.cbMiniHud.Checked = this.appSettings.ShowMiniHud;
+                if (this.btnThemeToggle != null)
+                {
+                    this.btnThemeToggle.IsDarkMode = this.appSettings.DarkMode;
+                }
+                this.cbUseBuffsInTown.Checked = !this.appSettings.UseBuffsInTown;
+                if (this.toggleForm != null)
+                {
+                    this.toggleForm.SetMiniHudChecked(this.appSettings.ShowMiniHud);
+                }
                 Client.AllowBuffsInTown = this.appSettings.UseBuffsInTown;
                 ApplyLanguageToUi();
                 ThemeManager.ApplyTheme(this, this.appSettings.DarkMode);
+                if (this.aureumHubForm != null && !this.aureumHubForm.IsDisposed)
+                {
+                    this.aureumHubForm.ApplyCustomThemeStyling();
+                }
                 SetMiniHudVisible(this.appSettings.ShowMiniHud);
             }
             finally
@@ -843,6 +928,7 @@ namespace _4RTools.Forms
         private void ApplyLanguageToUi()
         {
             LocalizationManager.ApplyToControlTree(this);
+            CenterPauseInTownCheckbox();
             UpdateSectionHeader();
             UpdateSessionSummaryUi();
             PositionCharacterNameLabel();
@@ -875,9 +961,9 @@ namespace _4RTools.Forms
             }
 
             this.headerToolTip.SetToolTip(this.processCB, LocalizationManager.T("tooltip.process_select"));
+            this.headerToolTip.SetToolTip(this.lblProcessName, LocalizationManager.T("tooltip.process_select"));
             this.headerToolTip.SetToolTip(this.profileCB, LocalizationManager.T("tooltip.profile_select"));
-            this.headerToolTip.SetToolTip(this.btnTabAutopot, LocalizationManager.T("tooltip.tab_autopot"));
-            this.headerToolTip.SetToolTip(this.btnTabYgg, LocalizationManager.T("tooltip.tab_ygg"));
+            this.headerToolTip.SetToolTip(this.labelProfile, LocalizationManager.T("tooltip.profile_select"));
             if (this.hpBar != null)
             {
                 this.headerToolTip.SetToolTip(this.hpBar, LocalizationManager.T("tooltip.vital_hp"));
@@ -900,8 +986,10 @@ namespace _4RTools.Forms
                 this.headerToolTip.SetToolTip(nav.Value, LocalizationManager.T("tooltip.nav_" + nav.Key));
             }
 
-            this.headerToolTip.SetToolTip(this.cbDarkMode, LocalizationManager.T("tooltip.dark_mode"));
-            this.headerToolTip.SetToolTip(this.cbMiniHud, LocalizationManager.T("tooltip.mini_hud"));
+            if (this.btnThemeToggle != null)
+            {
+                this.headerToolTip.SetToolTip(this.btnThemeToggle, LocalizationManager.T("tooltip.dark_mode"));
+            }
             this.headerToolTip.SetToolTip(this.cbUseBuffsInTown, LocalizationManager.T("tooltip.use_buffs_in_town"));
             this.headerToolTip.SetToolTip(this.cbLanguage, LocalizationManager.T("tooltip.language"));
             this.headerToolTip.SetToolTip(this.btnRefresh, LocalizationManager.T("tooltip.refresh_clients"));
@@ -935,6 +1023,11 @@ namespace _4RTools.Forms
             LocalizationManager.SetLanguage(this.appSettings.Language);
             ApplyLanguageToUi();
             AppSettings.Save(this.appSettings);
+            Action<string> langChanged = this.LanguageChangedByUser;
+            if (langChanged != null)
+            {
+                langChanged(this.appSettings.Language);
+            }
         }
 
         public void ReloadAppSettings()
@@ -952,20 +1045,45 @@ namespace _4RTools.Forms
             this.subject.Notify(new Utils.Message(MessageCode.SERVER_LIST_CHANGED, "Servers Restored"));
         }
 
-        private void OnDarkModeCheckedChanged(object sender, EventArgs e)
+        private void OnThemeToggleClicked(object sender, EventArgs e)
         {
-            if (this.isApplyingSettings)
+            if (this.isApplyingSettings || this.btnThemeToggle == null)
             {
                 return;
             }
 
-            this.appSettings.DarkMode = this.cbDarkMode.Checked;
+            this.appSettings.DarkMode = !this.appSettings.DarkMode;
+            this.btnThemeToggle.IsDarkMode = this.appSettings.DarkMode;
             ThemeManager.ApplyTheme(this, this.appSettings.DarkMode);
+            if (this.aureumHubForm != null && !this.aureumHubForm.IsDisposed)
+            {
+                this.aureumHubForm.ApplyCustomThemeStyling();
+            }
             if (this.miniHud != null && !this.miniHud.IsDisposed)
             {
                 this.miniHud.ApplyHudTheme(this.appSettings.DarkMode);
             }
             AppSettings.Save(this.appSettings);
+            Action<bool> darkChanged = this.DarkModeChangedByUser;
+            if (darkChanged != null)
+            {
+                darkChanged(this.appSettings.DarkMode);
+            }
+        }
+
+        private void CenterPauseInTownCheckbox()
+        {
+            if (this.cbUseBuffsInTown == null || this.profileCB == null || this.btnThemeToggle == null)
+            {
+                return;
+            }
+
+            Size pref = this.cbUseBuffsInTown.PreferredSize;
+            int leftBound = this.profileCB.Right;
+            int rightBound = this.btnThemeToggle.Left;
+            int centeredX = leftBound + Math.Max(6, (rightBound - leftBound - pref.Width) / 2);
+            int centeredY = this.profileCB.Top + ((this.profileCB.Height - pref.Height) / 2);
+            this.cbUseBuffsInTown.Location = new Point(centeredX, centeredY);
         }
 
         private void OnUseBuffsInTownCheckedChanged(object sender, EventArgs e)
@@ -975,21 +1093,26 @@ namespace _4RTools.Forms
                 return;
             }
 
-            this.appSettings.UseBuffsInTown = this.cbUseBuffsInTown.Checked;
+            this.appSettings.UseBuffsInTown = !this.cbUseBuffsInTown.Checked;
             Client.AllowBuffsInTown = this.appSettings.UseBuffsInTown;
             UpdateSessionSummaryUi();
-            SyncMiniHudState(ClientSingleton.GetClient());
+            SyncMiniHudState(this.session.Client);
             AppSettings.Save(this.appSettings);
+            Action<bool> townChanged = this.UseBuffsInTownChangedByUser;
+            if (townChanged != null)
+            {
+                townChanged(this.appSettings.UseBuffsInTown);
+            }
         }
 
-        private void OnMiniHudCheckedChanged(object sender, EventArgs e)
+        private void OnMiniHudToggled(bool isVisible)
         {
             if (this.isApplyingSettings)
             {
                 return;
             }
 
-            this.appSettings.ShowMiniHud = this.cbMiniHud.Checked;
+            this.appSettings.ShowMiniHud = isVisible;
             SetMiniHudVisible(this.appSettings.ShowMiniHud);
             AppSettings.Save(this.appSettings);
         }
@@ -1007,7 +1130,7 @@ namespace _4RTools.Forms
             bool isTownPaused = hasLiveClient && client.ShouldPauseForTown();
             bool isUnfocused = hasLiveClient && client.ShouldPauseForFocus();
 
-            this.miniHud.UpdateStatus(this.isAutomationOn, ChatPauseState.IsChatting, isTownPaused, isUnfocused);
+            this.miniHud.UpdateStatus(this.isAutomationOn, this.session.IsChatting, isTownPaused, isUnfocused);
             this.miniHud.UpdateTelemetry(currentMap, activeBuffs);
         }
 
@@ -1024,7 +1147,7 @@ namespace _4RTools.Forms
                 }
 
                 this.miniHud.ApplyHudTheme(this.appSettings.DarkMode);
-                Client activeClient = ClientSingleton.GetClient();
+                Client activeClient = this.session.Client;
                 this.miniHud.UpdateIdentity(this.currentProfile ?? ProfileSingleton.GetCurrent().Name, this.characterName.Text);
                 SyncMiniHudState(activeClient);
                 if (!this.miniHud.Visible)
@@ -1047,7 +1170,11 @@ namespace _4RTools.Forms
                 return;
             }
 
-            this.cbMiniHud.Checked = false;
+            if (this.toggleForm != null && !this.toggleForm.IsDisposed)
+            {
+                this.toggleForm.SetMiniHudChecked(false);
+            }
+            OnMiniHudToggled(false);
         }
 
         private void OnMiniHudPositionChanged(object sender, EventArgs e)
@@ -1072,7 +1199,7 @@ namespace _4RTools.Forms
             MethodInvoker updateUi = delegate
             {
                 UpdateSessionSummaryUi();
-                SyncMiniHudState(ClientSingleton.GetClient());
+                SyncMiniHudState(this.session.Client);
             };
 
             if (this.InvokeRequired)
@@ -1138,40 +1265,50 @@ namespace _4RTools.Forms
                 return;
             }
 
-            Client client = ClientSingleton.GetClient();
-            if (client == null || !client.IsProcessAlive())
+            using (SessionContext.Enter(this.session))
             {
-                this.vitalsTimer.Stop();
-                this.hpBar.ClearValues();
-                this.spBar.ClearValues();
-                if (this.miniHud != null && !this.miniHud.IsDisposed)
+                Client client = ClientSingleton.GetClient();
+                if (client == null || !client.IsProcessAlive())
                 {
-                    this.miniHud.ClearVitals();
-                }
-                this.lastDetectedCharacter = string.Empty;
-                UpdateSessionSummaryUi();
-                return;
-            }
-
-            UpdateVitalsDisplay(client);
-            SyncMiniHudState(client);
-
-            if (client.HasMemorySupport)
-            {
-                string detected = client.ReadCharacterName();
-                string normalized = string.IsNullOrWhiteSpace(detected) ? string.Empty : detected.Trim();
-                if (!string.Equals(normalized, this.lastDetectedCharacter, StringComparison.Ordinal))
-                {
-                    this.lastDetectedCharacter = normalized;
-                    this.characterName.Text = string.IsNullOrEmpty(normalized) ? "- -" : normalized;
+                    this.vitalsTimer.Stop();
+                    this.hpBar.ClearValues();
+                    this.spBar.ClearValues();
                     if (this.miniHud != null && !this.miniHud.IsDisposed)
                     {
-                        this.miniHud.UpdateIdentity(this.currentProfile ?? ProfileSingleton.GetCurrent().Name, this.characterName.Text);
+                        this.miniHud.ClearVitals();
                     }
+                    this.lastDetectedCharacter = string.Empty;
+                    UpdateSessionSummaryUi();
+                    return;
+                }
 
-                    if (!string.IsNullOrEmpty(normalized) && this.profileCB.Enabled)
+                if (this.session.IsChatting && !client.IsGameWindowFocused())
+                {
+                    // Auto-clear stuck CHAT state whenever the game window loses focus (e.g. Alt+Tab or clicking 4Tools).
+                    this.session.ResumeChat();
+                }
+
+                UpdateVitalsDisplay(client);
+                SyncMiniHudState(client);
+
+                if (client.HasMemorySupport)
+                {
+                    string detected = client.ReadCharacterName();
+                    string normalized = string.IsNullOrWhiteSpace(detected) ? string.Empty : detected.Trim();
+                    if (!string.Equals(normalized, this.lastDetectedCharacter, StringComparison.Ordinal))
                     {
-                        TryAutoSwitchProfileForCharacter(normalized);
+                        this.lastDetectedCharacter = normalized;
+                        this.characterName.Text = string.IsNullOrEmpty(normalized) ? "- -" : normalized;
+                        RaiseSessionStateChanged();
+                        if (this.miniHud != null && !this.miniHud.IsDisposed)
+                        {
+                            this.miniHud.UpdateIdentity(this.currentProfile ?? ProfileSingleton.GetCurrent().Name, this.characterName.Text);
+                        }
+
+                        if (!string.IsNullOrEmpty(normalized) && this.profileCB.Enabled)
+                        {
+                            TryAutoSwitchProfileForCharacter(normalized);
+                        }
                     }
                 }
             }
@@ -1207,27 +1344,31 @@ namespace _4RTools.Forms
 
         private void ClientMonitorTimer_Tick(object sender, EventArgs e)
         {
-            Client client = ClientSingleton.GetClient();
-            if (client != null && !client.IsProcessAlive())
+            using (SessionContext.Enter(this.session))
             {
-                this.clientMonitorTimer.Stop();
-                this.vitalsTimer.Stop();
-                this.isAutomationOn = false;
-                this.subject.Notify(new Utils.Message(MessageCode.TURN_OFF, null));
-                this.subject.Notify(new Utils.Message(MessageCode.CLIENT_DISCONNECTED, null));
-                ClientSingleton.Clear();
-                this.lastDetectedCharacter = string.Empty;
-                this.characterName.Text = "- -";
-                this.hpBar.ClearValues();
-                this.spBar.ClearValues();
-                UpdateSessionSummaryUi();
-                if (this.miniHud != null && !this.miniHud.IsDisposed)
+                Client client = ClientSingleton.GetClient();
+                if (client != null && !client.IsProcessAlive())
                 {
-                    this.miniHud.ClearVitals();
-                    this.miniHud.UpdateIdentity(this.currentProfile ?? ProfileSingleton.GetCurrent().Name, "- -");
-                    this.miniHud.UpdateStatus(false, false);
+                    this.clientMonitorTimer.Stop();
+                    this.vitalsTimer.Stop();
+                    this.isAutomationOn = false;
+                    this.session.IsAutomationOn = false;
+                    this.subject.Notify(new Utils.Message(MessageCode.TURN_OFF, null));
+                    this.subject.Notify(new Utils.Message(MessageCode.CLIENT_DISCONNECTED, null));
+                    ClientSingleton.Clear();
+                    this.lastDetectedCharacter = string.Empty;
+                    this.characterName.Text = "- -";
+                    this.hpBar.ClearValues();
+                    this.spBar.ClearValues();
+                    UpdateSessionSummaryUi();
+                    if (this.miniHud != null && !this.miniHud.IsDisposed)
+                    {
+                        this.miniHud.ClearVitals();
+                        this.miniHud.UpdateIdentity(this.currentProfile ?? ProfileSingleton.GetCurrent().Name, "- -");
+                        this.miniHud.UpdateStatus(false, false);
+                    }
+                    this.refreshProcessList();
                 }
-                this.refreshProcessList();
             }
         }
 
@@ -1238,29 +1379,35 @@ namespace _4RTools.Forms
                 return;
             }
 
-            Client client = new Client(this.processCB.SelectedItem.ToString());
-            ClientSingleton.Instance(client);
-
-            if (!client.IsSupported)
+            using (SessionContext.Enter(this.session))
             {
-                MessageBox.Show(
-                    LocalizationManager.T("msg.client_unsupported"),
-                    LocalizationManager.T("title.warning"),
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
-            }
+                Client client = new Client(this.processCB.SelectedItem.ToString());
+                ClientSingleton.Instance(client);
 
-            this.subject.Notify(new Utils.Message(Utils.MessageCode.PROCESS_CHANGED, null));
+                if (!client.IsSupported)
+                {
+                    MessageBox.Show(
+                        LocalizationManager.T("msg.client_unsupported"),
+                        LocalizationManager.T("title.warning"),
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                }
+
+                this.subject.Notify(new Utils.Message(Utils.MessageCode.PROCESS_CHANGED, null));
+            }
         }
 
         private void Container_Load(object sender, EventArgs e)
         {
-            ProfileSingleton.Create("Default");
-            this.refreshProcessList();
-            this.refreshProfileList("Default");
-            ApplyLanguageToUi();
-            ThemeManager.ApplyTheme(this, this.appSettings.DarkMode);
-            UpdateSessionSummaryUi();
+            using (SessionContext.Enter(this.session))
+            {
+                ProfileSingleton.Create("Default");
+                this.refreshProcessList();
+                this.refreshProfileList("Default");
+                ApplyLanguageToUi();
+                ThemeManager.ApplyTheme(this, this.appSettings.DarkMode);
+                UpdateSessionSummaryUi();
+            }
         }
 
         public void refreshProfileList(string selectProfile = null)
@@ -1357,9 +1504,25 @@ namespace _4RTools.Forms
                 {
                     this.processCB.SelectedItem = previousSelection;
                 }
-                else if (this.processCB.Items.Count == 1)
+                else
                 {
-                    this.processCB.SelectedIndex = 0;
+                    HashSet<string> assigned = this.assignedProcessProvider != null ? this.assignedProcessProvider() : null;
+                    if (assigned != null && assigned.Count > 0)
+                    {
+                        for (int i = 0; i < this.processCB.Items.Count; i++)
+                        {
+                            string candidate = this.processCB.Items[i] as string;
+                            if (!string.IsNullOrEmpty(candidate) && !assigned.Contains(candidate))
+                            {
+                                this.processCB.SelectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                    else if (this.processCB.Items.Count == 1)
+                    {
+                        this.processCB.SelectedIndex = 0;
+                    }
                 }
             };
 
@@ -1424,37 +1587,49 @@ namespace _4RTools.Forms
 
             try
             {
-                KeyboardHook.PhysicalKeyDown -= OnPhysicalPlayerKeyDown;
-                ChatPauseState.StateChanged -= OnChatPauseStateChanged;
-                ActionPriorityCoordinator.SetYggEmergencyActive(false);
-                this.clientMonitorTimer.Stop();
-                this.clientMonitorTimer.Dispose();
-                this.vitalsTimer.Stop();
-                this.vitalsTimer.Dispose();
-                if (this.miniHud != null && !this.miniHud.IsDisposed)
+                using (SessionContext.Enter(this.session))
                 {
-                    this.miniHud.CloseRequested -= OnMiniHudCloseRequested;
-                    this.miniHud.PositionChanged -= OnMiniHudPositionChanged;
-                    this.miniHud.Close();
-                    this.miniHud.Dispose();
-                    this.miniHud = null;
+                    KeyboardHook.PhysicalKeyDown -= OnPhysicalPlayerKeyDown;
+                    this.session.ChatStateChanged -= OnChatPauseStateChanged;
+                    ActionPriorityCoordinator.SetYggEmergencyActive(false);
+                    this.clientMonitorTimer.Stop();
+                    this.clientMonitorTimer.Dispose();
+                    this.vitalsTimer.Stop();
+                    this.vitalsTimer.Dispose();
+                    if (this.miniHud != null && !this.miniHud.IsDisposed)
+                    {
+                        this.miniHud.CloseRequested -= OnMiniHudCloseRequested;
+                        this.miniHud.PositionChanged -= OnMiniHudPositionChanged;
+                        this.miniHud.Close();
+                        this.miniHud.Dispose();
+                        this.miniHud = null;
+                    }
+                    if (this.headerToolTip != null)
+                    {
+                        this.headerToolTip.Dispose();
+                        this.headerToolTip = null;
+                    }
+                    if (this.toggleForm != null && !this.toggleForm.IsDisposed)
+                    {
+                        this.toggleForm.Shutdown();
+                    }
+                    this.session.ResumeChat();
+                    this.session.IsAutomationOn = false;
+                    if (!this.isEmbeddedTab)
+                    {
+                        KeyboardHook.Disable();
+                    }
+                    this.subject.Notify(new Utils.Message(MessageCode.TURN_OFF, null));
+                    ClientSingleton.Clear();
+                    SessionContext.UnregisterSession(this.session);
                 }
-                if (this.headerToolTip != null)
-                {
-                    this.headerToolTip.Dispose();
-                    this.headerToolTip = null;
-                }
-                ChatPauseState.Resume();
-                KeyboardHook.Disable();
-                this.subject.Notify(new Utils.Message(MessageCode.TURN_OFF, null));
-                ClientSingleton.Clear();
             }
             catch (Exception ex)
             {
                 Logger.Error("Container", "Error during shutdown", ex);
             }
 
-            if (requestClose && !this.IsDisposed)
+            if (requestClose && !this.isEmbeddedTab && !this.IsDisposed)
             {
                 this.Close();
             }
@@ -1505,10 +1680,13 @@ namespace _4RTools.Forms
 
             try
             {
-                ProfileSingleton.Load(active);
-                using (ProfileSingleton.SuppressSave())
+                using (SessionContext.Enter(this.session))
                 {
-                    this.subject.Notify(new Utils.Message(MessageCode.PROFILE_CHANGED, null));
+                    ProfileSingleton.Load(active);
+                    using (ProfileSingleton.SuppressSave())
+                    {
+                        this.subject.Notify(new Utils.Message(MessageCode.PROFILE_CHANGED, null));
+                    }
                 }
             }
             catch (Exception ex)
@@ -1527,11 +1705,14 @@ namespace _4RTools.Forms
 
             try
             {
-                ProfileSingleton.Load(selected);
-                this.currentProfile = selected;
-                using (ProfileSingleton.SuppressSave())
+                using (SessionContext.Enter(this.session))
                 {
-                    this.subject.Notify(new Utils.Message(MessageCode.PROFILE_CHANGED, null));
+                    ProfileSingleton.Load(selected);
+                    this.currentProfile = selected;
+                    using (ProfileSingleton.SuppressSave())
+                    {
+                        this.subject.Notify(new Utils.Message(MessageCode.PROFILE_CHANGED, null));
+                    }
                 }
             }
             catch (Exception ex)
@@ -1553,72 +1734,81 @@ namespace _4RTools.Forms
                 return;
             }
 
-            switch (subj.Message.code)
+            using (SessionContext.Enter(this.session))
             {
-                case MessageCode.PROCESS_CHANGED:
-                    Client activeClient = ClientSingleton.GetClient();
-                    UpdateCharacterNameLabel(true);
-                    UpdateVitalsDisplay(activeClient);
-                    UpdateSessionSummaryUi();
-                    if (activeClient != null && activeClient.IsProcessAlive())
-                    {
+                switch (subj.Message.code)
+                {
+                    case MessageCode.PROCESS_CHANGED:
+                        Client activeClient = ClientSingleton.GetClient();
+                        UpdateCharacterNameLabel(true);
+                        UpdateVitalsDisplay(activeClient);
+                        UpdateSessionSummaryUi();
+                        if (activeClient != null && activeClient.IsProcessAlive())
+                        {
+                            this.vitalsTimer.Start();
+                        }
+                        else
+                        {
+                            this.vitalsTimer.Stop();
+                        }
+                        break;
+                    case MessageCode.PROFILE_CHANGED:
+                        UpdateCharacterNameLabel(false);
+                        UpdateSessionSummaryUi();
+                        if (this.profileForm != null)
+                        {
+                            this.profileForm.RefreshCharacterBindingUi();
+                        }
+                        if (this.miniHud != null && !this.miniHud.IsDisposed)
+                        {
+                            this.miniHud.UpdateIdentity(this.currentProfile ?? ProfileSingleton.GetCurrent().Name, this.characterName.Text);
+                        }
+                        break;
+                    case MessageCode.TURN_OFF:
+                        this.isAutomationOn = false;
+                        this.session.IsAutomationOn = false;
+                        ActionPriorityCoordinator.SetYggEmergencyActive(false);
+                        this.clientMonitorTimer.Stop();
+                        this.profileCB.Enabled = true;
+                        this.processCB.Enabled = true;
+                        UpdateSessionSummaryUi();
+                        SyncMiniHudState(ClientSingleton.GetClient());
+                        break;
+                    case MessageCode.TURN_ON:
+                        this.isAutomationOn = true;
+                        this.session.IsAutomationOn = true;
+                        this.profileCB.Enabled = false;
+                        this.processCB.Enabled = false;
+                        UpdateCharacterNameLabel(false);
+                        UpdateSessionSummaryUi();
+                        this.clientMonitorTimer.Start();
                         this.vitalsTimer.Start();
-                    }
-                    else
-                    {
-                        this.vitalsTimer.Stop();
-                    }
-                    break;
-                case MessageCode.PROFILE_CHANGED:
-                    UpdateCharacterNameLabel(false);
-                    UpdateSessionSummaryUi();
-                    if (this.profileForm != null)
-                    {
-                        this.profileForm.RefreshCharacterBindingUi();
-                    }
-                    if (this.miniHud != null && !this.miniHud.IsDisposed)
-                    {
-                        this.miniHud.UpdateIdentity(this.currentProfile ?? ProfileSingleton.GetCurrent().Name, this.characterName.Text);
-                    }
-                    break;
-                case MessageCode.TURN_OFF:
-                    this.isAutomationOn = false;
-                    ActionPriorityCoordinator.SetYggEmergencyActive(false);
-                    this.clientMonitorTimer.Stop();
-                    this.profileCB.Enabled = true;
-                    this.processCB.Enabled = true;
-                    UpdateSessionSummaryUi();
-                    SyncMiniHudState(ClientSingleton.GetClient());
-                    break;
-                case MessageCode.TURN_ON:
-                    this.isAutomationOn = true;
-                    this.profileCB.Enabled = false;
-                    this.processCB.Enabled = false;
-                    UpdateCharacterNameLabel(false);
-                    UpdateSessionSummaryUi();
-                    this.clientMonitorTimer.Start();
-                    this.vitalsTimer.Start();
-                    SyncMiniHudState(ClientSingleton.GetClient());
-                    break;
-                case MessageCode.CLIENT_DISCONNECTED:
-                    UpdateSessionSummaryUi();
-                    break;
-                case MessageCode.SERVER_LIST_CHANGED:
-                    this.refreshProcessList();
-                    break;
-                case MessageCode.CLICK_ICON_TRAY:
-                    this.Show();
-                    this.WindowState = FormWindowState.Normal;
-                    this.Activate();
-                    break;
-                case MessageCode.SHUTDOWN_APPLICATION:
-                    ShutdownApplication(true);
-                    break;
+                        SyncMiniHudState(ClientSingleton.GetClient());
+                        break;
+                    case MessageCode.CLIENT_DISCONNECTED:
+                        UpdateSessionSummaryUi();
+                        break;
+                    case MessageCode.SERVER_LIST_CHANGED:
+                        this.refreshProcessList();
+                        break;
+                    case MessageCode.CLICK_ICON_TRAY:
+                        if (!this.isEmbeddedTab)
+                        {
+                            this.Show();
+                            this.WindowState = FormWindowState.Normal;
+                            this.Activate();
+                        }
+                        break;
+                    case MessageCode.SHUTDOWN_APPLICATION:
+                        ShutdownApplication(true);
+                        break;
+                }
             }
         }
 
         private void UpdateCharacterNameLabel(bool allowAutoSwitch)
         {
+            string previousDetected = this.lastDetectedCharacter;
             Client client = ClientSingleton.GetClient();
             if (client != null && client.IsProcessAlive())
             {
@@ -1641,6 +1831,11 @@ namespace _4RTools.Forms
             if (this.miniHud != null && !this.miniHud.IsDisposed)
             {
                 this.miniHud.UpdateIdentity(this.currentProfile ?? ProfileSingleton.GetCurrent().Name, this.characterName.Text);
+            }
+
+            if (!string.Equals(previousDetected, this.lastDetectedCharacter, StringComparison.Ordinal))
+            {
+                RaiseSessionStateChanged();
             }
         }
 
@@ -1667,10 +1862,12 @@ namespace _4RTools.Forms
 
         public void SetToggleApplicationStateWindow()
         {
-            ToggleApplicationStateForm frm = new ToggleApplicationStateForm(this.subject);
+            ToggleApplicationStateForm frm = new ToggleApplicationStateForm(this.subject, this.session, this.isEmbeddedTab);
             frm.TopLevel = false;
             frm.FormBorderStyle = FormBorderStyle.None;
             frm.Dock = DockStyle.Fill;
+            frm.MiniHudCheckedChanged += OnMiniHudToggled;
+            this.toggleForm = frm;
             this.OnOffPanel.Controls.Add(frm);
             frm.Show();
         }
@@ -1693,9 +1890,8 @@ namespace _4RTools.Forms
             frm.FormBorderStyle = FormBorderStyle.None;
             frm.Dock = DockStyle.Fill;
             this.autopotYggForm = frm;
-            this.autopotHostPanel.Controls.Add(frm);
+            this.autopotYggHostPanel.Controls.Add(frm);
             frm.Show();
-            frm.Visible = false;
         }
 
         public void SetSkillTimerWindow()
@@ -1745,6 +1941,22 @@ namespace _4RTools.Forms
             RegisterSectionForm("utilities", new UtilitiesForm(this.subject));
         }
 
+        public void SetAureumHubWindow()
+        {
+            bool enableAlerts = !this.isEmbeddedTab || this.session.SlotIndex == 0;
+            AureumHubForm frm = new AureumHubForm(this.subject, enableAlerts);
+            frm.VoteNotificationRequested += msg =>
+            {
+                Action<string> handler = this.VoteNotificationRequested;
+                if (handler != null)
+                {
+                    handler(msg);
+                }
+            };
+            this.aureumHubForm = frm;
+            RegisterSectionForm("aureum", frm);
+        }
+
         public void SetGuideWindow()
         {
             RegisterSectionForm("guide", new GuideForm(this.subject));
@@ -1765,25 +1977,28 @@ namespace _4RTools.Forms
 
         private void OnPhysicalPlayerKeyDown(Keys key)
         {
-            if (!this.isAutomationOn || KeyboardHook.Alt || KeyboardHook.Control)
+            using (SessionContext.Enter(this.session))
             {
-                return;
-            }
-
-            Profile prof = ProfileSingleton.GetCurrent();
-            if (prof != null && prof.UserPreferences != null)
-            {
-                Keys toggleKey;
-                if (KeyHelper.TryParseFormsKeys(prof.UserPreferences.toggleStateKey, out toggleKey) && key == toggleKey)
+                if (!this.isAutomationOn || KeyboardHook.Alt || KeyboardHook.Control)
                 {
                     return;
                 }
-            }
 
-            Client activeClient = ClientSingleton.GetClient();
-            if (activeClient != null && activeClient.IsProcessAlive() && activeClient.IsGameWindowFocused())
-            {
-                ActionPriorityCoordinator.NotifyPlayerInput();
+                Profile prof = ProfileSingleton.GetCurrent();
+                if (prof != null && prof.UserPreferences != null)
+                {
+                    Keys toggleKey;
+                    if (KeyHelper.TryParseFormsKeys(prof.UserPreferences.toggleStateKey, out toggleKey) && key == toggleKey)
+                    {
+                        return;
+                    }
+                }
+
+                Client activeClient = ClientSingleton.GetClient();
+                if (activeClient != null && activeClient.IsProcessAlive() && activeClient.IsGameWindowFocused())
+                {
+                    ActionPriorityCoordinator.NotifyPlayerInput();
+                }
             }
         }
 

@@ -107,25 +107,9 @@ namespace _4RTools.Model
 
     public sealed class ClientSingleton
     {
-        private static readonly object SyncRoot = new object();
-        private static Client client;
-
         private ClientSingleton(Client newClient)
         {
-            Client previous = null;
-            lock (SyncRoot)
-            {
-                if (!ReferenceEquals(client, newClient))
-                {
-                    previous = client;
-                    client = newClient;
-                }
-            }
-
-            if (previous != null)
-            {
-                previous.Dispose();
-            }
+            SessionContext.Current.SetClient(newClient);
         }
 
         public static ClientSingleton Instance(Client newClient)
@@ -135,25 +119,12 @@ namespace _4RTools.Model
 
         public static Client GetClient()
         {
-            lock (SyncRoot)
-            {
-                return client;
-            }
+            return SessionContext.Current.Client;
         }
 
         public static void Clear()
         {
-            Client previous;
-            lock (SyncRoot)
-            {
-                previous = client;
-                client = null;
-            }
-
-            if (previous != null)
-            {
-                previous.Dispose();
-            }
+            SessionContext.Current.SetClient(null);
         }
     }
 
@@ -194,8 +165,12 @@ namespace _4RTools.Model
         private readonly Stopwatch mapCacheClock = Stopwatch.StartNew();
         private long lastMapReadMs = -10000;
         private string cachedMapName = string.Empty;
+        private readonly object processCacheLock = new object();
+        private long lastProcessProbeMs = -10000;
+        private bool cachedProcessAlive = false;
+        private IntPtr cachedWindowHandle = IntPtr.Zero;
         public bool IsSupported { get; private set; }
-        private bool disposed = false;
+        private volatile bool disposed = false;
 
         public bool HasMemorySupport
         {
@@ -295,6 +270,40 @@ namespace _4RTools.Model
             }
         }
 
+        private void RefreshProcessCacheIfNeeded(bool requireWindowHandle)
+        {
+            long now = this.mapCacheClock.ElapsedMilliseconds;
+            lock (this.processCacheLock)
+            {
+                if (this.disposed || this.process == null)
+                {
+                    this.cachedProcessAlive = false;
+                    this.cachedWindowHandle = IntPtr.Zero;
+                    return;
+                }
+
+                bool withinWindow = (now - this.lastProcessProbeMs) < 250;
+                if (withinWindow && (!requireWindowHandle || this.cachedWindowHandle != IntPtr.Zero || !this.cachedProcessAlive))
+                {
+                    return;
+                }
+
+                try
+                {
+                    bool alive = !this.process.HasExited;
+                    this.cachedProcessAlive = alive;
+                    this.cachedWindowHandle = alive ? this.process.MainWindowHandle : IntPtr.Zero;
+                }
+                catch
+                {
+                    this.cachedProcessAlive = false;
+                    this.cachedWindowHandle = IntPtr.Zero;
+                }
+
+                this.lastProcessProbeMs = now;
+            }
+        }
+
         public bool IsProcessAlive()
         {
             if (this.disposed || this.process == null)
@@ -302,31 +311,19 @@ namespace _4RTools.Model
                 return false;
             }
 
-            try
-            {
-                return !this.process.HasExited;
-            }
-            catch
-            {
-                return false;
-            }
+            RefreshProcessCacheIfNeeded(false);
+            return this.cachedProcessAlive;
         }
 
         public IntPtr GetWindowHandle()
         {
-            if (!IsProcessAlive())
+            if (this.disposed || this.process == null)
             {
                 return IntPtr.Zero;
             }
 
-            try
-            {
-                return this.process.MainWindowHandle;
-            }
-            catch
-            {
-                return IntPtr.Zero;
-            }
+            RefreshProcessCacheIfNeeded(true);
+            return this.cachedProcessAlive ? this.cachedWindowHandle : IntPtr.Zero;
         }
 
         public bool IsGameWindowFocused()
@@ -970,6 +967,11 @@ namespace _4RTools.Model
             }
 
             this.disposed = true;
+            lock (this.processCacheLock)
+            {
+                this.cachedProcessAlive = false;
+                this.cachedWindowHandle = IntPtr.Zero;
+            }
 
             if (disposing)
             {

@@ -15,10 +15,12 @@ if (-not (Test-Path $ClientDir)) {
     throw "Pasta do cliente nao encontrada: $ClientDir"
 }
 
-Write-Host "=== Instalador AureumRO-4Tools (Build Servidor de Testes) ===" -ForegroundColor Yellow
+Write-Host "=== Instalador AureumTools (Build Servidor de Testes) ===" -ForegroundColor Yellow
 
-# 1. Fecha qualquer instancia antiga do 4Tools (mesmo minimizada na bandeja)
-$running = Get-Process | Where-Object { $_.ProcessName -like "*4Tools*" -or $_.ProcessName -like "*4RTools*" }
+# 1. Fecha qualquer instancia antiga do AureumTools / 4Tools (mesmo minimizada na bandeja)
+$running = Get-Process | Where-Object {
+    $_.ProcessName -like "*AureumTools*" -or $_.ProcessName -like "*4Tools*" -or $_.ProcessName -like "*4RTools*"
+}
 foreach ($proc in $running) {
     Write-Host "[INFO] Fechando instancia aberta: $($proc.ProcessName) (PID $($proc.Id))..." -ForegroundColor DarkYellow
     Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
@@ -37,18 +39,28 @@ if ([string]::IsNullOrWhiteSpace($ZipPath)) {
 
 if (-not [string]::IsNullOrWhiteSpace($ZipPath) -and (Test-Path $ZipPath)) {
     Write-Host "[1/2] Extraindo: $ZipPath" -ForegroundColor Cyan
-    $tmp = Join-Path $env:TEMP ("aureum4tools_" + [Guid]::NewGuid().ToString("N"))
+    $tmp = Join-Path $env:TEMP ("aureumtools_" + [Guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Path $tmp -Force | Out-Null
     try {
         Expand-Archive -Path $ZipPath -DestinationPath $tmp -Force
-        $exe = Get-ChildItem -Path $tmp -Recurse -Filter "AureumRO 4Tools.exe" | Select-Object -First 1
+        $exe = Get-ChildItem -Path $tmp -Recurse -Filter "AureumTools.exe" | Select-Object -First 1
         if (-not $exe) {
-            throw "AureumRO 4Tools.exe nao encontrado dentro do ZIP: $ZipPath"
+            $exe = Get-ChildItem -Path $tmp -Recurse -Filter "AureumRO 4Tools.exe" | Select-Object -First 1
         }
-        Copy-Item -Path $exe.FullName -Destination (Join-Path $ClientDir "AureumRO 4Tools.exe") -Force
-        $oldExe = Join-Path $ClientDir "AureumRO 4Tools_old.exe"
-        if (Test-Path $oldExe) { Remove-Item -Path $oldExe -Force -ErrorAction SilentlyContinue }
-        Write-Host "[OK] Novo AureumRO 4Tools.exe instalado em $ClientDir" -ForegroundColor Green
+        if (-not $exe) {
+            throw "AureumTools.exe nao encontrado dentro do ZIP: $ZipPath"
+        }
+        $targetExe = Join-Path $ClientDir $exe.Name
+        Copy-Item -Path $exe.FullName -Destination $targetExe -Force
+        if ($exe.Name -eq "AureumTools.exe") {
+            $legacyExe = Join-Path $ClientDir "AureumRO 4Tools.exe"
+            if (Test-Path $legacyExe) { Remove-Item -Path $legacyExe -Force -ErrorAction SilentlyContinue }
+        }
+        foreach ($oldName in @("AureumTools_old.exe", "AureumRO 4Tools_old.exe")) {
+            $oldExe = Join-Path $ClientDir $oldName
+            if (Test-Path $oldExe) { Remove-Item -Path $oldExe -Force -ErrorAction SilentlyContinue }
+        }
+        Write-Host "[OK] Novo $($exe.Name) instalado em $ClientDir" -ForegroundColor Green
     } finally {
         if (Test-Path $tmp) { Remove-Item -Path $tmp -Recurse -Force -ErrorAction SilentlyContinue }
     }

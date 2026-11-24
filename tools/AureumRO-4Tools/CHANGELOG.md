@@ -1,5 +1,136 @@
 # Changelogs
 
+## [v2.39.2] - 2026-11-24 — Correção de Proporção em Botões (`25px`), `Perfis` Sem Sobreposição e `AutoScaleMode.None` em Todos os Formulários
+### Fixed
+- **Sobreposição em `Perfis, Backup e Diagnóstico` (`Forms/ProfileForm.cs`, `Forms/*.Designer.cs`)**: desativado `AutoScaleMode.Font` em todos os 12 formulários embutidos (`.Designer.cs`) para eliminar a divergência de escala entre controles do Designer e controles criados em código em telas com escala do Windows >100%, e redesenhado o layout de `ProfileForm` aproveitando toda a largura (`616×289`) sem nenhuma sobreposição.
+- **Texto cortado na parte inferior de botões (`Utils/FontManager.cs`, `Utils/ThemeManager.cs`, `Forms/SkillAutoBuffForm.cs`, `Forms/StuffAutoBuffForm.cs`, `Forms/MacroSwitchForm.cs`, `Forms/MacroSongForm.cs`, `Forms/ATKDEFForm.cs`, `Forms/MacrosHubForm.cs`, `Forms/SkillTimerForm.cs`, `Forms/MountForm.cs`, `Forms/UtilitiesForm.cs`, `Forms/GuideForm.cs`)**:
+  - Aumentada a altura dos botões de ação (`Limpar`, `Limpar Skills`, `Limpar Itens`, `+ Adicionar campo`, `Limpar DEF/ATK`, etc.) para **`25px`–`27px`** com proteção global no `FontManager` (`8.5pt` em botões ≤24px, `UseCompatibleTextRendering = false` no `ThemeManager`), evitando qualquer corte de letras com haste inferior (`p`, `g`, `q`, `y`).
+  - Cabeçalhos de `Auto-skill` e `Consumíveis` espaçados na largura total (`592px`) com folga limpa entre `Classe:`, `Filtrar:`, `SP%:`, `CD:` e o botão de limpar.
+
+## [v2.39.1] - 2026-11-24 — Alinhamento Determinístico da Grade de Teclas do `Spammer` no Layout Ampliado
+### Fixed
+- **Aba `Spammer` (`Forms/AHKForm.cs`)**: posicionamento determinístico das 9 colunas de teclas (`F1..F9`, `1..9`, `Q..O`, `A..L`, `Z..M`) e expansão dos blocos `Legenda`, `Limpar Teclas`, `Configuração do Spammer` e `Prioridade de Ações` para aproveitar a nova largura (`616px`), eliminando qualquer encosto da coluna `F9 / 9 / O / L` na caixa `Legenda` com a fonte `Google Sans` ampliada.
+- **Subtítulo da aba `Guia / Ajuda` (`Utils/LocalizationManager.cs`)**: ajustado para caber completo em uma única linha sem reticências.
+
+## [v2.39.0] - 2026-11-24 — Cores Clássicas **Obsidiana & Ouro Real** Restauradas, Layout Ampliado com Fonte `Google Sans` Maior e Rodapé `Desenvolvido por Oráculo`
+### Changed
+- **Paleta Clássica **Obsidiana & Ouro Real** Restaurada (`Utils/ThemeManager.cs`, `Utils/ModernControls.cs`, `Utils/VitalBar.cs`, `Forms/MultiAccountShellForm.cs`, `Forms/GuideForm.cs`, `Forms/AureumHubForm.cs`, `Forms/MiniHudForm.cs`)**:
+  - Mantido o visual moderno estilo **Antigravity Settings** (cards arredondados `10px`, pílulas suaves, barras vitais arredondadas e fonte **Google Sans** embutida), restaurando as cores quentes oficiais do AureumRO tanto no **Modo Escuro** (`#0B0701` / `#120C03` / `#1E1506` / `#594214` / `#F4D97A`) quanto no **Modo Claro** (`#F2E8CC` / `#FAF4E0` / `#FDF8E8` / `#A08123`).
+- **Layout Ampliado & Tipografia `Google Sans` Maior (`Forms/Container.cs`, `Forms/MultiAccountShellForm.cs`, `Forms/AutopotForm.cs`, `Forms/ToggleApplicationStateForm.cs`, `Forms/GuideForm.cs`, `Utils/FontManager.cs`)**:
+  - Janela principal ampliada de `824×644` para **`868×676`** (shell `868×716`) com cards mais espaçosos (`Autopot` `346×198`, `Status` `276×198`, `Seção` `632×352`) e fonte **Google Sans** maior e ainda mais legível em todas as abas (`+0.5pt` automático nos controles internos, títulos até `12pt`).
+- **Crédito no Rodapé Restaurado (`Utils/LocalizationManager.cs`)**:
+  - Topo sob o logo permanece limpo (`v2.39.0` + seletor `PT-BR`), enquanto o rodapé inferior volta a exibir **`✦ AureumTools · Desenvolvido por Oráculo  •  Minimize para enviar à bandeja`**.
+
+## [v2.38.3] - 2026-11-24 — Espaçamento Fino das Teclas do `Spammer` com `Google Sans`
+### Fixed
+- **Aba `Spammer` (`Forms/AHKForm.cs`)**: ajustado o espaçamento vertical das fileiras de teclas (`F1..F9`, `1..9`, `Q..O`, `A..L`, `Z..M`) garantindo folga limpa acima do card `Configuração do Spammer`, além de migrar `priorityOrderFont` para o cache global do `FontManager`.
+
+## [v2.38.2] - 2026-11-24 — Métricas GDI (`OS/2 winAscent/winDescent`) da Fonte `Google Sans` Normalizadas
+### Fixed
+- **Alinhamento perfeito em Spammer, ComboBoxes, TextBoxes e Guia (`Resources/Fonts/GoogleSans-*.ttf`, `Utils/FontManager.cs`)**: normalizadas as métricas `OS/2 usWinAscent/usWinDescent` das fontes `Google Sans` embutidas para o padrão latino (`1020 / 300`, altura idêntica ao `Segoe UI` no GDI do Windows), eliminando ComboBoxes altos e qualquer sobreposição de checkboxes na aba `Spammer`.
+
+## [v2.38.1] - 2026-11-24 — Correção de Escala de Layout WinForms (`AutoScaleMode.Font`) com Google Sans
+### Fixed
+- **Layout 100% proporcional com Google Sans (`Utils/FontManager.cs`)**: desativado `AutoScaleMode.Font` nos containers WinForms antes de aplicar a tipografia `Google Sans`, impedindo o esticamento vertical automático que empurrava os cards para baixo, e ajustada a escala em caixas de texto/seletores para alinhamento perfeito.
+
+## [v2.38.0] - 2026-11-24 — Fonte **Google Sans** Embutida, Novo Visual **Antigravity Obsidian + Ouro Real** e 4 Otimizações de Desempenho
+### Changed
+- **Tipografia Oficial `Google Sans` Embutida (`Utils/FontManager.cs`, `Resources/Fonts/GoogleSans-Regular.ttf`, `Resources/Fonts/GoogleSans-Bold.ttf`)**:
+  - Fontes oficiais **Google Sans Regular & Bold** embutidas diretamente no executável via `PrivateFontCollection` + `AddFontMemResourceEx` (funciona em 100% dos controles WinForms sem precisar instalar nenhuma fonte no Windows), com cache global de instâncias `Font` eliminando vazamentos GDI.
+- **Novo Visual Estilo Antigravity Settings + Destaque Dourado AureumRO (`Utils/ThemeManager.cs`, `Utils/ModernControls.cs`, `Utils/VitalBar.cs`, `Forms/MultiAccountShellForm.cs`, `Forms/Container.cs`, `Forms/GuideForm.cs`, `Forms/AureumHubForm.cs`, `Forms/MiniHudForm.cs`)**:
+  - Paleta **Antigravity Obsidian** (`#09090B` / `#0E0E11` / `#141418` com bordas finas `#282831`, texto branco nítido `#F4F4F6` e secundário `#9A9AA6`) combinada ao destaque **Ouro Real** (`#E8C35A`), além de modo claro limpo (`#F5F5F7` / `#FFFFFF` + Ouro Antigo `#9E7A19`).
+  - **Cards com cantos arredondados anti-aliased (`10px`)**, abas em pílula (`SegmentedTabButton`, `SidebarNavButton`, `AccountTabButton`), barras vitais arredondadas (`VitalBar`) e botão Sol/Lua minimalista.
+
+### Performance & Stability
+- **Zero alocações nos loops quentes (`Model/AHK.cs`, `Model/Macro.cs`, `Model/Autobuff.cs`)**:
+  - `AHK` agora usa snapshot imutável cacheado (reconstruído apenas ao alterar teclas), eliminando `.Values.ToArray()` a cada tick (~200 alocações/s).
+  - `Macro` avalia gatilhos sem clonar dicionários/listas quando ocioso (alocando apenas no instante em que uma cadeia dispara).
+  - `AutoBuff` reutiliza `HashSet` e `Dictionary` pré-alocados entre ciclos.
+- **Cache de 250ms para `HasExited` e `MainWindowHandle` (`Model/Client.cs`)**: reduz em >10× as chamadas de kernel Win32 feitas pelas múltiplas threads em segundo plano.
+- **Eliminação de vazamentos de `Font` (`Utils/FontManager.cs`, `Forms/AutopotForm.cs`, `Forms/DebuffRecoveryForm.cs`, `Forms/MultiAccountShellForm.cs`, `Forms/MiniHudForm.cs`)**: todas as fontes compartilhadas são servidas pelo cache central do `FontManager`.
+
+## [v2.37.1] - 2026-11-24 — Botão `Pausar em cidades` Centralizado (Marcado por Padrão)
+### Changed
+- **Barra superior (`Forms/Container.cs`, `Utils/LocalizationManager.cs`)**:
+  - Renomeado `"Usar na cidade?"` para **`"Pausar em cidades"`** (`"Pause in towns"`), agora **marcado por padrão** (marcado = pausa Autopot, Auto-skill, Consumíveis, Temporizadores e Anti-debuffs em cidades; desmarcado = mantém tudo ativo).
+  - Centralizado perfeitamente no espaço entre o seletor **`Perfil`** e o botão de tema (**Sol/Lua**), com alinhamento horizontal uniforme em toda a barra superior.
+
+## [v2.37.0] - 2026-11-24 — Rebrand Completo para **AureumTools**, Painel Unificado Autopot/Yggdrasil, Filtro de Classe + Furtividade & Novo Guia Visual
+### Changed
+- **Rebrand Completo para `AureumTools`** (`Utils/AppConfig.cs`, `Properties/AssemblyInfo.cs`, `4RTools.csproj`, `Utils/LocalizationManager.cs`, `.github/workflows/`, `README.md`):
+  - Projeto, repositório GitHub (`iOraculo/AureumTools`), executável (`AureumTools.exe`), pacote de release (`AureumTools-v2.37.0.zip`), janelas, textos e documentação atualizados de `AureumRO 4Tools` para **`AureumTools`**.
+- **Barra Superior e Bloco `LIGAR / DESLIGAR` Mais Limpos** (`Forms/Container.cs`, `Forms/ToggleApplicationStateForm.cs`, `Utils/ModernControls.cs`):
+  - Removido `· Oráculo` ao lado da versão sob o logo e movido o seletor de idioma (**`PT-BR` / `EN`**) diretamente para esse espaço.
+  - Renomeado `"Usar buffs na cidade?"` para **`"Usar na cidade?"`** (`"Use in town?"`).
+  - Substituída a caixa `"Modo Escuro"` por um **botão vetorial de Sol/Lua** (`ThemeToggleButton`) no canto superior direito.
+  - No card **`LIGAR / DESLIGAR`**, todos os 4 toggles (`Som`, `Foco`, `Chat` e **`Mini HUD`**) foram alinhados à direita, movendo o `Mini HUD` da barra superior para esse espaço.
+- **Autopot & Yggdrasil Unificados + Sprites Autênticos** (`Forms/AutopotForm.cs`, `Forms/Container.cs`, `Resources/4RTools/Icons.resx`):
+  - Removidas as abas `Autopot | Yggdrasil` — agora ambos aparecem **simultaneamente no mesmo card** do dashboard!
+  - Substituídos os ícones de HP/SP do Autopot pelos sprites oficiais de **Poção Branca (`504`)** e **Poção Azul (`505`)** do jogo.
+- **Auditoria de Ícones de Consumíveis** (`assets/images/potions/g_med_life_potion.png`):
+  - Auditados todos os 53 consumíveis Pré-Renewal — corrigido o sprite incorreto da **Poção Média de Vida (`True Medium Life Potion`)** com o ícone oficial do item `12419`.
+- **Novo `Guia / Ajuda` Lúdico e Espaçoso** (`Forms/GuideForm.cs`):
+  - Redesenhado completamente em **12 cards modernos** (incluindo o novo card dedicado ao **`Aureum Hub`**) com barra lateral colorida, ícone temático, subtítulo, tópicos separados com títulos destacados e caixa de **Dica rápida** ao final de cada card.
+- **Revisão Geral de Tooltips (Pop-ups)** (`Forms/AureumHubForm.cs`, `Forms/Container.cs`, `Forms/AutopotForm.cs`, `Forms/ToggleApplicationStateForm.cs`, `Forms/SkillAutoBuffForm.cs`):
+  - Adicionados pop-ups explicativos em todos os controles do **`Aureum Hub`**, barra superior, Autopot/Yggdrasil, Ligar/Desligar e Auto-skill.
+
+### Added
+- **Filtro por Classe & 10 Novas Skills Pré-Renewal no `Auto-skill`** (`Forms/SkillAutoBuffForm.cs`, `Model/BuffRenderer.cs`, `Model/Buff.cs`, `Utils/EffectStatusIDs.cs`, `Model/AutoBuff.cs`):
+  - Adicionado seletor **`Classe:`** (`Todas as Classes` + cada classe visível no modo atual) trabalhando em conjunto com a busca bilíngue e o Modo Pré-Renewal.
+  - Adicionadas 10 novas skills Pré-Renewal com sprites oficiais do jogo e tradução PT-BR / EN-US:
+    - **Gatuno / Algoz / Desordeiro:** **Furtividade (`Cloaking`)** e **Túnel de Fuga (`Chase Walk`)**
+    - **Noviço / Monge / Mestre:** **Corpo Fechado (`Steel Body`)** e **Revelação (`Ruwach`)**
+    - **Mago / Bruxo / Sábio:** **Chama Reveladora (`Sight`)**
+    - **Mercador / Criador:** **Proteção Química Total (`Full Chemical Protection`, com auto-clique em si)**
+    - **Espiritualista (Soul Linker):** **`Kaahi`**, **`Kaupe`**, **`Kaite`** e **`Kaizel`** (com auto-clique em si)
+
+## [v2.36.2] - 2026-11-23 — Horário Manual da Última Votação e Painel Completo de Itens/Drops na Coleção de Mapas
+### Changed
+- **Hora da Votação (`Forms/AureumHubForm.cs`, `Utils/AureumProgressStore.cs`)**:
+  - Adicionado campo **`Últ. voto (HH:mm)` + botão `Definir`** em cada topsite: basta digitar o horário em que você votou (ex.: `14:30`, inclusive se foi ontem à noite) para o 4Tools calcular automaticamente o tempo restante e o próximo horário liberado!
+  - Removido o botão `/navi Loja de Votos` da barra superior.
+- **Coleção de Mapas (`Forms/AureumHubForm.cs`)**:
+  - Removido o botão desnecessário **`Copiar código`**.
+  - Expandido o painel inferior de detalhes para largura total (`572px`) com caixa multilinha rolável (`txtMapSelectedItems`), exibindo **todos os itens necessários, monstros e porcentagens de drop sem cortar nenhum texto**.
+
+## [v2.36.1] - 2026-11-23 — Coleção de Mapas com Orientação por Setas (`← ↑ ↓ →`) e Código Limpo (sem `@warp`)
+### Changed
+- **Coleção de Mapas no `Aureum Hub` (`Forms/AureumHubForm.cs`, `Model/AureumCatalog.cs`, `Resources/AureumCatalog.json`)**:
+  - Removido o prefixo `@warp` da coluna de código (agora exibe o código limpo, ex.: `prt_monk`, `tur_dun01`, `ice_dun03`) e do botão **`Copiar código`**.
+  - Adicionada a coluna **`Como chegar`** com setas de orientação direcional (**`← ↑ ↓ →`**, `Barco`, `Trem`, `· 2F/3F`) a partir da cidade de referência (**`Ref.`**) para todos os **311 mapas** (ex.: `prt_monk` → `Ref: Prontera` · `→ ↑ → →`), além do trajeto detalhado passo a passo no rodapé/tooltip!
+
+## [v2.36.0] - 2026-11-23 — Nova Aba `Aureum Hub` (Hora da Votação + Coleção de Cartas + Coleção de Mapas)
+### Added
+- **Nova aba `Aureum Hub` na barra lateral (`Forms/AureumHubForm.cs`, `Model/AureumCatalog.cs`, `Utils/AureumProgressStore.cs`, `Resources/AureumCatalog.json`)**:
+  - **Sub-aba `Hora da Votação`**:
+    - Lista os topsites oficiais do AureumRO (**Top Ragnarok BR** e **Top Ragnarok ORG**, 12h cada, +1 ponto cada, com sincronização opcional via `api.aureumro.com/vote/topsites`).
+    - Contagem regressiva persistente de 12h ao vivo por topsite, botão **`Votar (+12h)`** (abre `https://aureumro.com/votar/` e inicia o timer), **`Marcar Todos (12h)`**, **`Zerar`**, atalho para copiar `/navi prontera 183/135` (NPC Loja de Votos) e **lembrete automático com som e notificação na bandeja** quando um novo voto ficar disponível.
+  - **Sub-aba `Coleção` → `Coleção de Cartas (28 coleções / 140 cartas)`**:
+    - Catálogo completo da Wiki separado por **Categoria de Bônus** (`Utilidade, Drop & EXP`, `Dano Físico & Crítico`, `Magia & Conjuração`, `Defesa, PvP & Reflexão`, `HP, SP & Cura`), com busca em tempo real, filtro (`Todos / Pendentes / Completos`), progresso geral (`X/140 cartas · Y/28 coleções`) e atalho `/navi prontera 153/177` (Colecionador de Cartas).
+    - **Clique nas cartas já obtidas para marcá-las em tachado (`✓ Carta`)** (com isolamento por coleção para cartas repetidas como Carta Necromante), além de **`Marcar 5 / Desmarcar 5`** por coleção, **`Marcar visíveis / Desmarcar visíveis`** e **`Ocultar obtidas`**.
+  - **Sub-aba `Coleção` → `Coleção de Mapas (311 mapas / 27 cidades)`**:
+    - Alterna agrupamento **`Por Cidade`** (27 cidades oficiais) ou **`Por Tipo de Bônus`** (`Velocidade de Movimento`, `Crítico`, `Ataque, ASPD & Dano Físico`, `Dano Mágico & Elemental`, `Cast, Pós-Conj. & Recarga`, `Dano de Skills`, `Defesa, Resistências & PvP`, `HP, SP & Cura`, `Atributos, Precisão & Evasão`, `Utilidade, EXP, Drop & Peso`).
+    - Exibe nome do mapa, comando **`@warp`** (clique na coluna Warp, duplo clique ou botão **`Copiar @warp`**), descrição exata do bônus, lista de itens de drop (`@mc`) do mapa selecionado e marcação persistente em tachado dos mapas concluídos.
+
+## [v2.35.0] - 2026-11-22 — Modo Multi-Conta 3 em 1 (`Conta 1 | Conta 2 | Conta 3` em 1 Janela)
+### Added
+- **Janela única Multi-Conta 3 em 1 (`Forms/MultiAccountShellForm.cs`, `Utils/SessionContext.cs`, `Forms/Container.cs`, `Forms/ToggleApplicationStateForm.cs`, `Utils/_4RThread.cs`)**:
+  - Agora você controla **3 contas completas e independentes** (`Conta 1`, `Conta 2`, `Conta 3`) dentro de **uma única janela** do AureumRO 4Tools — sem precisar abrir 3 executáveis diferentes nem duplicar hooks de teclado.
+  - **Barra superior de abas ao vivo**: cada aba exibe uma bolinha de status (**Verde = ON**, **Laranja = CHAT**, **Cinza = OFF**) e o nome do personagem detectado em tempo real, além de botões rápidos **`Ligar Todas`** e **`Parar Todas`** e um único ícone na bandeja do sistema.
+  - **Isolamento total por conta (`SessionContext`)**: cliente (`PID`), perfil, Autopot/Yggdrasil, Auto-skills, Auto-consumíveis, Anti-debuffs, Temporizadores, Auto-Fuga, `@refresh`, Montaria, estado `CHAT` e `Prioridade de Ações` / `Segurar pausa` rodam isolados por aba, inclusive em threads em background (`_4RThread`).
+  - **Seleção inteligente de janelas e atalhos**: ao detectar vários clientes abertos, cada aba evita selecionar um `PID` já ocupado por outra aba; se 2+ contas estiverem ligadas juntas, **Autopot / Ygg / Auto-Fuga / Auto-buffs / Anti-debuffs** rodam simultaneamente em segundo plano em todas elas enquanto **Spammers / Macros manuais** respondem apenas na janela do RO em foco. A tecla de ligar/desligar (`End` ou customizada) alterna a janela do RO em foco se compartilhada, ou controla uma conta específica de qualquer lugar se configurada com tecla única.
+  - **Tema, Idioma e Buffs em cidade sincronizados** automaticamente entre as 3 abas.
+
+## [v2.34.1] - 2026-11-22 — Correção do Envio de `@refresh` no Ragexe 2022 (`SendInput` Unicode) e Dessincronia do Estado `CHAT`
+### Fixed
+- **Envio real de `@refresh` no chat do Ragexe 2022 (`Utils/Interop.cs`, `Model/AutoRefreshCommand.cs`, `Forms/UtilitiesForm.cs`)**:
+  - **Causa raiz corrigida:** enviar `PostMessage(hWnd, WM_CHAR)` para a janela principal fazia a barra de chat abrir e fechar vazia no Ragexe 2022 (pois o texto vai para o campo `Edit`/IME focado).
+  - Migrado para **`SendInput(KEYEVENTF_UNICODE)`** (com struct Win32 `INPUT` exata de 28/40 bytes e fallback `WM_CHAR`), entrega direta ao campo de chat focado independente do layout ABNT2/US; botão **`Testar`** foca a janela do jogo automaticamente em background.
+  - Atalho de 1 toque em teclas de função (`F1–F24`) agora funciona **mesmo com a barra de chat já aberta** (digita `@refresh` direto e envia sem fechar a barra antes!).
+- **Fim do botão travado em `CHAT` (`Forms/ToggleApplicationStateForm.cs`, `Forms/Container.cs`)**:
+  - Detecção de `Enter`/`Esc` migrada para `KeyboardHook.PhysicalKeyDown` (ignora auto-repeat ao segurar `Enter`, teclas injetadas e `Enter` enviado pelo `@refresh`).
+  - Auto-retomada de `CHAT` para `ON` quando a janela do jogo perde foco (ex.: Alt+Tab ou clique no 4Tools) e ao clicar diretamente no botão laranja **`CHAT`**.
+
 ## [v2.34.0] - 2026-11-22 — Pausa Momentânea (Segurar Tecla / Hold-to-Pause) na aba `Spammer`
 ### Added
 - **Segurar para Pausar (*Hold-to-Pause*) dentro do card `Prioridade de Ações` na aba `Spammer` (`Forms/AHKForm.cs`, `Utils/ActionPriorityCoordinator.cs`, `Model/UserPreferences.cs`, `Model/Client.cs`, `Model/AutoEscape.cs`, `Model/AutoMount.cs`)**:

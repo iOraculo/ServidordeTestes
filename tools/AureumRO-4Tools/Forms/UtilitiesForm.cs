@@ -112,9 +112,9 @@ namespace _4RTools.Forms
                 this.btnTestRefresh = new Button
                 {
                     Cursor = System.Windows.Forms.Cursors.Hand,
-                    Location = new Point(472, 18),
+                    Location = new Point(472, 17),
                     Name = "btnTestRefresh",
-                    Size = new Size(82, 23),
+                    Size = new Size(82, 25),
                     Text = "Test",
                     UseVisualStyleBackColor = true
                 };
@@ -143,9 +143,9 @@ namespace _4RTools.Forms
                 this.btnClearRefreshHotkey = new Button
                 {
                     Cursor = System.Windows.Forms.Cursors.Hand,
-                    Location = new Point(198, 48),
+                    Location = new Point(198, 47),
                     Name = "btnClearRefreshHotkey",
-                    Size = new Size(62, 22),
+                    Size = new Size(68, 25),
                     Text = "Clear",
                     UseVisualStyleBackColor = true
                 };
@@ -265,9 +265,9 @@ namespace _4RTools.Forms
                 this.btnClearEscapeKey = new Button
                 {
                     Cursor = System.Windows.Forms.Cursors.Hand,
-                    Location = new Point(316, 18),
+                    Location = new Point(316, 17),
                     Name = "btnClearEscapeKey",
-                    Size = new Size(62, 22),
+                    Size = new Size(68, 25),
                     Text = "Clear",
                     UseVisualStyleBackColor = true
                 };
@@ -510,7 +510,8 @@ namespace _4RTools.Forms
                 ? current.AutoRefreshCommand
                 : new AutoRefreshCommand();
             cmd.CommandText = AutoRefreshCommand.NormalizeCommand(this.txtRefreshCmd != null ? this.txtRefreshCmd.Text : AutoRefreshCommand.DEFAULT_COMMAND);
-            System.Threading.ThreadPool.QueueUserWorkItem(_ => cmd.SendRefreshCommand(roClient, true));
+            ChatPauseState.Resume();
+            System.Threading.ThreadPool.QueueUserWorkItem(_ => cmd.SendRefreshCommand(roClient, false, true));
         }
 
         private void RefreshTooltipsAndDynamicText()

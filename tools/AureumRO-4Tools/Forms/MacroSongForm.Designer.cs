@@ -1,4 +1,4 @@
-﻿namespace _4RTools.Forms
+namespace _4RTools.Forms
 {
     partial class MacroSongForm
     {
@@ -1277,7 +1277,7 @@
             // MacroSongForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.AutoScroll = true;
             this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(547, 514);

@@ -1108,4 +1108,37 @@
   <data name="hp_basilica" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\..\assets\images\hp_basilica.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="white_potion" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\..\assets\images\white_potion.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="blue_potion" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\..\assets\images\blue_potion.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="as_cloaking" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\..\assets\images\as_cloaking.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="st_chasewalk" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\..\assets\images\st_chasewalk.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="mo_steelbody" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\..\assets\images\mo_steelbody.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="al_ruwach" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\..\assets\images\al_ruwach.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="mg_sight" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\..\assets\images\mg_sight.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="sl_kaahi" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\..\assets\images\sl_kaahi.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="sl_kaupe" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\..\assets\images\sl_kaupe.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="sl_kaite" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\..\assets\images\sl_kaite.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="sl_kaizel" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\..\assets\images\sl_kaizel.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
 </root>

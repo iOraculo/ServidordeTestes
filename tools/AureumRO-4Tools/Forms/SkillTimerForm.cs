@@ -11,13 +11,13 @@ namespace _4RTools.Forms
     {
         public const int TOTAL_TIMER_SLOTS = 6;
 
-        private const int CARD_WIDTH = 174;
-        private const int CARD_HEIGHT = 122;
+        private const int CARD_WIDTH = 186;
+        private const int CARD_HEIGHT = 126;
         private const int COLS_PER_ROW = 3;
         private const int GRID_START_X = 12;
         private const int GRID_START_Y = 10;
-        private const int COL_STEP_X = 184;
-        private const int ROW_STEP_Y = 132;
+        private const int COL_STEP_X = 196;
+        private const int ROW_STEP_Y = 136;
 
         private sealed class TimerSlotUi
         {
@@ -191,9 +191,9 @@ namespace _4RTools.Forms
             Button btnClear = new Button
             {
                 Cursor = System.Windows.Forms.Cursors.Hand,
-                Location = new Point(10, 88),
+                Location = new Point(10, 89),
                 Name = "btnClearTimer" + slotNumber,
-                Size = new Size(slotNumber == 1 ? 154 : 62, 22),
+                Size = new Size(slotNumber == 1 ? 166 : 66, 25),
                 Text = "Clear",
                 UseVisualStyleBackColor = true
             };
@@ -215,9 +215,9 @@ namespace _4RTools.Forms
                 Button btnRemove = new Button
                 {
                     Cursor = System.Windows.Forms.Cursors.Hand,
-                    Location = new Point(78, 88),
+                    Location = new Point(82, 89),
                     Name = "btnRemoveTimer" + slotNumber,
-                    Size = new Size(86, 22),
+                    Size = new Size(94, 25),
                     Text = "Remove Timer",
                     UseVisualStyleBackColor = true
                 };

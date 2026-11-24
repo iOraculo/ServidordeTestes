@@ -23,16 +23,23 @@ namespace _4RTools
             Model.AppSettings startupSettings = Model.AppSettings.Load();
             LocalizationManager.SetLanguage(startupSettings.Language);
 
-            // AutoPatcher is intentionally disabled in the Test Server build:
-            // official AureumRO-4Tools releases restrict servers to "AureumRO" only
-            // and would silently overwrite FroggoClient/Ragexe support on launch.
+            // AutoPatcher disabled on Test Server build so official GitHub releases
+            // never overwrite the local FroggoClient / Ragexe test-server build.
+            // using (Forms.AutoPatcher patcher = new Forms.AutoPatcher())
+            // {
+            //     patcher.ShowDialog();
+            //     if (patcher.UpdateApplied)
+            //     {
+            //         return;
+            //     }
+            // }
 
             using (Forms.ClientUpdaterForm updater = new Forms.ClientUpdaterForm())
             {
                 updater.ShowDialog();
             }
 
-            Application.Run(new Forms.Container());
+            Application.Run(new Forms.MultiAccountShellForm());
         }
 
         private static void OnThreadException(object sender, ThreadExceptionEventArgs e)

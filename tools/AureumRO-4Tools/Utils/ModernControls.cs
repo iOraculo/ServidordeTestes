@@ -17,6 +17,7 @@ namespace _4RTools.Utils
         AtkDef,
         Mount,
         Utilities,
+        AureumHub,
         Profiles,
         Servers,
         Guide
@@ -24,7 +25,8 @@ namespace _4RTools.Utils
 
     public class ModernCardPanel : Panel
     {
-        private Color borderColor = Color.FromArgb(212, 192, 152);
+        private Color borderColor = Color.FromArgb(228, 228, 234);
+        private int cornerRadius = 10;
 
         public Color BorderColor
         {
@@ -39,36 +41,68 @@ namespace _4RTools.Utils
             }
         }
 
+        public int CornerRadius
+        {
+            get { return this.cornerRadius; }
+            set
+            {
+                if (this.cornerRadius != value)
+                {
+                    this.cornerRadius = Math.Max(0, value);
+                    Invalidate();
+                }
+            }
+        }
+
         public ModernCardPanel()
         {
             this.DoubleBuffered = true;
             this.ResizeRedraw = true;
-            this.BackColor = Color.FromArgb(253, 248, 232);
+            this.BackColor = Color.FromArgb(255, 255, 255);
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            Color outerBg = this.Parent != null ? this.Parent.BackColor : ThemeManager.GetCanvasColor(ThemeManager.IsDarkMode);
+            using (SolidBrush outerBrush = new SolidBrush(outerBg))
+            {
+                e.Graphics.FillRectangle(outerBrush, this.ClientRectangle);
+            }
+
+            if (this.Width <= 2 || this.Height <= 2)
+            {
+                return;
+            }
+
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            Rectangle rect = new Rectangle(0, 0, this.Width - 1, this.Height - 1);
+            using (GraphicsPath path = SidebarNavButton.CreateRoundedRect(rect, this.cornerRadius))
+            using (SolidBrush fillBrush = new SolidBrush(this.BackColor))
+            {
+                e.Graphics.FillPath(fillBrush, path);
+            }
         }
 
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
-            using (Pen pen = new Pen(this.borderColor, 1))
+            if (this.Width <= 2 || this.Height <= 2)
             {
-                e.Graphics.DrawRectangle(pen, 0, 0, this.Width - 1, this.Height - 1);
+                return;
             }
 
-            if (this.BackColor.GetBrightness() < 0.3F && this.Width > 4)
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            Rectangle rect = new Rectangle(0, 0, this.Width - 1, this.Height - 1);
+            using (GraphicsPath path = SidebarNavButton.CreateRoundedRect(rect, this.cornerRadius))
+            using (Pen pen = new Pen(this.borderColor, 1))
             {
-                // Subtle warm gold top highlight inspired by AureumRO panels
-                using (Pen highlight = new Pen(Color.FromArgb(40, 255, 236, 180), 1))
-                {
-                    e.Graphics.DrawLine(highlight, 1, 1, this.Width - 2, 1);
-                }
+                e.Graphics.DrawPath(pen, path);
             }
         }
     }
 
     public class SidebarNavButton : Control
     {
-        private readonly Font regularFont;
-        private readonly Font activeFont;
         private bool isActive;
         private bool isHovered;
         private bool isDarkMode;
@@ -97,9 +131,7 @@ namespace _4RTools.Utils
             this.Text = label;
             this.IconKind = iconKind;
             this.Cursor = Cursors.Hand;
-            this.Size = new Size(184, 34);
-            this.regularFont = new Font("Segoe UI", 9F, FontStyle.Regular);
-            this.activeFont = new Font("Segoe UI", 9F, FontStyle.Bold);
+            this.Size = new Size(188, 32);
         }
 
         public void ApplyTheme(bool darkMode)
@@ -137,7 +169,7 @@ namespace _4RTools.Utils
             Color idleBack = this.isDarkMode ? Color.FromArgb(18, 12, 3) : Color.FromArgb(250, 244, 224);
             Color hoverBack = this.isDarkMode ? Color.FromArgb(38, 26, 6) : Color.FromArgb(242, 229, 194);
             Color activeBack = this.isDarkMode ? Color.FromArgb(54, 37, 9) : Color.FromArgb(237, 224, 182);
-            Color activeBorder = this.isDarkMode ? Color.FromArgb(120, 90, 28) : Color.FromArgb(180, 148, 86);
+            Color activeBorder = this.isDarkMode ? Color.FromArgb(148, 112, 34) : Color.FromArgb(180, 148, 86);
             Color accent = this.isDarkMode ? Color.FromArgb(244, 217, 122) : Color.FromArgb(160, 129, 35);
             Color idleText = this.isDarkMode ? Color.FromArgb(228, 216, 185) : Color.FromArgb(62, 44, 20);
             Color activeText = this.isDarkMode ? Color.FromArgb(255, 244, 207) : Color.FromArgb(61, 48, 8);
@@ -150,7 +182,7 @@ namespace _4RTools.Utils
 
             if (this.isActive || this.isHovered)
             {
-                using (GraphicsPath pill = CreateRoundedRect(new Rectangle(1, 1, this.Width - 2, this.Height - 2), 6))
+                using (GraphicsPath pill = CreateRoundedRect(new Rectangle(1, 1, this.Width - 2, this.Height - 2), 8))
                 using (SolidBrush bg = new SolidBrush(fill))
                 {
                     g.FillPath(bg, pill);
@@ -166,7 +198,7 @@ namespace _4RTools.Utils
 
             if (this.isActive)
             {
-                using (GraphicsPath bar = CreateRoundedRect(new Rectangle(1, 6, 3, this.Height - 12), 2))
+                using (GraphicsPath bar = CreateRoundedRect(new Rectangle(2, 7, 3, this.Height - 14), 2))
                 using (SolidBrush accentBrush = new SolidBrush(accent))
                 {
                     g.FillPath(accentBrush, bar);
@@ -180,7 +212,7 @@ namespace _4RTools.Utils
             TextRenderer.DrawText(
                 g,
                 this.Text,
-                this.isActive ? this.activeFont : this.regularFont,
+                this.isActive ? FontManager.Bold(9.5F) : FontManager.Regular(9.5F),
                 textBounds,
                 this.isActive ? activeText : idleText,
                 TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.SingleLine);
@@ -317,41 +349,37 @@ namespace _4RTools.Utils
                         g.DrawRectangle(pen, r.X + 2, r.Y + 8, r.Width - 4, 4);
                         break;
 
+                    case SidebarIconKind.AureumHub:
+                        // 4-point Aureum star / emblem
+                        Point[] star = new Point[]
+                        {
+                            new Point(cx, r.Y),
+                            new Point(cx + 2, cy - 2),
+                            new Point(r.Right, cy),
+                            new Point(cx + 2, cy + 2),
+                            new Point(cx, r.Bottom),
+                            new Point(cx - 2, cy + 2),
+                            new Point(r.X, cy),
+                            new Point(cx - 2, cy - 2)
+                        };
+                        g.FillPolygon(brush, star);
+                        break;
+
                     case SidebarIconKind.Guide:
                         // Help circle with '?'
                         g.DrawEllipse(pen, r.X + 1, r.Y + 1, r.Width - 2, r.Height - 2);
-                        using (Font qFont = new Font("Segoe UI", 7.5F, FontStyle.Bold))
                         using (StringFormat sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
                         {
-                            g.DrawString("?", qFont, brush, new RectangleF(r.X, r.Y + 0.5F, r.Width, r.Height), sf);
+                            g.DrawString("?", FontManager.Bold(7.5F), brush, new RectangleF(r.X, r.Y + 0.5F, r.Width, r.Height), sf);
                         }
                         break;
                 }
             }
         }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                if (this.regularFont != null)
-                {
-                    this.regularFont.Dispose();
-                }
-                if (this.activeFont != null)
-                {
-                    this.activeFont.Dispose();
-                }
-            }
-
-            base.Dispose(disposing);
-        }
     }
 
     public class SegmentedTabButton : Control
     {
-        private readonly Font regularFont;
-        private readonly Font activeFont;
         private bool isActive;
         private bool isHovered;
         private bool isDarkMode;
@@ -375,8 +403,6 @@ namespace _4RTools.Utils
             this.ResizeRedraw = true;
             this.Text = text;
             this.Cursor = Cursors.Hand;
-            this.regularFont = new Font("Segoe UI", 8.5F, FontStyle.Regular);
-            this.activeFont = new Font("Segoe UI", 8.5F, FontStyle.Bold);
         }
 
         public void ApplyTheme(bool darkMode)
@@ -411,15 +437,16 @@ namespace _4RTools.Utils
             Graphics g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
-            Color cardBack = this.isDarkMode ? Color.FromArgb(30, 21, 6) : Color.FromArgb(253, 248, 232);
+            Color cardBack = this.Parent != null ? this.Parent.BackColor : ThemeManager.GetCardColor(this.isDarkMode);
             Color idleFill = this.isDarkMode ? Color.FromArgb(42, 29, 8) : Color.FromArgb(242, 232, 204);
-            Color hoverFill = this.isDarkMode ? Color.FromArgb(66, 46, 12) : Color.FromArgb(234, 220, 182);
+            Color hoverFill = this.isDarkMode ? Color.FromArgb(62, 43, 12) : Color.FromArgb(234, 220, 182);
+            Color activeFill = this.isDarkMode ? Color.FromArgb(66, 48, 14) : Color.FromArgb(248, 236, 198);
             Color border = this.isActive
-                ? Color.FromArgb(212, 175, 55)
-                : (this.isDarkMode ? Color.FromArgb(120, 90, 28) : Color.FromArgb(196, 174, 128));
+                ? (this.isDarkMode ? Color.FromArgb(228, 190, 82) : Color.FromArgb(166, 126, 26))
+                : (this.isDarkMode ? Color.FromArgb(108, 80, 26) : Color.FromArgb(196, 174, 128));
             Color textColor = this.isActive
-                ? Color.FromArgb(42, 29, 5)
-                : (this.isDarkMode ? Color.FromArgb(243, 234, 208) : Color.FromArgb(62, 44, 20));
+                ? (this.isDarkMode ? Color.FromArgb(255, 240, 194) : Color.FromArgb(72, 50, 8))
+                : (this.isDarkMode ? Color.FromArgb(228, 216, 185) : Color.FromArgb(62, 44, 20));
 
             using (SolidBrush outer = new SolidBrush(cardBack))
             {
@@ -427,67 +454,23 @@ namespace _4RTools.Utils
             }
 
             Rectangle rect = new Rectangle(0, 0, this.Width - 1, this.Height - 1);
+            int radius = Math.Min(12, Math.Max(6, this.Height / 2));
 
-            using (GraphicsPath pill = SidebarNavButton.CreateRoundedRect(rect, 5))
+            using (GraphicsPath pill = SidebarNavButton.CreateRoundedRect(rect, radius))
+            using (SolidBrush brush = new SolidBrush(this.isActive ? activeFill : (this.isHovered ? hoverFill : idleFill)))
             using (Pen pen = new Pen(border, 1))
             {
-                if (this.isActive && rect.Height > 0)
-                {
-                    // AureumRO metallic gold button gradient (#FFF0C2 -> #ECC861 -> #CDA23A -> #9C7616)
-                    using (LinearGradientBrush goldBrush = new LinearGradientBrush(
-                        rect,
-                        Color.FromArgb(255, 240, 194),
-                        Color.FromArgb(166, 126, 26),
-                        LinearGradientMode.Vertical))
-                    {
-                        ColorBlend blend = new ColorBlend(3);
-                        blend.Positions = new float[] { 0.0F, 0.45F, 1.0F };
-                        blend.Colors = new Color[]
-                        {
-                            Color.FromArgb(255, 240, 194),
-                            Color.FromArgb(236, 200, 97),
-                            Color.FromArgb(166, 126, 26)
-                        };
-                        goldBrush.InterpolationColors = blend;
-                        g.FillPath(goldBrush, pill);
-                    }
-                }
-                else
-                {
-                    Color fill = this.isHovered ? hoverFill : idleFill;
-                    using (SolidBrush brush = new SolidBrush(fill))
-                    {
-                        g.FillPath(brush, pill);
-                    }
-                }
-
+                g.FillPath(brush, pill);
                 g.DrawPath(pen, pill);
             }
 
             TextRenderer.DrawText(
                 g,
                 this.Text,
-                this.isActive ? this.activeFont : this.regularFont,
+                this.isActive ? FontManager.Bold(9F) : FontManager.Regular(9F),
                 rect,
                 textColor,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine);
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                if (this.regularFont != null)
-                {
-                    this.regularFont.Dispose();
-                }
-                if (this.activeFont != null)
-                {
-                    this.activeFont.Dispose();
-                }
-            }
-
-            base.Dispose(disposing);
         }
     }
 
@@ -541,6 +524,120 @@ namespace _4RTools.Utils
             using (SolidBrush brush = new SolidBrush(dotColor))
             {
                 e.Graphics.FillEllipse(brush, 1, 1, this.Width - 3, this.Height - 3);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Compact vector Sun / Moon icon toggle button for switching Light & Dark themes.
+    /// </summary>
+    public class ThemeToggleButton : Control
+    {
+        private bool isDarkMode;
+        private bool isHovered;
+
+        public bool IsDarkMode
+        {
+            get { return this.isDarkMode; }
+            set
+            {
+                if (this.isDarkMode != value)
+                {
+                    this.isDarkMode = value;
+                    Invalidate();
+                }
+            }
+        }
+
+        public ThemeToggleButton()
+        {
+            this.DoubleBuffered = true;
+            this.ResizeRedraw = true;
+            this.Cursor = Cursors.Hand;
+            this.Size = new Size(34, 26);
+            this.Tag = ThemeManager.PRESERVE_COLORS_TAG;
+        }
+
+        public void ApplyTheme(bool darkMode)
+        {
+            this.isDarkMode = darkMode;
+            Invalidate();
+        }
+
+        protected override void OnMouseEnter(EventArgs e)
+        {
+            base.OnMouseEnter(e);
+            this.isHovered = true;
+            Invalidate();
+        }
+
+        protected override void OnMouseLeave(EventArgs e)
+        {
+            base.OnMouseLeave(e);
+            this.isHovered = false;
+            Invalidate();
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            Graphics g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            Color parentBg = this.Parent != null
+                ? this.Parent.BackColor
+                : (this.isDarkMode ? Color.FromArgb(27, 19, 4) : Color.FromArgb(248, 238, 209));
+            Color fill = this.isDarkMode
+                ? (this.isHovered ? Color.FromArgb(56, 39, 12) : Color.FromArgb(38, 26, 7))
+                : (this.isHovered ? Color.FromArgb(240, 226, 188) : Color.FromArgb(253, 248, 232));
+            Color border = this.isDarkMode
+                ? (this.isHovered ? Color.FromArgb(244, 217, 122) : Color.FromArgb(128, 96, 30))
+                : (this.isHovered ? Color.FromArgb(160, 129, 35) : Color.FromArgb(204, 180, 132));
+            Color iconColor = this.isDarkMode ? Color.FromArgb(244, 217, 122) : Color.FromArgb(118, 86, 22);
+
+            using (SolidBrush bgOuter = new SolidBrush(parentBg))
+            {
+                g.FillRectangle(bgOuter, 0, 0, this.Width, this.Height);
+            }
+
+            using (GraphicsPath pill = SidebarNavButton.CreateRoundedRect(new Rectangle(0, 0, this.Width - 1, this.Height - 1), 8))
+            using (SolidBrush fillBrush = new SolidBrush(fill))
+            using (Pen borderPen = new Pen(border, 1))
+            {
+                g.FillPath(fillBrush, pill);
+                g.DrawPath(borderPen, pill);
+            }
+
+            float cx = this.Width / 2.0F;
+            float cy = this.Height / 2.0F;
+
+            if (this.isDarkMode)
+            {
+                // Draw golden Sun icon (clicking switches to Light Mode)
+                using (SolidBrush sunBrush = new SolidBrush(iconColor))
+                using (Pen rayPen = new Pen(iconColor, 1.5F))
+                {
+                    g.FillEllipse(sunBrush, cx - 3.6F, cy - 3.6F, 7.2F, 7.2F);
+                    for (int i = 0; i < 8; i++)
+                    {
+                        double rad = i * Math.PI / 4.0;
+                        float x1 = cx + (float)(Math.Cos(rad) * 5.6);
+                        float y1 = cy + (float)(Math.Sin(rad) * 5.6);
+                        float x2 = cx + (float)(Math.Cos(rad) * 8.2);
+                        float y2 = cy + (float)(Math.Sin(rad) * 8.2);
+                        g.DrawLine(rayPen, x1, y1, x2, y2);
+                    }
+                }
+            }
+            else
+            {
+                // Draw crescent Moon icon (clicking switches to Dark Mode)
+                using (SolidBrush moonBrush = new SolidBrush(iconColor))
+                using (SolidBrush cutoutBrush = new SolidBrush(fill))
+                {
+                    g.FillEllipse(moonBrush, cx - 6.0F, cy - 6.0F, 12.0F, 12.0F);
+                    g.FillEllipse(cutoutBrush, cx - 2.0F, cy - 7.0F, 10.5F, 10.5F);
+                }
             }
         }
     }

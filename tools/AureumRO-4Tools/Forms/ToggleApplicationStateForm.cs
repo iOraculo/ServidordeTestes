@@ -10,13 +10,18 @@ namespace _4RTools.Forms
     public partial class ToggleApplicationStateForm : Form, IObserver
     {
         private readonly Subject subject;
+        private readonly SessionContext session;
+        private readonly bool isEmbeddedTab;
         private ContextMenu contextMenu;
         private MenuItem menuItem;
         private CheckBox cbFocusOnly;
         private CheckBox cbChatPause;
+        private CheckBox cbMiniHud;
         private ToolTip optionsToolTip;
         private SoundPlayer soundOnPlayer;
         private SoundPlayer soundOffPlayer;
+
+        public event Action<bool> MiniHudCheckedChanged;
 
         // Store key used for last profile so it can be cleanly removed when switching profiles.
         private Keys lastKey = Keys.None;
@@ -24,17 +29,40 @@ namespace _4RTools.Forms
         private bool isApplicationOn;
 
         public ToggleApplicationStateForm(Subject subject)
+            : this(subject, null, false)
         {
+        }
+
+        public ToggleApplicationStateForm(Subject subject, SessionContext session, bool isEmbeddedTab)
+        {
+            this.session = session ?? SessionContext.Current;
+            this.isEmbeddedTab = isEmbeddedTab;
+
             InitializeComponent();
 
             // Keep green/red/orange ON/OFF/CHAT status button colors untouched by ThemeManager.
             this.btnStatusToggle.Tag = ThemeManager.PRESERVE_COLORS_TAG;
             this.notifyIconTray.Text = AppConfig.Name;
+            if (this.isEmbeddedTab)
+            {
+                this.notifyIconTray.Visible = false;
+            }
 
-            // Center status prompt across the groupbox so translated PT-BR strings never clip.
+            // Layout: ON/OFF button & hotkey on the left; all 4 option checkboxes stacked cleanly on the right.
+            this.groupBox1.Size = new Size(248, 114);
+            this.btnStatusToggle.Location = new Point(14, 18);
+            this.btnStatusToggle.Size = new Size(108, 34);
+            this.txtStatusToggleKey.Location = new Point(14, 57);
+            this.txtStatusToggleKey.Size = new Size(108, 24);
+
+            this.cbAudio.Location = new Point(138, 15);
+            this.cbAudio.Cursor = Cursors.Hand;
+
+            // Center status prompt across the bottom of the groupbox so translated PT-BR strings never clip.
+            this.lblStatusToggle.MaximumSize = Size.Empty;
             this.lblStatusToggle.AutoSize = false;
-            this.lblStatusToggle.Location = new Point(6, 80);
-            this.lblStatusToggle.Size = new Size(210, 17);
+            this.lblStatusToggle.Location = new Point(6, 91);
+            this.lblStatusToggle.Size = new Size(236, 18);
             this.lblStatusToggle.TextAlign = ContentAlignment.MiddleCenter;
 
             this.subject = subject;
@@ -45,15 +73,33 @@ namespace _4RTools.Forms
             InitializeOptionCheckboxes();
             InitializeContextualMenu();
 
-            ChatPauseState.StateChanged += OnChatPauseStateChanged;
+            this.session.ChatStateChanged += OnChatPauseStateChanged;
             RegisterChatPauseHooks();
 
             this.cbAudio.CheckedChanged += OnAudioCheckedChanged;
 
-            this.txtStatusToggleKey.Text = ProfileSingleton.GetCurrent().UserPreferences.toggleStateKey;
+            using (SessionContext.Enter(this.session))
+            {
+                this.txtStatusToggleKey.Text = ProfileSingleton.GetCurrent().UserPreferences.toggleStateKey;
+            }
             this.txtStatusToggleKey.KeyDown += new KeyEventHandler(FormUtils.OnKeyDown);
             this.txtStatusToggleKey.KeyPress += new KeyPressEventHandler(FormUtils.OnKeyPress);
             this.txtStatusToggleKey.TextChanged += new EventHandler(this.onStatusToggleKeyChange);
+        }
+
+        public void SetAutomationState(bool turnOn)
+        {
+            using (SessionContext.Enter(this.session))
+            {
+                if (turnOn && !this.isApplicationOn)
+                {
+                    ToggleStatus();
+                }
+                else if (!turnOn && this.isApplicationOn)
+                {
+                    ToggleStatus();
+                }
+            }
         }
 
         private void InitializeAudioPlayers()
@@ -69,6 +115,25 @@ namespace _4RTools.Forms
             }
         }
 
+        public void SetMiniHudChecked(bool isChecked)
+        {
+            if (this.cbMiniHud == null)
+            {
+                return;
+            }
+
+            bool prevUpdating = this.isUpdatingUi;
+            this.isUpdatingUi = true;
+            try
+            {
+                this.cbMiniHud.Checked = isChecked;
+            }
+            finally
+            {
+                this.isUpdatingUi = prevUpdating;
+            }
+        }
+
         private void InitializeOptionCheckboxes()
         {
             this.optionsToolTip = FormUtils.CreateHelpToolTip(this.components);
@@ -76,7 +141,8 @@ namespace _4RTools.Forms
             this.cbFocusOnly = new CheckBox
             {
                 AutoSize = true,
-                Location = new Point(156, 53),
+                Cursor = Cursors.Hand,
+                Location = new Point(138, 33),
                 Name = "cbFocusOnly",
                 Text = "Focus",
                 UseVisualStyleBackColor = true,
@@ -88,7 +154,8 @@ namespace _4RTools.Forms
             this.cbChatPause = new CheckBox
             {
                 AutoSize = true,
-                Location = new Point(10, 53),
+                Cursor = Cursors.Hand,
+                Location = new Point(138, 51),
                 Name = "cbChatPause",
                 Text = "Chat",
                 UseVisualStyleBackColor = true,
@@ -97,7 +164,34 @@ namespace _4RTools.Forms
             this.cbChatPause.CheckedChanged += OnChatPauseCheckedChanged;
             this.groupBox1.Controls.Add(this.cbChatPause);
 
+            this.cbMiniHud = new CheckBox
+            {
+                AutoSize = true,
+                Cursor = Cursors.Hand,
+                Location = new Point(138, 69),
+                Name = "cbMiniHud",
+                Text = "Mini HUD",
+                UseVisualStyleBackColor = true,
+                Tag = FormUtils.SKIP_RESET_TAG
+            };
+            this.cbMiniHud.CheckedChanged += OnMiniHudCheckedChanged;
+            this.groupBox1.Controls.Add(this.cbMiniHud);
+
             RefreshLocalizedTooltipsAndMenu();
+        }
+
+        private void OnMiniHudCheckedChanged(object sender, EventArgs e)
+        {
+            if (this.isUpdatingUi || this.cbMiniHud == null)
+            {
+                return;
+            }
+
+            Action<bool> handler = this.MiniHudCheckedChanged;
+            if (handler != null)
+            {
+                handler(this.cbMiniHud.Checked);
+            }
         }
 
         private void RefreshLocalizedTooltipsAndMenu()
@@ -115,6 +209,10 @@ namespace _4RTools.Forms
                 {
                     this.optionsToolTip.SetToolTip(this.cbChatPause, LocalizationManager.T("tooltip.chat_pause"));
                 }
+                if (this.cbMiniHud != null)
+                {
+                    this.optionsToolTip.SetToolTip(this.cbMiniHud, LocalizationManager.T("tooltip.mini_hud"));
+                }
             }
 
             if (this.menuItem != null)
@@ -123,17 +221,116 @@ namespace _4RTools.Forms
             }
         }
 
+        private bool chatHookSubscribed;
+
         private void RegisterChatPauseHooks()
         {
-            if (this.lastKey != Keys.Return)
+            if (!this.chatHookSubscribed)
             {
-                KeyboardHook.Add(Keys.Return, new KeyboardHook.KeyPressed(this.OnChatEnterKeyPressed));
+                // Subscribe to PhysicalKeyDown (fires once per fresh physical non-injected, non-repeat key press)
+                // so holding Enter (auto-repeat) or synthetic Enter keys can never desync the CHAT state.
+                KeyboardHook.PhysicalKeyDown += OnPhysicalKeyDownForChat;
+                this.chatHookSubscribed = true;
+            }
+        }
+
+        private void OnPhysicalKeyDownForChat(Keys key)
+        {
+            if (this.IsDisposed)
+            {
+                return;
             }
 
-            if (this.lastKey != Keys.Escape)
+            if (this.lastKey != Keys.None && key == this.lastKey)
             {
-                KeyboardHook.Add(Keys.Escape, new KeyboardHook.KeyPressed(this.OnChatEscapeKeyPressed));
+                if (!ShouldHandleToggleHotkey())
+                {
+                    return;
+                }
+
+                MethodInvoker invokeToggle = delegate
+                {
+                    if (!this.IsDisposed)
+                    {
+                        using (SessionContext.Enter(this.session))
+                        {
+                            OnToggleHotkeyPressed();
+                        }
+                    }
+                };
+
+                if (this.InvokeRequired)
+                {
+                    this.BeginInvoke(invokeToggle);
+                }
+                else
+                {
+                    invokeToggle();
+                }
+                return;
             }
+
+            using (SessionContext.Enter(this.session))
+            {
+                if (AutoRefreshCommand.IsSendingCommand)
+                {
+                    return;
+                }
+
+                if (key == Keys.Return)
+                {
+                    OnChatEnterKeyPressed();
+                }
+                else if (key == Keys.Escape)
+                {
+                    OnChatEscapeKeyPressed();
+                }
+            }
+        }
+
+        private bool ShouldHandleToggleHotkey()
+        {
+            if (!this.isEmbeddedTab)
+            {
+                return true;
+            }
+
+            SessionContext focusedGameSession = SessionContext.FindSessionWithFocusedGameWindow();
+            if (focusedGameSession != null)
+            {
+                if (ReferenceEquals(focusedGameSession, this.session))
+                {
+                    return true;
+                }
+
+                Keys focusedToggleKey;
+                Profile focusedProf = focusedGameSession.Profile;
+                if (focusedProf != null && focusedProf.UserPreferences != null
+                    && KeyHelper.TryParseFormsKeys(focusedProf.UserPreferences.toggleStateKey, out focusedToggleKey)
+                    && focusedToggleKey == this.lastKey)
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            SessionContext activeUi = SessionContext.ActiveUiSession;
+            if (ReferenceEquals(activeUi, this.session))
+            {
+                return true;
+            }
+
+            Keys activeToggleKey;
+            Profile activeProf = activeUi != null ? activeUi.Profile : null;
+            if (activeProf != null && activeProf.UserPreferences != null
+                && KeyHelper.TryParseFormsKeys(activeProf.UserPreferences.toggleStateKey, out activeToggleKey)
+                && activeToggleKey == this.lastKey)
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private bool OnChatEnterKeyPressed()
@@ -141,9 +338,9 @@ namespace _4RTools.Forms
             if (this.isApplicationOn
                 && this.cbChatPause != null
                 && this.cbChatPause.Checked
-                && !AutoRefreshCommand.IsSendingCommand
                 && !KeyboardHook.Alt
-                && !KeyboardHook.Control)
+                && !KeyboardHook.Control
+                && !AutoRefreshCommand.IsSendingCommand)
             {
                 Client client = ClientSingleton.GetClient();
                 if (client != null && client.IsGameWindowFocused())
@@ -230,12 +427,7 @@ namespace _4RTools.Forms
                             currentToggleKey = Keys.End;
                         }
 
-                        KeyboardHook.Remove(this.lastKey);
                         this.txtStatusToggleKey.Text = currentToggleKey.ToString();
-                        if (currentToggleKey != Keys.None)
-                        {
-                            KeyboardHook.Add(currentToggleKey, new KeyboardHook.KeyPressed(this.OnToggleHotkeyPressed));
-                        }
                         this.lastKey = currentToggleKey;
                         RegisterChatPauseHooks();
 
@@ -273,13 +465,17 @@ namespace _4RTools.Forms
 
         private void btnToggleStatusHandler(object sender, EventArgs e)
         {
-            if (this.isApplicationOn && ChatPauseState.IsChatting)
+            using (SessionContext.Enter(this.session))
             {
-                ChatPauseState.Resume();
-                return;
-            }
+                if (this.isApplicationOn && ChatPauseState.IsChatting)
+                {
+                    // Clicking the orange CHAT button resumes ON immediately instead of turning 4Tools off.
+                    ChatPauseState.Resume();
+                    return;
+                }
 
-            ToggleStatus();
+                ToggleStatus();
+            }
         }
 
         private bool OnToggleHotkeyPressed()
@@ -306,14 +502,11 @@ namespace _4RTools.Forms
                 currentToggleKey = Keys.None;
             }
 
-            KeyboardHook.Remove(this.lastKey);
-            if (currentToggleKey != Keys.None)
+            using (SessionContext.Enter(this.session))
             {
-                KeyboardHook.Add(currentToggleKey, new KeyboardHook.KeyPressed(this.OnToggleHotkeyPressed));
+                ProfileSingleton.GetCurrent().UserPreferences.toggleStateKey = currentToggleKey.ToString();
+                ProfileSingleton.SetConfiguration(ProfileSingleton.GetCurrent().UserPreferences);
             }
-
-            ProfileSingleton.GetCurrent().UserPreferences.toggleStateKey = currentToggleKey.ToString();
-            ProfileSingleton.SetConfiguration(ProfileSingleton.GetCurrent().UserPreferences);
 
             this.lastKey = currentToggleKey;
             RegisterChatPauseHooks();
@@ -326,8 +519,11 @@ namespace _4RTools.Forms
                 return;
             }
 
-            ProfileSingleton.GetCurrent().UserPreferences.soundEnabled = this.cbAudio.Checked;
-            ProfileSingleton.SetConfiguration(ProfileSingleton.GetCurrent().UserPreferences);
+            using (SessionContext.Enter(this.session))
+            {
+                ProfileSingleton.GetCurrent().UserPreferences.soundEnabled = this.cbAudio.Checked;
+                ProfileSingleton.SetConfiguration(ProfileSingleton.GetCurrent().UserPreferences);
+            }
         }
 
         private void OnFocusOnlyCheckedChanged(object sender, EventArgs e)
@@ -337,50 +533,63 @@ namespace _4RTools.Forms
                 return;
             }
 
-            ProfileSingleton.GetCurrent().UserPreferences.pauseWhenUnfocused = this.cbFocusOnly.Checked;
-            ProfileSingleton.SetConfiguration(ProfileSingleton.GetCurrent().UserPreferences);
+            using (SessionContext.Enter(this.session))
+            {
+                ProfileSingleton.GetCurrent().UserPreferences.pauseWhenUnfocused = this.cbFocusOnly.Checked;
+                ProfileSingleton.SetConfiguration(ProfileSingleton.GetCurrent().UserPreferences);
+            }
         }
 
         private void OnChatPauseCheckedChanged(object sender, EventArgs e)
         {
-            if (!this.cbChatPause.Checked)
+            using (SessionContext.Enter(this.session))
             {
-                ChatPauseState.Resume();
-            }
+                if (!this.cbChatPause.Checked)
+                {
+                    ChatPauseState.Resume();
+                }
 
-            if (this.isUpdatingUi || ProfileSingleton.IsSaveSuppressed)
-            {
-                return;
-            }
+                if (this.isUpdatingUi || ProfileSingleton.IsSaveSuppressed)
+                {
+                    return;
+                }
 
-            ProfileSingleton.GetCurrent().UserPreferences.pauseOnChat = this.cbChatPause.Checked;
-            ProfileSingleton.SetConfiguration(ProfileSingleton.GetCurrent().UserPreferences);
+                ProfileSingleton.GetCurrent().UserPreferences.pauseOnChat = this.cbChatPause.Checked;
+                ProfileSingleton.SetConfiguration(ProfileSingleton.GetCurrent().UserPreferences);
+            }
         }
 
         private bool ToggleStatus()
         {
-            if (this.isApplicationOn)
+            using (SessionContext.Enter(this.session))
             {
-                ApplyOffVisualState(LocalizationManager.T("status.press_to_start"), Color.Empty, true);
-                this.subject.Notify(new Utils.Message(MessageCode.TURN_OFF, null));
-            }
-            else
-            {
-                Client client = ClientSingleton.GetClient();
-                if (client != null && client.IsProcessAlive())
+                if (this.isApplicationOn)
                 {
-                    ChatPauseState.Resume();
-                    this.isApplicationOn = true;
-                    this.notifyIconTray.Icon = Resources._4RTools.ETCResource.logo_4rtools_on;
-                    ApplyOnVisualState();
-                    this.subject.Notify(new Utils.Message(MessageCode.TURN_ON, null));
-
-                    PlayAudio(this.soundOnPlayer);
+                    ApplyOffVisualState(LocalizationManager.T("status.press_to_start"), Color.Empty, true);
+                    this.subject.Notify(new Utils.Message(MessageCode.TURN_OFF, null));
                 }
                 else
                 {
-                    this.lblStatusToggle.Text = LocalizationManager.T("status.select_client");
-                    this.lblStatusToggle.ForeColor = ThemeManager.IsDarkMode ? Color.Salmon : Color.Red;
+                    Client client = ClientSingleton.GetClient();
+                    if (client != null && client.IsProcessAlive())
+                    {
+                        this.session.ResumeChat();
+                        this.isApplicationOn = true;
+                        this.session.IsAutomationOn = true;
+                        if (!this.isEmbeddedTab)
+                        {
+                            this.notifyIconTray.Icon = Resources._4RTools.ETCResource.logo_4rtools_on;
+                        }
+                        ApplyOnVisualState();
+                        this.subject.Notify(new Utils.Message(MessageCode.TURN_ON, null));
+
+                        PlayAudio(this.soundOnPlayer);
+                    }
+                    else
+                    {
+                        this.lblStatusToggle.Text = LocalizationManager.T("status.select_client");
+                        this.lblStatusToggle.ForeColor = ThemeManager.IsDarkMode ? Color.Salmon : Color.Red;
+                    }
                 }
             }
 
@@ -389,7 +598,7 @@ namespace _4RTools.Forms
 
         private void ApplyOnVisualState()
         {
-            if (ChatPauseState.IsChatting)
+            if (this.session.IsChatting)
             {
                 this.btnStatusToggle.BackColor = Color.DarkOrange;
                 this.btnStatusToggle.Text = "CHAT";
@@ -407,11 +616,15 @@ namespace _4RTools.Forms
 
         private void ApplyOffVisualState(string message, Color textColor, bool playOffSound)
         {
-            ChatPauseState.Resume();
+            this.session.ResumeChat();
             this.isApplicationOn = false;
+            this.session.IsAutomationOn = false;
             this.btnStatusToggle.BackColor = Color.Red;
             this.btnStatusToggle.Text = "OFF";
-            this.notifyIconTray.Icon = Resources._4RTools.ETCResource.logo_4rtools_off;
+            if (!this.isEmbeddedTab)
+            {
+                this.notifyIconTray.Icon = Resources._4RTools.ETCResource.logo_4rtools_off;
+            }
             this.lblStatusToggle.Text = message;
             this.lblStatusToggle.ForeColor = textColor == Color.Empty ? ThemeManager.GetDefaultTextColor() : textColor;
 
@@ -448,13 +661,16 @@ namespace _4RTools.Forms
             this.subject.Notify(new Utils.Message(MessageCode.SHUTDOWN_APPLICATION, null));
         }
 
-        protected override void OnFormClosed(FormClosedEventArgs e)
+        public void Shutdown()
         {
-            ChatPauseState.StateChanged -= OnChatPauseStateChanged;
-            ChatPauseState.Resume();
-            KeyboardHook.Remove(this.lastKey);
-            KeyboardHook.Remove(Keys.Return);
-            KeyboardHook.Remove(Keys.Escape);
+            if (this.chatHookSubscribed)
+            {
+                KeyboardHook.PhysicalKeyDown -= OnPhysicalKeyDownForChat;
+                this.chatHookSubscribed = false;
+            }
+            this.session.ChatStateChanged -= OnChatPauseStateChanged;
+            this.session.ResumeChat();
+            this.session.IsAutomationOn = false;
             if (this.soundOnPlayer != null)
             {
                 this.soundOnPlayer.Dispose();
@@ -474,6 +690,11 @@ namespace _4RTools.Forms
             {
                 this.notifyIconTray.Visible = false;
             }
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            Shutdown();
             base.OnFormClosed(e);
         }
     }

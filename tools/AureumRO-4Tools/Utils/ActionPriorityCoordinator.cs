@@ -29,29 +29,21 @@ namespace _4RTools.Utils
         public const int DEFAULT_YGG_PRIORITY_WINDOW_MS = 250;
         public const int DEFAULT_POTION_PRIORITY_WINDOW_MS = 150;
 
-        private static readonly Stopwatch Clock = Stopwatch.StartNew();
-
-        private static long lastPlayerInputMs = -1;
-        private static long lastYggActionMs = -1;
-        private static long lastPotionActionMs = -1;
-        private static int yggEmergencyActive = 0;
-
-        private static int playerInputYieldMs = DEFAULT_PLAYER_INPUT_YIELD_MS;
-        private static int yggPriorityWindowMs = DEFAULT_YGG_PRIORITY_WINDOW_MS;
-        private static int potionPriorityWindowMs = DEFAULT_POTION_PRIORITY_WINDOW_MS;
-        private static int holdPauseKeyCode = (int)Key.None;
-        private static int holdPauseIncludeAutopot = 0;
+        private static SessionContext.ActionPriorityState State
+        {
+            get { return SessionContext.Current.Priority; }
+        }
 
         public static Key HoldPauseKey
         {
-            get { return (Key)Volatile.Read(ref holdPauseKeyCode); }
-            set { Volatile.Write(ref holdPauseKeyCode, (int)value); }
+            get { return (Key)Volatile.Read(ref State.HoldPauseKeyCode); }
+            set { Volatile.Write(ref State.HoldPauseKeyCode, (int)value); }
         }
 
         public static bool HoldPauseIncludeAutopot
         {
-            get { return Volatile.Read(ref holdPauseIncludeAutopot) != 0; }
-            set { Volatile.Write(ref holdPauseIncludeAutopot, value ? 1 : 0); }
+            get { return Volatile.Read(ref State.HoldPauseIncludeAutopot) != 0; }
+            set { Volatile.Write(ref State.HoldPauseIncludeAutopot, value ? 1 : 0); }
         }
 
         public static bool IsHoldPauseActive()
@@ -67,51 +59,51 @@ namespace _4RTools.Utils
 
         public static int PlayerInputYieldMs
         {
-            get { return Volatile.Read(ref playerInputYieldMs); }
+            get { return Volatile.Read(ref State.PlayerInputYieldMs); }
             set
             {
                 int clamped = Math.Max(MIN_PLAYER_INPUT_YIELD_MS, Math.Min(MAX_PLAYER_INPUT_YIELD_MS, value));
-                Volatile.Write(ref playerInputYieldMs, clamped);
+                Volatile.Write(ref State.PlayerInputYieldMs, clamped);
             }
         }
 
         public static int YggPriorityWindowMs
         {
-            get { return Volatile.Read(ref yggPriorityWindowMs); }
-            set { Volatile.Write(ref yggPriorityWindowMs, Math.Max(0, value)); }
+            get { return Volatile.Read(ref State.YggPriorityWindowMs); }
+            set { Volatile.Write(ref State.YggPriorityWindowMs, Math.Max(0, value)); }
         }
 
         public static int PotionPriorityWindowMs
         {
-            get { return Volatile.Read(ref potionPriorityWindowMs); }
-            set { Volatile.Write(ref potionPriorityWindowMs, Math.Max(0, value)); }
+            get { return Volatile.Read(ref State.PotionPriorityWindowMs); }
+            set { Volatile.Write(ref State.PotionPriorityWindowMs, Math.Max(0, value)); }
         }
 
         public static bool IsYggEmergencyActive
         {
-            get { return Volatile.Read(ref yggEmergencyActive) != 0; }
+            get { return Volatile.Read(ref State.YggEmergencyActive) != 0; }
         }
 
         public static long NowMs
         {
-            get { return Clock.ElapsedMilliseconds; }
+            get { return SessionContext.ActionPriorityState.NowMs; }
         }
 
         public static void NotifyPlayerInput(long? nowMs = null)
         {
-            long timestamp = nowMs ?? Clock.ElapsedMilliseconds;
-            Interlocked.Exchange(ref lastPlayerInputMs, timestamp);
+            long timestamp = nowMs ?? NowMs;
+            Interlocked.Exchange(ref State.LastPlayerInputMs, timestamp);
         }
 
         public static void SetYggEmergencyActive(bool active)
         {
-            Volatile.Write(ref yggEmergencyActive, active ? 1 : 0);
+            Volatile.Write(ref State.YggEmergencyActive, active ? 1 : 0);
         }
 
         public static void NotifyYggAction(long? nowMs = null)
         {
-            long timestamp = nowMs ?? Clock.ElapsedMilliseconds;
-            Interlocked.Exchange(ref lastYggActionMs, timestamp);
+            long timestamp = nowMs ?? NowMs;
+            Interlocked.Exchange(ref State.LastYggActionMs, timestamp);
         }
 
         public static void NotifyAntiDebuffAction(long? nowMs = null)
@@ -126,8 +118,8 @@ namespace _4RTools.Utils
 
         public static void NotifyPotionAction(long? nowMs = null)
         {
-            long timestamp = nowMs ?? Clock.ElapsedMilliseconds;
-            Interlocked.Exchange(ref lastPotionActionMs, timestamp);
+            long timestamp = nowMs ?? NowMs;
+            Interlocked.Exchange(ref State.LastPotionActionMs, timestamp);
         }
 
         /// <summary>
@@ -142,15 +134,16 @@ namespace _4RTools.Utils
                 return false;
             }
 
-            long now = nowMs ?? Clock.ElapsedMilliseconds;
+            SessionContext.ActionPriorityState state = State;
+            long now = nowMs ?? NowMs;
 
             // Tier 1: Player input takes priority over everything (Ygg, Potions, Skills & others).
             if (includePlayerInput)
             {
-                int yieldWindow = Volatile.Read(ref playerInputYieldMs);
+                int yieldWindow = Volatile.Read(ref state.PlayerInputYieldMs);
                 if (yieldWindow > 0)
                 {
-                    long lastPlayer = Interlocked.Read(ref lastPlayerInputMs);
+                    long lastPlayer = Interlocked.Read(ref state.LastPlayerInputMs);
                     if (lastPlayer >= 0)
                     {
                         long elapsed = now - lastPlayer;
@@ -168,15 +161,15 @@ namespace _4RTools.Utils
             }
 
             // Tier 2: Yggdrasil emergency / recent Ygg cast takes priority over Potions and Skills.
-            if (Volatile.Read(ref yggEmergencyActive) != 0)
+            if (Volatile.Read(ref state.YggEmergencyActive) != 0)
             {
                 return true;
             }
 
-            int yggWindow = Volatile.Read(ref yggPriorityWindowMs);
+            int yggWindow = Volatile.Read(ref state.YggPriorityWindowMs);
             if (yggWindow > 0)
             {
-                long lastYgg = Interlocked.Read(ref lastYggActionMs);
+                long lastYgg = Interlocked.Read(ref state.LastYggActionMs);
                 if (lastYgg >= 0)
                 {
                     long elapsed = now - lastYgg;
@@ -193,10 +186,10 @@ namespace _4RTools.Utils
             }
 
             // Tier 3: Standard potions take priority over Skills and all other background automations.
-            int potWindow = Volatile.Read(ref potionPriorityWindowMs);
+            int potWindow = Volatile.Read(ref state.PotionPriorityWindowMs);
             if (potWindow > 0)
             {
-                long lastPot = Interlocked.Read(ref lastPotionActionMs);
+                long lastPot = Interlocked.Read(ref state.LastPotionActionMs);
                 if (lastPot >= 0)
                 {
                     long elapsed = now - lastPot;
@@ -212,15 +205,7 @@ namespace _4RTools.Utils
 
         public static void Reset()
         {
-            Interlocked.Exchange(ref lastPlayerInputMs, -1);
-            Interlocked.Exchange(ref lastYggActionMs, -1);
-            Interlocked.Exchange(ref lastPotionActionMs, -1);
-            Volatile.Write(ref yggEmergencyActive, 0);
-            Volatile.Write(ref playerInputYieldMs, DEFAULT_PLAYER_INPUT_YIELD_MS);
-            Volatile.Write(ref yggPriorityWindowMs, DEFAULT_YGG_PRIORITY_WINDOW_MS);
-            Volatile.Write(ref potionPriorityWindowMs, DEFAULT_POTION_PRIORITY_WINDOW_MS);
-            Volatile.Write(ref holdPauseKeyCode, (int)Key.None);
-            Volatile.Write(ref holdPauseIncludeAutopot, 0);
+            State.Reset();
         }
     }
 }

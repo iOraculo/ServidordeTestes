@@ -69,11 +69,11 @@ namespace _4RTools.Forms
             this.pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
 
             this.label1.AutoSize = true;
-            this.label1.Font = new Font("Segoe UI", 8.5F, FontStyle.Regular);
+            this.label1.Font = FontManager.Regular(8.5F);
             this.label1.Location = new Point(38, 21);
             this.label1.Text = "Single key (all 6):";
 
-            this.txtStatusKey.Font = new Font("Segoe UI", 8.5F, FontStyle.Regular);
+            this.txtStatusKey.Font = FontManager.Regular(8.5F);
             this.txtStatusKey.Location = new Point(198, 19);
             this.txtStatusKey.Size = new Size(58, 20);
             this.txtStatusKey.Text = Key.None.ToString();
@@ -82,7 +82,7 @@ namespace _4RTools.Forms
             {
                 AutoEllipsis = true,
                 AutoSize = false,
-                Font = new Font("Segoe UI", 8F, FontStyle.Regular),
+                Font = FontManager.Regular(8F),
                 Location = new Point(266, 21),
                 Name = "lblCurableHint",
                 Size = new Size(270, 18),
@@ -125,7 +125,7 @@ namespace _4RTools.Forms
                 {
                     AutoEllipsis = true,
                     AutoSize = false,
-                    Font = new Font("Segoe UI", 8F, FontStyle.Regular),
+                    Font = FontManager.Regular(8F),
                     Location = new Point(266, 25),
                     Name = "lblAgilityHint",
                     Size = new Size(270, 18),

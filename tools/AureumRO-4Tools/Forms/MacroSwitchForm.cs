@@ -13,8 +13,8 @@ namespace _4RTools.Forms
         public static int TOTAL_MACRO_LANES = 5;
         public const int MAX_SLOTS_PER_LANE = 7;
 
-        private const int LANE_WIDTH = 548;
-        private const int LANE_HEIGHT = 158;
+        private const int LANE_WIDTH = 574;
+        private const int LANE_HEIGHT = 164;
         private const int LANE_LEFT = 10;
         private const int LANE_TOP_START = 8;
         private const int LANE_SPACING = 10;
@@ -151,9 +151,9 @@ namespace _4RTools.Forms
             lane.BtnClearLane = new Button
             {
                 Cursor = System.Windows.Forms.Cursors.Hand,
-                Location = new Point(id == 1 ? 472 : 374, 19),
+                Location = new Point(id == 1 ? 492 : 386, 17),
                 Name = "btnClearMac" + id,
-                Size = new Size(id == 1 ? 66 : 62, 22),
+                Size = new Size(id == 1 ? 72 : 68, 25),
                 Text = "Clear",
                 Tag = id,
                 UseVisualStyleBackColor = true
@@ -178,9 +178,9 @@ namespace _4RTools.Forms
                 lane.BtnRemoveLane = new Button
                 {
                     Cursor = System.Windows.Forms.Cursors.Hand,
-                    Location = new Point(442, 19),
+                    Location = new Point(460, 17),
                     Name = "btnRemoveLaneMac" + id,
-                    Size = new Size(96, 22),
+                    Size = new Size(104, 25),
                     Text = "Remove Switch",
                     Tag = id,
                     UseVisualStyleBackColor = true
@@ -278,9 +278,9 @@ namespace _4RTools.Forms
             lane.BtnAddSlot = new Button
             {
                 Cursor = System.Windows.Forms.Cursors.Hand,
-                Location = new Point(66, 128),
+                Location = new Point(66, 130),
                 Name = "btnAddSlotMac" + id,
-                Size = new Size(122, 22),
+                Size = new Size(134, 25),
                 Text = "+ Add Slot",
                 Tag = id,
                 UseVisualStyleBackColor = true
@@ -291,9 +291,9 @@ namespace _4RTools.Forms
             lane.BtnRemoveSlot = new Button
             {
                 Cursor = System.Windows.Forms.Cursors.Hand,
-                Location = new Point(194, 128),
+                Location = new Point(208, 130),
                 Name = "btnRemoveSlotMac" + id,
-                Size = new Size(118, 22),
+                Size = new Size(128, 25),
                 Text = "- Remove Slot",
                 Tag = id,
                 UseVisualStyleBackColor = true

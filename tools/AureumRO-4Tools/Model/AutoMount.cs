@@ -26,6 +26,7 @@ namespace _4RTools.Model
         private readonly object stateLock = new object();
         private readonly Stopwatch clock = Stopwatch.StartNew();
         private _4RThread remountThread;
+        private SessionContext boundSession;
         private bool hookSubscribed;
         private long lastDismountMs = -DISMOUNT_DEBOUNCE_MS;
         private long lastSkillActivityMs = 0;
@@ -377,6 +378,7 @@ namespace _4RTools.Model
 
             lock (this.stateLock)
             {
+                this.boundSession = SessionContext.Current;
                 this.dismountedByAutoMount = false;
                 this.lastSkillActivityMs = this.clock.ElapsedMilliseconds;
                 if (!this.hookSubscribed)
@@ -409,54 +411,61 @@ namespace _4RTools.Model
 
         private void OnPhysicalKeyDown(Keys formsKey)
         {
-            if (!IsActiveForDismount() || KeyboardHook.Alt || KeyboardHook.Control || ActionPriorityCoordinator.IsHoldPauseActive())
+            SessionContext targetSession = this.boundSession ?? SessionContext.Current;
+            using (SessionContext.Enter(targetSession))
             {
-                return;
-            }
-
-            Key wpfKey = KeyHelper.FromFormsKeys(formsKey);
-            Profile currentProfile = ProfileSingleton.GetCurrent();
-            if (!IsTrackedSkillKey(wpfKey, currentProfile))
-            {
-                return;
-            }
-
-            RecordSkillActivity();
-
-            // Run memory check + dismount + recast off the WH_KEYBOARD_LL thread so input never lags.
-            ThreadPool.QueueUserWorkItem(delegate
-            {
-                try
+                if (!IsActiveForDismount() || KeyboardHook.Alt || KeyboardHook.Control || ActionPriorityCoordinator.IsHoldPauseActive())
                 {
-                    Client client = ClientSingleton.GetClient();
-                    if (client == null
-                        || !client.HasMemorySupport
-                        || !client.IsProcessAlive()
-                        || !client.IsGameWindowFocused()
-                        || ChatPauseState.IsChatting)
-                    {
-                        return;
-                    }
+                    return;
+                }
 
-                    if (!IsClientMounted(client))
-                    {
-                        return;
-                    }
+                Key wpfKey = KeyHelper.FromFormsKeys(formsKey);
+                Profile currentProfile = ProfileSingleton.GetCurrent();
+                if (!IsTrackedSkillKey(wpfKey, currentProfile))
+                {
+                    return;
+                }
 
-                    if (DismountNow(client, CancellationToken.None))
+                RecordSkillActivity();
+
+                // Run memory check + dismount + recast off the WH_KEYBOARD_LL thread so input never lags.
+                ThreadPool.QueueUserWorkItem(delegate
+                {
+                    using (SessionContext.Enter(targetSession))
                     {
-                        IntPtr hWnd = client.GetWindowHandle();
-                        if (hWnd != IntPtr.Zero)
+                        try
                         {
-                            Interop.SendKeyDown(hWnd, formsKey);
+                            Client client = ClientSingleton.GetClient();
+                            if (client == null
+                                || !client.HasMemorySupport
+                                || !client.IsProcessAlive()
+                                || !client.IsGameWindowFocused()
+                                || ChatPauseState.IsChatting)
+                            {
+                                return;
+                            }
+
+                            if (!IsClientMounted(client))
+                            {
+                                return;
+                            }
+
+                            if (DismountNow(client, CancellationToken.None))
+                            {
+                                IntPtr hWnd = client.GetWindowHandle();
+                                if (hWnd != IntPtr.Zero)
+                                {
+                                    Interop.SendKeyDown(hWnd, formsKey);
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Warn("AutoMount", "Error during dismount-on-skill handler", ex);
                         }
                     }
-                }
-                catch (Exception ex)
-                {
-                    Logger.Warn("AutoMount", "Error during dismount-on-skill handler", ex);
-                }
-            });
+                });
+            }
         }
 
         private void IdleRemountTick(Client client, CancellationToken token)

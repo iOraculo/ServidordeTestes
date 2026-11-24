@@ -407,5 +407,16 @@ namespace _4RTools.Utils
         // Homunculus
         EFST_PYROCLASTIC = 607,
         EFST_TEMPERING = 1343,
+
+        // Pre-Renewal extra buffs (Thief/Stalker/Monk/Priest/Mage/Soul Linker)
+        EFST_CLOAKING = 5,
+        EFST_SIGHT = 18,
+        EFST_RUWACH = 28,
+        EFST_STEELBODY = 87,
+        EFST_CHASEWALK = 134,
+        EFST_KAITE = 153,
+        EFST_KAIZEL = 156,
+        EFST_KAAHI = 157,
+        EFST_KAUPE = 158,
     }
 }

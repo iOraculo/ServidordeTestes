@@ -1,4 +1,4 @@
-﻿using System.Windows.Forms;
+using System.Windows.Forms;
 
 namespace _4RTools.Forms
 {
@@ -81,7 +81,7 @@ namespace _4RTools.Forms
             // notifyIconTray
             // 
             this.notifyIconTray.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIconTray.Icon")));
-            this.notifyIconTray.Text = "4ROTools";
+            this.notifyIconTray.Text = "AureumTools";
             this.notifyIconTray.Visible = true;
             this.notifyIconTray.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.notifyIconDoubleClick);
             // 
@@ -113,7 +113,7 @@ namespace _4RTools.Forms
             // ToggleApplicationStateForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(226, 114);
             this.Controls.Add(this.groupBox1);

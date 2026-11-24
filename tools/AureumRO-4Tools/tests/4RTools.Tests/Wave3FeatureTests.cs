@@ -20,6 +20,7 @@ namespace _4RTools.Tests
         private readonly string originalProfileFolder;
         private readonly string originalServerFile;
         private readonly string originalSettingsFile;
+        private readonly string originalAureumProgressFile;
         private readonly bool originalDarkMode;
         private readonly string originalLanguage;
 
@@ -31,12 +32,14 @@ namespace _4RTools.Tests
             this.originalProfileFolder = AppConfig.ProfileFolder;
             this.originalServerFile = LocalServerManager.LocalServerFilePath;
             this.originalSettingsFile = AppSettings.SettingsFilePath;
+            this.originalAureumProgressFile = AureumProgressStore.ProgressFilePath;
             this.originalDarkMode = ThemeManager.IsDarkMode;
             this.originalLanguage = LocalizationManager.CurrentLanguage;
 
             AppConfig.ProfileFolder = Path.Combine(this.tempDir, "Profile") + Path.DirectorySeparatorChar;
             LocalServerManager.LocalServerFilePath = Path.Combine(this.tempDir, "supported_servers.json");
             AppSettings.SettingsFilePath = Path.Combine(this.tempDir, "settings.json");
+            AureumProgressStore.ProgressFilePath = Path.Combine(this.tempDir, "aureum_progress.json");
             LocalizationManager.SetLanguage(LocalizationManager.LANG_PT_BR);
         }
 
@@ -47,6 +50,7 @@ namespace _4RTools.Tests
             AppConfig.ProfileFolder = this.originalProfileFolder;
             LocalServerManager.LocalServerFilePath = this.originalServerFile;
             AppSettings.SettingsFilePath = this.originalSettingsFile;
+            AureumProgressStore.ProgressFilePath = this.originalAureumProgressFile;
 
             try
             {
@@ -354,11 +358,13 @@ namespace _4RTools.Tests
                 LocalizationManager.ApplyToControlTree(shell);
                 Assert.Equal("COMBATE & AUTOMAÇÃO", groupLabel.Text);
                 Assert.Equal("Spammer", navBtn.Text);
+                Assert.Contains("Oráculo", LocalizationManager.T("footer.powered"));
 
                 LocalizationManager.SetLanguage(LocalizationManager.LANG_EN_US);
                 LocalizationManager.ApplyToControlTree(shell);
                 Assert.Equal("COMBAT & AUTOMATION", groupLabel.Text);
                 Assert.Equal("Skill Spammer", navBtn.Text);
+                Assert.Contains("Oráculo", LocalizationManager.T("footer.powered"));
             }
         }
 
@@ -514,7 +520,8 @@ namespace _4RTools.Tests
             Assert.False(ClientUpdaterForm.IsExclusiveServer(thirdParty));
             Assert.False(ClientUpdaterForm.IsAllowedServer(thirdParty, isLocalOverride: false));
             Assert.True(ClientUpdaterForm.IsAllowedServer(thirdParty, isLocalOverride: true));
-            Assert.Contains("iOraculo/AureumRO-4Tools", AppConfig._4RClientsURL);
+            Assert.Equal("AureumTools", AppConfig.Name);
+            Assert.Contains("iOraculo/AureumTools", AppConfig._4RClientsURL);
         }
 
         [Fact]
@@ -1003,8 +1010,8 @@ namespace _4RTools.Tests
             Subject subject = new Subject();
             using (GuideForm guide = new GuideForm(subject))
             {
-                Assert.Equal(11, guide.TotalSectionCount);
-                Assert.Equal(11, guide.VisibleSectionCount);
+                Assert.Equal(12, guide.TotalSectionCount);
+                Assert.Equal(12, guide.VisibleSectionCount);
 
                 // Accent-insensitive Portuguese search for ATK x DEF / Macros
                 guide.ApplySearchFilter("musicas");
@@ -1019,13 +1026,17 @@ namespace _4RTools.Tests
                 guide.ApplySearchFilter("refresh");
                 Assert.True(guide.VisibleSectionCount >= 1);
 
+                // Search for Aureum Hub topic
+                guide.ApplySearchFilter("votacao");
+                Assert.True(guide.VisibleSectionCount >= 1);
+
                 // Nonsense search shows 0 cards
                 guide.ApplySearchFilter("zzzz_nao_existe_12345");
                 Assert.Equal(0, guide.VisibleSectionCount);
 
-                // Clearing filter restores all 11 cards
+                // Clearing filter restores all 12 cards
                 guide.ApplySearchFilter(string.Empty);
-                Assert.Equal(11, guide.VisibleSectionCount);
+                Assert.Equal(12, guide.VisibleSectionCount);
 
                 // Live language switch updates titles to English
                 LocalizationManager.SetLanguage(LocalizationManager.LANG_EN_US);
@@ -1366,7 +1377,7 @@ namespace _4RTools.Tests
                 Assert.Same(gbPriority, lblYieldTitle.Parent);
                 Assert.Same(gbPriority, lblPriority.Parent);
                 Assert.Equal(new System.Drawing.Point(12, 38), lblPriority.Location);
-                Assert.Equal(new System.Drawing.Size(534, 19), lblPriority.Size);
+                Assert.Equal(new System.Drawing.Size(564, 19), lblPriority.Size);
                 Assert.Equal(7.75F, lblPriority.Font.Size);
                 Assert.Equal("1º Input do Jogador → 2º Fruto de Yggdrasil / Panaceia → 3º Consumíveis → 4º Auto-skills", lblPriority.Text);
                 LocalizationManager.SetLanguage(LocalizationManager.LANG_EN_US);
@@ -1386,6 +1397,12 @@ namespace _4RTools.Tests
             Assert.Equal("@refresh", AutoRefreshCommand.NormalizeCommand("   "));
             Assert.Equal("@refresh", AutoRefreshCommand.NormalizeCommand(" @refresh \r\n"));
             Assert.Equal("/refresh", AutoRefreshCommand.NormalizeCommand("/refresh"));
+
+            // Verify Win32 SendInput INPUT struct size matches exact OS ABI (28 bytes on x86, 40 bytes on x64).
+            int expectedInputSize = IntPtr.Size == 8 ? 40 : 28;
+            Assert.Equal(expectedInputSize, System.Runtime.InteropServices.Marshal.SizeOf(typeof(Interop.INPUT)));
+            Assert.False(Interop.SendChatCommand(IntPtr.Zero, "@refresh"));
+            Assert.False(Interop.SendChatCommand((IntPtr)1, "   "));
 
             AutoRefreshCommand cmd = new AutoRefreshCommand
             {
@@ -1664,6 +1681,438 @@ namespace _4RTools.Tests
             {
                 KeyHelper.VirtualKeyDownOverride = null;
                 ActionPriorityCoordinator.Reset();
+            }
+        }
+
+        [Fact]
+        public void SessionContext_IsolatesProfilesClientsChatPausePriorityAndWorkerThreads()
+        {
+            SessionContext sessionA = new SessionContext(0);
+            SessionContext sessionB = new SessionContext(1);
+            SessionContext.RegisterSession(sessionA);
+            SessionContext.RegisterSession(sessionB);
+
+            try
+            {
+                using (SessionContext.Enter(sessionA))
+                {
+                    ProfileSingleton.profile = new Profile("AccountOne");
+                    ChatPauseState.SetChatting(true);
+                    ActionPriorityCoordinator.PlayerInputYieldMs = 210;
+                    ActionPriorityCoordinator.HoldPauseKey = Key.LeftCtrl;
+                    ActionPriorityCoordinator.HoldPauseIncludeAutopot = true;
+                    Assert.True(sessionA.TryBeginSendingCommand());
+                }
+
+                using (SessionContext.Enter(sessionB))
+                {
+                    ProfileSingleton.profile = new Profile("AccountTwo");
+                    Assert.False(ChatPauseState.IsChatting);
+                    Assert.Equal(ActionPriorityCoordinator.DEFAULT_PLAYER_INPUT_YIELD_MS, ActionPriorityCoordinator.PlayerInputYieldMs);
+                    Assert.Equal(Key.None, ActionPriorityCoordinator.HoldPauseKey);
+                    Assert.False(ActionPriorityCoordinator.HoldPauseIncludeAutopot);
+                    Assert.False(AutoRefreshCommand.IsSendingCommand);
+
+                    ActionPriorityCoordinator.PlayerInputYieldMs = 95;
+                    ActionPriorityCoordinator.HoldPauseKey = Key.Tab;
+                }
+
+                using (SessionContext.Enter(sessionA))
+                {
+                    Assert.Equal("AccountOne", ProfileSingleton.GetCurrent().Name);
+                    Assert.True(ChatPauseState.IsChatting);
+                    Assert.Equal(210, ActionPriorityCoordinator.PlayerInputYieldMs);
+                    Assert.Equal(Key.LeftCtrl, ActionPriorityCoordinator.HoldPauseKey);
+                    Assert.True(ActionPriorityCoordinator.HoldPauseIncludeAutopot);
+                    Assert.True(AutoRefreshCommand.IsSendingCommand);
+                    sessionA.EndSendingCommand();
+                }
+
+                using (SessionContext.Enter(sessionB))
+                {
+                    Assert.Equal("AccountTwo", ProfileSingleton.GetCurrent().Name);
+                    Assert.Equal(95, ActionPriorityCoordinator.PlayerInputYieldMs);
+                    Assert.Equal(Key.Tab, ActionPriorityCoordinator.HoldPauseKey);
+                }
+
+                // _4RThread must inherit the SessionContext that created it.
+                SessionContext seenInThreadA = null;
+                SessionContext seenInThreadB = null;
+                System.Threading.ManualResetEventSlim doneA = new System.Threading.ManualResetEventSlim(false);
+                System.Threading.ManualResetEventSlim doneB = new System.Threading.ManualResetEventSlim(false);
+
+                _4RThread threadA;
+                using (SessionContext.Enter(sessionA))
+                {
+                    threadA = new _4RThread(_ =>
+                    {
+                        seenInThreadA = SessionContext.Current;
+                        doneA.Set();
+                        return 100;
+                    });
+                }
+
+                _4RThread threadB;
+                using (SessionContext.Enter(sessionB))
+                {
+                    threadB = new _4RThread(_ =>
+                    {
+                        seenInThreadB = SessionContext.Current;
+                        doneB.Set();
+                        return 100;
+                    });
+                }
+
+                try
+                {
+                    _4RThread.Start(threadA);
+                    _4RThread.Start(threadB);
+                    Assert.True(doneA.Wait(2000));
+                    Assert.True(doneB.Wait(2000));
+                    Assert.Same(sessionA, seenInThreadA);
+                    Assert.Same(sessionB, seenInThreadB);
+                }
+                finally
+                {
+                    _4RThread.Stop(threadA);
+                    _4RThread.Stop(threadB);
+                    doneA.Dispose();
+                    doneB.Dispose();
+                }
+
+                // HasMultipleActiveSessions reflects how many registered sessions are currently ON.
+                sessionA.IsAutomationOn = false;
+                sessionB.IsAutomationOn = false;
+                Assert.False(SessionContext.HasMultipleActiveSessions);
+                sessionA.IsAutomationOn = true;
+                Assert.False(SessionContext.HasMultipleActiveSessions);
+                sessionB.IsAutomationOn = true;
+                Assert.True(SessionContext.HasMultipleActiveSessions);
+            }
+            finally
+            {
+                sessionA.IsAutomationOn = false;
+                sessionB.IsAutomationOn = false;
+                SessionContext.UnregisterSession(sessionA);
+                SessionContext.UnregisterSession(sessionB);
+            }
+        }
+
+        [Fact]
+        public void MultiAccountShellForm_HostsThreeIndependentAccountTabsAndSwitchesActiveUiSession()
+        {
+            SessionContext s0;
+            SessionContext s1;
+            SessionContext s2;
+
+            using (MultiAccountShellForm shell = new MultiAccountShellForm())
+            {
+                shell.Show();
+                Assert.Equal(3, shell.AccountCount);
+                Assert.Equal(0, shell.ActiveAccountIndex);
+
+                s0 = shell.GetAccountSession(0);
+                s1 = shell.GetAccountSession(1);
+                s2 = shell.GetAccountSession(2);
+
+                Assert.NotNull(s0);
+                Assert.NotNull(s1);
+                Assert.NotNull(s2);
+                Assert.NotSame(s0, s1);
+                Assert.NotSame(s1, s2);
+                Assert.NotSame(s0, s2);
+
+                Container c0 = shell.GetAccountContainer(0);
+                Container c1 = shell.GetAccountContainer(1);
+                Container c2 = shell.GetAccountContainer(2);
+                Assert.NotNull(c0);
+                Assert.NotNull(c1);
+                Assert.NotNull(c2);
+
+                Assert.Same(s0, SessionContext.ActiveUiSession);
+                Assert.True(c0.Visible);
+                Assert.False(c1.Visible);
+                Assert.False(c2.Visible);
+
+                shell.SelectAccountTab(1);
+                Assert.Equal(1, shell.ActiveAccountIndex);
+                Assert.Same(s1, SessionContext.ActiveUiSession);
+                Assert.False(c0.Visible);
+                Assert.True(c1.Visible);
+                Assert.False(c2.Visible);
+
+                shell.SelectAccountTab(2);
+                Assert.Equal(2, shell.ActiveAccountIndex);
+                Assert.Same(s2, SessionContext.ActiveUiSession);
+                Assert.False(c0.Visible);
+                Assert.False(c1.Visible);
+                Assert.True(c2.Visible);
+            }
+
+            Assert.Same(SessionContext.Default, SessionContext.ActiveUiSession);
+            List<SessionContext> remaining = SessionContext.GetRegisteredSessions();
+            Assert.DoesNotContain(s0, remaining);
+            Assert.DoesNotContain(s1, remaining);
+            Assert.DoesNotContain(s2, remaining);
+        }
+
+        [Fact]
+        public void AureumCatalog_AndProgressStore_LoadAllCollectionsMapsAndPersistIndependently()
+        {
+            AureumCatalogData catalog = AureumCatalog.Load();
+            Assert.NotNull(catalog);
+            Assert.Equal(2, catalog.Topsites.Count);
+            Assert.Equal(28, catalog.CardCollections.Count);
+            Assert.Equal(140, catalog.CardCollections.Sum(c => c.Cards.Count));
+            Assert.Equal(311, catalog.MapCollections.Count);
+            Assert.Equal(27, AureumCatalog.GetMapCities(catalog).Count);
+            Assert.True(AureumCatalog.GetCardCategories(catalog).Count >= 5);
+            Assert.True(AureumCatalog.GetMapBonusCategories(catalog).Count >= 9);
+
+            // Every map must have a clean map code (no @warp prefix), reference city, directions, and categorized bonus (no "Outros").
+            Assert.All(catalog.MapCollections, m =>
+            {
+                Assert.False(string.IsNullOrWhiteSpace(m.Name));
+                Assert.False(string.IsNullOrWhiteSpace(m.City));
+                Assert.False(string.IsNullOrWhiteSpace(m.MapCode));
+                Assert.DoesNotContain("@warp", m.MapCode);
+                Assert.False(string.IsNullOrWhiteSpace(m.ReferenceCity));
+                Assert.False(string.IsNullOrWhiteSpace(m.Directions));
+                Assert.False(string.IsNullOrWhiteSpace(m.Bonus));
+                Assert.NotEqual("Outros", m.BonusCategory);
+            });
+
+            AureumMapEntry prtMonk = catalog.MapCollections.FirstOrDefault(m => string.Equals(m.MapCode, "prt_monk", StringComparison.OrdinalIgnoreCase));
+            Assert.NotNull(prtMonk);
+            Assert.Equal("Prontera", prtMonk.ReferenceCity);
+            Assert.Contains("→", prtMonk.Directions);
+            Assert.Contains("↑", prtMonk.Directions);
+
+            // Shared cards (e.g., Necromancer 4440 in collections 21 and 22) must track separately per collection.
+            AureumProgressData progress = AureumProgressStore.Load();
+            Assert.True(AureumProgressStore.ToggleCardCollected(progress, 21, 4440));
+            Assert.True(AureumProgressStore.IsCardCollected(progress, 21, 4440));
+            Assert.False(AureumProgressStore.IsCardCollected(progress, 22, 4440));
+
+            // Map completion + 12h vote timer + ready notification fire once per cycle.
+            Assert.True(AureumProgressStore.ToggleMapCompleted(progress, "tur_dun01"));
+            Assert.True(AureumProgressStore.IsMapCompleted(progress, "tur_dun01"));
+
+            AureumVoteSite site = catalog.Topsites[0];
+            DateTime t0 = new DateTime(2026, 11, 23, 12, 0, 0, DateTimeKind.Utc);
+            AureumProgressStore.RecordVote(progress, site.Code, t0);
+            Assert.False(AureumProgressStore.IsVoteReady(progress, site, t0.AddHours(6)));
+            Assert.Equal(TimeSpan.FromHours(6), AureumProgressStore.GetRemainingVoteCooldown(progress, site, t0.AddHours(6)));
+
+            List<AureumVoteSite> alertsAt12h = AureumProgressStore.CheckNewlyReadyVoteSites(progress, catalog.Topsites, t0.AddHours(12));
+            Assert.Single(alertsAt12h);
+            Assert.Equal(site.Code, alertsAt12h[0].Code);
+            // Must not duplicate alert for the same vote cycle.
+            Assert.Empty(AureumProgressStore.CheckNewlyReadyVoteSites(progress, catalog.Topsites, t0.AddHours(13)));
+
+            // Manual last-vote time parsing (HH:mm): same day when earlier, yesterday when later than current time.
+            DateTime localNow = new DateTime(2026, 11, 23, 22, 0, 0, DateTimeKind.Local);
+            DateTime parsedSameDayUtc;
+            Assert.True(AureumProgressStore.TryParseLastVoteLocalTime("14:30", localNow, out parsedSameDayUtc));
+            Assert.Equal(new DateTime(2026, 11, 23, 14, 30, 0, DateTimeKind.Local).ToUniversalTime(), parsedSameDayUtc);
+            AureumProgressStore.RecordVote(progress, site.Code, parsedSameDayUtc);
+            Assert.Equal(TimeSpan.FromHours(4.5), AureumProgressStore.GetRemainingVoteCooldown(progress, site, localNow.ToUniversalTime()));
+
+            DateTime parsedYesterdayUtc;
+            DateTime earlyMorningLocal = new DateTime(2026, 11, 24, 2, 0, 0, DateTimeKind.Local);
+            Assert.True(AureumProgressStore.TryParseLastVoteLocalTime("20:30", earlyMorningLocal, out parsedYesterdayUtc));
+            Assert.Equal(new DateTime(2026, 11, 23, 20, 30, 0, DateTimeKind.Local).ToUniversalTime(), parsedYesterdayUtc);
+
+            DateTime dummyUtc;
+            Assert.False(AureumProgressStore.TryParseLastVoteLocalTime("25:99", localNow, out dummyUtc));
+            Assert.False(AureumProgressStore.TryParseLastVoteLocalTime("abc", localNow, out dummyUtc));
+
+            // Persists cleanly across reload.
+            AureumProgressData reloaded = AureumProgressStore.Load();
+            Assert.True(AureumProgressStore.IsCardCollected(reloaded, 21, 4440));
+            Assert.False(AureumProgressStore.IsCardCollected(reloaded, 22, 4440));
+            Assert.True(AureumProgressStore.IsMapCompleted(reloaded, "tur_dun01"));
+        }
+
+        [Fact]
+        public void AureumHubForm_SwitchesSubTabsStrikesCollectedCardsAndGroupsMapsByCityOrBonus()
+        {
+            Subject subject = new Subject();
+            using (AureumHubForm hub = new AureumHubForm(subject, false))
+            {
+                hub.Show();
+                Assert.Equal("vote", hub.ActiveMainSubTab);
+
+                // Switch to Collection -> Cards
+                hub.SelectMainSubTab("collection");
+                Assert.Equal("collection", hub.ActiveMainSubTab);
+                Assert.Equal("cards", hub.ActiveCollectionSubTab);
+                Assert.Equal(28, hub.VisibleCardCollectionCount);
+
+                // Click Poring card in collection #01 -> strikes through & persists!
+                System.Windows.Forms.Control[] poringBtns = hub.Controls.Find("btnCard_01_4001", true);
+                Assert.Single(poringBtns);
+                Assert.False(poringBtns[0].Font.Strikeout);
+                ((System.Windows.Forms.Button)poringBtns[0]).PerformClick();
+
+                System.Windows.Forms.Control[] poringAfter = hub.Controls.Find("btnCard_01_4001", true);
+                Assert.Single(poringAfter);
+                Assert.True(poringAfter[0].Font.Strikeout);
+                Assert.StartsWith("✓ ", poringAfter[0].Text);
+
+                // Filter cards by search
+                hub.SetCardSearchText("Poring");
+                Assert.Equal(1, hub.VisibleCardCollectionCount);
+                hub.SetCardSearchText(string.Empty);
+                Assert.Equal(28, hub.VisibleCardCollectionCount);
+
+                // Switch to Collection -> Maps, test City grouping and Bonus Type grouping
+                hub.SelectCollectionSubTab("maps");
+                Assert.Equal("maps", hub.ActiveCollectionSubTab);
+                Assert.Equal(311, hub.VisibleMapCount);
+
+                hub.SetMapGroupMode(false);
+                hub.SetMapGroupFilter("Alberta");
+                Assert.Equal(4, hub.VisibleMapCount);
+
+                // Removed buttons must not exist, and full multiline items box must show all items & drop rates.
+                Assert.Empty(hub.Controls.Find("btnCopyVoteShopNavi", true));
+                Assert.Empty(hub.Controls.Find("btnCopyMapWarp", true));
+                System.Windows.Forms.Control[] itemsBoxes = hub.Controls.Find("txtMapSelectedItems", true);
+                Assert.Single(itemsBoxes);
+                Assert.Contains("Peridoto", itemsBoxes[0].Text);
+                Assert.Contains("0,05%", itemsBoxes[0].Text);
+                Assert.Contains("Erva Branca", itemsBoxes[0].Text);
+
+                hub.SetMapGroupMode(true);
+                hub.SetMapGroupFilter("Velocidade de Movimento");
+                Assert.Equal(26, hub.VisibleMapCount);
+
+                hub.SetMapGroupFilter("Crítico");
+                Assert.Equal(9, hub.VisibleMapCount);
+            }
+        }
+
+        [Fact]
+        public void V237_RebrandNewSkillsClassFilterUnifiedAutopotAndThemeToggle()
+        {
+            Assert.Equal("AureumTools", AppConfig.Name);
+            Assert.Equal("https://github.com/iOraculo/AureumTools", AppConfig.GithubLink);
+
+            // Verify Assassin Cloaking & other new Pre-Renewal skills exist, have icons, and have PT-BR/EN-US translations
+            var expectedNewSkills = new[]
+            {
+                new { List = Buff.GetThiefSkills(), Id = EffectStatusIDs.EFST_CLOAKING, Raw = "Cloaking", Pt = "Furtividade" },
+                new { List = Buff.GetThiefSkills(), Id = EffectStatusIDs.EFST_CHASEWALK, Raw = "Chase Walk", Pt = "Túnel de Fuga" },
+                new { List = Buff.GetAcolyteSkills(), Id = EffectStatusIDs.EFST_STEELBODY, Raw = "Steel Body", Pt = "Corpo Fechado" },
+                new { List = Buff.GetAcolyteSkills(), Id = EffectStatusIDs.EFST_RUWACH, Raw = "Ruwach", Pt = "Revelação" },
+                new { List = Buff.GetMageSkills(), Id = EffectStatusIDs.EFST_SIGHT, Raw = "Sight", Pt = "Chama Reveladora" },
+                new { List = Buff.GetMerchantSkills(), Id = EffectStatusIDs.PROTECTARMOR, Raw = "Full Chemical Protection", Pt = "Proteção Química Total" },
+                new { List = Buff.GetTaekwonSkills(), Id = EffectStatusIDs.EFST_KAAHI, Raw = "Kaahi", Pt = "Kaahi" },
+                new { List = Buff.GetTaekwonSkills(), Id = EffectStatusIDs.EFST_KAUPE, Raw = "Kaupe", Pt = "Kaupe" },
+                new { List = Buff.GetTaekwonSkills(), Id = EffectStatusIDs.EFST_KAITE, Raw = "Kaite", Pt = "Kaite" },
+                new { List = Buff.GetTaekwonSkills(), Id = EffectStatusIDs.EFST_KAIZEL, Raw = "Kaizel", Pt = "Kaizel" }
+            };
+
+            LocalizationManager.SetLanguage(LocalizationManager.LANG_PT_BR);
+            foreach (var item in expectedNewSkills)
+            {
+                Buff found = item.List.FirstOrDefault(b => b.effectStatusID == item.Id);
+                Assert.NotNull(found);
+                Assert.NotNull(found.icon);
+                Assert.True(found.IsPreRenewal);
+                Assert.True(LocalizationManager.HasBuffTranslation(found.name));
+                Assert.Equal(item.Pt, LocalizationManager.GetBuffShortDisplayName(found.name));
+            }
+
+            // Self-target skills include Full Chemical Protection & Soul Linker Ka skills
+            Assert.True(AutoBuff.RequiresSelfTargetClick(EffectStatusIDs.PROTECTARMOR));
+            Assert.True(AutoBuff.RequiresSelfTargetClick(EffectStatusIDs.EFST_KAAHI));
+            Assert.True(AutoBuff.RequiresSelfTargetClick(EffectStatusIDs.EFST_KAUPE));
+            Assert.True(AutoBuff.RequiresSelfTargetClick(EffectStatusIDs.EFST_KAITE));
+            Assert.True(AutoBuff.RequiresSelfTargetClick(EffectStatusIDs.EFST_KAIZEL));
+
+            // New White & Blue Potion icons exist
+            Assert.NotNull(_4RTools.Resources._4RTools.Icons.white_potion);
+            Assert.NotNull(_4RTools.Resources._4RTools.Icons.blue_potion);
+
+            // SkillAutoBuffForm class filter dropdown filters visible class groups
+            Subject subject = new Subject();
+            using (SkillAutoBuffForm skillForm = new SkillAutoBuffForm(subject))
+            {
+                skillForm.Show();
+                System.Windows.Forms.Control[] classBoxes = skillForm.Controls.Find("cbSkillClassFilter", true);
+                Assert.Single(classBoxes);
+                System.Windows.Forms.ComboBox cbClass = (System.Windows.Forms.ComboBox)classBoxes[0];
+                Assert.True(cbClass.Items.Count >= 9);
+
+                // Select Thief class
+                int thiefIdx = -1;
+                for (int i = 0; i < cbClass.Items.Count; i++)
+                {
+                    if (cbClass.Items[i].ToString().IndexOf("Gatuno", StringComparison.OrdinalIgnoreCase) >= 0
+                        || cbClass.Items[i].ToString().IndexOf("Thief", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        thiefIdx = i;
+                        break;
+                    }
+                }
+                Assert.True(thiefIdx > 0);
+                cbClass.SelectedIndex = thiefIdx;
+
+                System.Windows.Forms.Control thiefGp = skillForm.Controls.Find("ThiefSkillsGP", true)[0];
+                System.Windows.Forms.Control archerGp = skillForm.Controls.Find("ArcherSkillsGP", true)[0];
+                Assert.True(thiefGp.Visible);
+                Assert.False(archerGp.Visible);
+
+                // Reset back to All Classes
+                cbClass.SelectedIndex = 0;
+                Assert.True(thiefGp.Visible);
+                Assert.True(archerGp.Visible);
+            }
+
+            // ThemeToggleButton & "Pause in towns" translation
+            Assert.Equal("Pausar em cidades", LocalizationManager.TranslateText("Pause in towns"));
+            using (ThemeToggleButton toggle = new ThemeToggleButton())
+            {
+                toggle.IsDarkMode = true;
+                Assert.True(toggle.IsDarkMode);
+                toggle.IsDarkMode = false;
+                Assert.False(toggle.IsDarkMode);
+            }
+        }
+
+        [Fact]
+        public void V238_GoogleSansFontManagerCachesFontsAndUpgradesControlTree()
+        {
+            Assert.True(FontManager.IsGoogleSansLoaded);
+            Assert.Equal("Google Sans", FontManager.ActiveFamilyName);
+
+            System.Drawing.Font reg1 = FontManager.Regular(9F);
+            System.Drawing.Font reg2 = FontManager.Regular(9F);
+            System.Drawing.Font bold = FontManager.Bold(9F);
+
+            Assert.Same(reg1, reg2);
+            Assert.Equal("Google Sans", reg1.FontFamily.Name);
+            Assert.Equal("Google Sans", bold.FontFamily.Name);
+            Assert.True(bold.Bold);
+
+            using (System.Windows.Forms.Panel panel = new System.Windows.Forms.Panel())
+            using (System.Windows.Forms.Label lbl = new System.Windows.Forms.Label { Font = new System.Drawing.Font("Segoe UI", 8.5F) })
+            using (System.Windows.Forms.Label mono = new System.Windows.Forms.Label { Font = new System.Drawing.Font("Consolas", 9F) })
+            {
+                panel.Controls.Add(lbl);
+                panel.Controls.Add(mono);
+
+                FontManager.ApplyFontTree(panel);
+
+                Assert.Equal("Google Sans", lbl.Font.FontFamily.Name);
+                Assert.Equal("Consolas", mono.Font.FontFamily.Name);
+            }
+
+            using (ModernCardPanel card = new ModernCardPanel())
+            {
+                Assert.Equal(10, card.CornerRadius);
             }
         }
 

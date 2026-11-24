@@ -13,9 +13,9 @@ namespace _4RTools.Forms
         public static int TOTAL_MACRO_LANES_FOR_SONGS = 4;
         public const int MAX_SONG_SLOTS_PER_LANE = 8;
 
-        private const int LANE_WIDTH = 548;
-        private const int LANE_HEIGHT_ONE_ROW = 122;
-        private const int LANE_HEIGHT_TWO_ROWS = 148;
+        private const int LANE_WIDTH = 574;
+        private const int LANE_HEIGHT_ONE_ROW = 128;
+        private const int LANE_HEIGHT_TWO_ROWS = 154;
         private const int LANE_LEFT = 10;
         private const int LANE_TOP_START = 8;
         private const int LANE_SPACING = 10;
@@ -207,9 +207,9 @@ namespace _4RTools.Forms
             lane.BtnResetLane = new Button
             {
                 Cursor = System.Windows.Forms.Cursors.Hand,
-                Location = new Point(id == 1 ? 472 : 384, 19),
+                Location = new Point(id == 1 ? 492 : 396, 17),
                 Name = "btnResMac" + id,
-                Size = new Size(id == 1 ? 66 : 54, 22),
+                Size = new Size(id == 1 ? 72 : 60, 25),
                 Text = "Clear",
                 Tag = id,
                 UseVisualStyleBackColor = true
@@ -241,9 +241,9 @@ namespace _4RTools.Forms
                 lane.BtnRemoveLane = new Button
                 {
                     Cursor = System.Windows.Forms.Cursors.Hand,
-                    Location = new Point(442, 19),
+                    Location = new Point(462, 17),
                     Name = "btnRemoveSongLane" + id,
-                    Size = new Size(96, 22),
+                    Size = new Size(102, 25),
                     Text = "Remove Macro",
                     Tag = id,
                     UseVisualStyleBackColor = true
@@ -322,7 +322,7 @@ namespace _4RTools.Forms
                 Cursor = System.Windows.Forms.Cursors.Hand,
                 Location = new Point(62, 88),
                 Name = "btnAddSongSlot" + id,
-                Size = new Size(128, 22),
+                Size = new Size(136, 25),
                 Text = "+ Add Song",
                 Tag = id,
                 UseVisualStyleBackColor = true
@@ -333,9 +333,9 @@ namespace _4RTools.Forms
             lane.BtnRemoveSlot = new Button
             {
                 Cursor = System.Windows.Forms.Cursors.Hand,
-                Location = new Point(196, 88),
+                Location = new Point(206, 88),
                 Name = "btnRemoveSongSlot" + id,
-                Size = new Size(124, 22),
+                Size = new Size(132, 25),
                 Text = "- Remove Song",
                 Tag = id,
                 UseVisualStyleBackColor = true
@@ -435,7 +435,7 @@ namespace _4RTools.Forms
 
                 lane.BtnRemoveSlot.Visible = visible > 1;
                 lane.BtnRemoveSlot.Enabled = visible > 1;
-                lane.BtnRemoveSlot.Location = new Point(visible < MAX_SONG_SLOTS_PER_LANE ? 196 : 62, actionY);
+                lane.BtnRemoveSlot.Location = new Point(visible < MAX_SONG_SLOTS_PER_LANE ? 206 : 62, actionY);
 
                 lane.Group.Size = new Size(LANE_WIDTH, targetHeight);
             }

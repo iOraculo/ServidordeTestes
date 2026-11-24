@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
 namespace _4RTools.Utils
@@ -10,7 +11,6 @@ namespace _4RTools.Utils
         private uint maxValue;
         private readonly string labelPrefix;
         private readonly Color fillColor;
-        private readonly Font barFont;
         private Color trackColor;
         private Color borderColor;
         private Color textColor;
@@ -21,19 +21,8 @@ namespace _4RTools.Utils
             this.ResizeRedraw = true;
             this.labelPrefix = prefix ?? string.Empty;
             this.fillColor = barColor;
-            this.barFont = new Font("Segoe UI", 7.5F, FontStyle.Bold);
-            this.Font = this.barFont;
+            this.Font = FontManager.Bold(8F);
             ApplyTheme(false);
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && this.barFont != null)
-            {
-                this.barFont.Dispose();
-            }
-
-            base.Dispose(disposing);
         }
 
         public void ApplyTheme(bool darkMode)
@@ -71,47 +60,61 @@ namespace _4RTools.Utils
                 return;
             }
 
-            using (SolidBrush trackBrush = new SolidBrush(this.trackColor))
+            Graphics g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            Color outerBg = this.Parent != null ? this.Parent.BackColor : ThemeManager.GetCardColor(ThemeManager.IsDarkMode);
+            using (SolidBrush outerBrush = new SolidBrush(outerBg))
             {
-                e.Graphics.FillRectangle(trackBrush, bounds);
+                g.FillRectangle(outerBrush, this.ClientRectangle);
             }
 
-            string text;
-            bool mostlyFilled = false;
-            if (this.maxValue > 0)
+            using (GraphicsPath trackPath = SidebarNavButton.CreateRoundedRect(bounds, 5))
             {
-                double ratio = Math.Min(1.0, Math.Max(0.0, (double)this.currentValue / (double)this.maxValue));
-                mostlyFilled = ratio >= 0.45;
-                int fillWidth = (int)Math.Round(bounds.Width * ratio);
-                if (fillWidth > 0)
+                using (SolidBrush trackBrush = new SolidBrush(this.trackColor))
                 {
-                    using (SolidBrush fillBrush = new SolidBrush(this.fillColor))
-                    {
-                        e.Graphics.FillRectangle(fillBrush, 1, 1, Math.Max(0, fillWidth - 1), Math.Max(0, bounds.Height - 1));
-                    }
+                    g.FillPath(trackBrush, trackPath);
                 }
 
-                int percent = (int)Math.Round(ratio * 100.0);
-                text = string.Format("{0}: {1:N0} / {2:N0} ({3}%)", this.labelPrefix, this.currentValue, this.maxValue, percent);
-            }
-            else
-            {
-                text = this.labelPrefix + ": -- / --";
-            }
+                string text;
+                bool mostlyFilled = false;
+                if (this.maxValue > 0)
+                {
+                    double ratio = Math.Min(1.0, Math.Max(0.0, (double)this.currentValue / (double)this.maxValue));
+                    mostlyFilled = ratio >= 0.45;
+                    int fillWidth = (int)Math.Round(bounds.Width * ratio);
+                    if (fillWidth > 2)
+                    {
+                        Rectangle fillRect = new Rectangle(1, 1, Math.Max(2, fillWidth - 1), Math.Max(2, bounds.Height - 1));
+                        using (GraphicsPath fillPath = SidebarNavButton.CreateRoundedRect(fillRect, 4))
+                        using (SolidBrush fillBrush = new SolidBrush(this.fillColor))
+                        {
+                            g.FillPath(fillBrush, fillPath);
+                        }
+                    }
 
-            using (Pen borderPen = new Pen(this.borderColor))
-            {
-                e.Graphics.DrawRectangle(borderPen, bounds);
-            }
+                    int percent = (int)Math.Round(ratio * 100.0);
+                    text = string.Format("{0}: {1:N0} / {2:N0} ({3}%)", this.labelPrefix, this.currentValue, this.maxValue, percent);
+                }
+                else
+                {
+                    text = this.labelPrefix + ": -- / --";
+                }
 
-            Color renderedTextColor = mostlyFilled ? Color.White : this.textColor;
-            TextRenderer.DrawText(
-                e.Graphics,
-                text,
-                this.Font,
-                bounds,
-                renderedTextColor,
-                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine);
+                using (Pen borderPen = new Pen(this.borderColor, 1))
+                {
+                    g.DrawPath(borderPen, trackPath);
+                }
+
+                Color renderedTextColor = mostlyFilled ? Color.White : this.textColor;
+                TextRenderer.DrawText(
+                    g,
+                    text,
+                    FontManager.Bold(8F),
+                    bounds,
+                    renderedTextColor,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine);
+            }
         }
     }
 }

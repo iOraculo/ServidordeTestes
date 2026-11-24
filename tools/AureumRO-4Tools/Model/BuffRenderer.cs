@@ -31,6 +31,7 @@ namespace _4RTools.Model
         private int _initialTopY;
         private bool _preRenewalOnly;
         private BuffOrigin? _originFilter;
+        private string _containerNameFilter = string.Empty;
         private string _lastSearchQuery = string.Empty;
 
         public BuffRenderer(string model, List<BuffContainer> containers, ToolTip toolTip)
@@ -135,6 +136,12 @@ namespace _4RTools.Model
             ApplyFilter(this._lastSearchQuery);
         }
 
+        public void SetContainerFilter(string containerName)
+        {
+            this._containerNameFilter = string.IsNullOrWhiteSpace(containerName) ? string.Empty : containerName.Trim();
+            ApplyFilter(this._lastSearchQuery);
+        }
+
         public bool IsContainerVisible(string containerName)
         {
             bool visible;
@@ -170,6 +177,9 @@ namespace _4RTools.Model
                     continue;
                 }
 
+                bool allowedByContainer = string.IsNullOrEmpty(this._containerNameFilter)
+                    || string.Equals(bk.container.Name, this._containerNameFilter, StringComparison.Ordinal);
+
                 bool groupMatches = query.Length > 0
                     && LocalizationManager.MatchesSearchText(bk.container.Text, query);
 
@@ -183,7 +193,7 @@ namespace _4RTools.Model
                 {
                     bool allowedByMode = !this._preRenewalOnly || item.Skill.IsPreRenewal;
                     bool allowedByOrigin = !this._originFilter.HasValue || item.Skill.Origin == this._originFilter.Value;
-                    bool visible = allowedByMode && allowedByOrigin && (query.Length == 0
+                    bool visible = allowedByContainer && allowedByMode && allowedByOrigin && (query.Length == 0
                         || groupMatches
                         || LocalizationManager.MatchesBuffSearch(item.Skill.name, query));
 

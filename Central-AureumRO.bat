@@ -8,7 +8,7 @@ echo ========================================================================
 echo            AUREUMRO - CENTRAL DE CONTROLE (SERVIDOR DE TESTES)
 echo ========================================================================
 echo.
-echo   [1] Jogar (Abrir FroggoClient + AureumRO 4Tools)
+echo   [1] Jogar (Abrir FroggoClient + AureumTools)
 echo   [2] Setup de Video / Audio (opensetup.exe)
 echo   [3] Iniciar Servidor (Docker: MariaDB + rAthena + Painel Web)
 echo   [4] Reiniciar rAthena (Aplicar mudancas de NPCs/Configs)

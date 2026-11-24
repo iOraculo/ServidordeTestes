@@ -51,7 +51,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path dist -Force | Out-Null
-          Copy-Item "bin/Release/AureumRO 4Tools.exe" "dist/AureumRO 4Tools.exe" -Force
+          Copy-Item "bin/Release/AureumTools.exe" "dist/AureumTools.exe" -Force
           Copy-Item "supported_servers.json" "dist/supported_servers.json" -Force
 
       - name: Upload AureumRO-4Tools Test Build

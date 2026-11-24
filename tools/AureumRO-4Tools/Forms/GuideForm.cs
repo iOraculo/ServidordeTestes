@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Text;
 using System.Windows.Forms;
@@ -10,28 +11,55 @@ namespace _4RTools.Forms
 {
     public class GuideForm : Form, IObserver
     {
+        private sealed class GuideStepData
+        {
+            public string HeadingPt;
+            public string DescPt;
+            public string HeadingEn;
+            public string DescEn;
+        }
+
         private sealed class GuideSectionData
         {
             public string Key;
+            public string BadgeSymbol;
+            public Color AccentColor;
             public string TitlePt;
-            public string BodyPt;
+            public string TaglinePt;
+            public string TipPt;
             public string TitleEn;
-            public string BodyEn;
+            public string TaglineEn;
+            public string TipEn;
+            public List<GuideStepData> Steps;
+        }
+
+        private sealed class GuideStepUi
+        {
+            public GuideStepData Data;
+            public Label HeadingLabel;
+            public Label DescLabel;
         }
 
         private sealed class GuideCardUi
         {
             public GuideSectionData Data;
-            public GroupBox Group;
-            public Label BodyLabel;
+            public Panel CardPanel;
+            public Panel HeaderPanel;
+            public Label BadgeLabel;
+            public Label TitleLabel;
+            public Label TaglineLabel;
+            public List<GuideStepUi> StepUis;
+            public Panel TipPanel;
+            public Label TipLabel;
             public bool IsVisible;
         }
 
         private const int CARD_LEFT = 10;
-        private const int CARD_WIDTH = 548;
-        private const int BODY_LEFT = 12;
-        private const int BODY_WIDTH = 524;
-        private const int TOP_BAR_HEIGHT = 40;
+        private const int CARD_WIDTH = 576;
+        private const int HEADER_HEIGHT = 46;
+        private const int CONTENT_LEFT = 16;
+        private const int CONTENT_WIDTH = 544;
+        private const int TOP_BAR_HEIGHT = 44;
 
         private readonly List<GuideCardUi> cards = new List<GuideCardUi>();
         private Label lblSearch;
@@ -39,7 +67,13 @@ namespace _4RTools.Forms
         private Button btnClearSearch;
         private Label lblEmptyState;
         private ToolTip guideToolTip;
-        private Font bodyFont;
+
+        private Font badgeFont;
+        private Font cardTitleFont;
+        private Font cardTaglineFont;
+        private Font stepHeadingFont;
+        private Font stepBodyFont;
+        private Font tipFont;
 
         public GuideForm(Subject subject)
         {
@@ -47,8 +81,16 @@ namespace _4RTools.Forms
             this.Name = "GuideForm";
             this.Text = "Guide / Help";
             this.AutoScroll = true;
-            this.Size = new Size(584, 281);
-            this.bodyFont = new Font("Segoe UI", 8.5F, FontStyle.Regular);
+            this.DoubleBuffered = true;
+            this.Size = new Size(616, 289);
+
+            this.badgeFont = new Font("Segoe UI Symbol", 13.5F, FontStyle.Bold);
+            this.cardTitleFont = FontManager.Bold(10.25F);
+            this.cardTaglineFont = FontManager.Italic(8.75F);
+            this.stepHeadingFont = FontManager.Bold(9.25F);
+            this.stepBodyFont = FontManager.Regular(9F);
+            this.tipFont = FontManager.Regular(8.75F);
+
             this.guideToolTip = FormUtils.CreateHelpToolTip();
 
             BuildUi();
@@ -87,26 +129,26 @@ namespace _4RTools.Forms
                 this.lblSearch = new Label
                 {
                     AutoSize = true,
-                    Location = new Point(10, 13),
+                    Location = new Point(10, 14),
                     Name = "lblGuideSearch",
                     Text = "Search guide:"
                 };
 
                 this.txtSearch = new TextBox
                 {
-                    Location = new Point(112, 10),
+                    Location = new Point(112, 11),
                     Name = "txtGuideSearch",
-                    Size = new Size(370, 20),
+                    Size = new Size(398, 22),
                     Tag = FormUtils.SKIP_RESET_TAG
                 };
                 this.txtSearch.TextChanged += (s, e) => ApplySearchFilter(this.txtSearch.Text);
 
                 this.btnClearSearch = new Button
                 {
-                    Cursor = System.Windows.Forms.Cursors.Hand,
-                    Location = new Point(490, 9),
+                    Cursor = Cursors.Hand,
+                    Location = new Point(518, 9),
                     Name = "btnClearGuideSearch",
-                    Size = new Size(68, 22),
+                    Size = new Size(68, 25),
                     Text = "Clear",
                     UseVisualStyleBackColor = true
                 };
@@ -115,7 +157,7 @@ namespace _4RTools.Forms
                 this.lblEmptyState = new Label
                 {
                     AutoSize = false,
-                    Location = new Point(10, TOP_BAR_HEIGHT + 16),
+                    Location = new Point(10, TOP_BAR_HEIGHT + 18),
                     Name = "lblGuideEmpty",
                     Size = new Size(CARD_WIDTH, 28),
                     Tag = ThemeManager.TAG_MUTED_TEXT,
@@ -130,40 +172,175 @@ namespace _4RTools.Forms
 
                 foreach (GuideSectionData section in BuildGuideSections())
                 {
-                    GroupBox gp = new GroupBox
-                    {
-                        AutoSize = false,
-                        Name = "gbGuide_" + section.Key,
-                        Size = new Size(CARD_WIDTH, 90),
-                        TabStop = false
-                    };
-
-                    Label lblBody = new Label
-                    {
-                        AutoSize = false,
-                        Font = this.bodyFont,
-                        Location = new Point(BODY_LEFT, 20),
-                        Name = "lblGuideBody_" + section.Key,
-                        Size = new Size(BODY_WIDTH, 60)
-                    };
-
-                    gp.Controls.Add(lblBody);
-                    this.Controls.Add(gp);
-
-                    this.cards.Add(new GuideCardUi
-                    {
-                        Data = section,
-                        Group = gp,
-                        BodyLabel = lblBody,
-                        IsVisible = true
-                    });
+                    GuideCardUi card = CreateGuideCard(section);
+                    this.cards.Add(card);
+                    this.Controls.Add(card.CardPanel);
                 }
 
                 RefreshLanguage();
+                ApplyCustomThemeStyling();
             }
             finally
             {
                 this.ResumeLayout(true);
+            }
+        }
+
+        private GuideCardUi CreateGuideCard(GuideSectionData section)
+        {
+            Panel cardPanel = new Panel
+            {
+                Name = "gbGuide_" + section.Key,
+                Size = new Size(CARD_WIDTH, 140),
+                Tag = ThemeManager.PRESERVE_COLORS_TAG
+            };
+            cardPanel.Paint += (s, e) => PaintCardBorder(cardPanel, section.AccentColor, e.Graphics);
+
+            Panel headerPanel = new Panel
+            {
+                Location = new Point(1, 1),
+                Size = new Size(CARD_WIDTH - 2, HEADER_HEIGHT),
+                Tag = ThemeManager.PRESERVE_COLORS_TAG
+            };
+            headerPanel.Paint += (s, e) =>
+            {
+                using (SolidBrush stripe = new SolidBrush(section.AccentColor))
+                {
+                    e.Graphics.FillRectangle(stripe, 0, 0, 5, headerPanel.Height);
+                }
+            };
+
+            Label badgeLabel = new Label
+            {
+                AutoSize = false,
+                BackColor = Color.Transparent,
+                Font = this.badgeFont,
+                ForeColor = section.AccentColor,
+                Location = new Point(12, 6),
+                Size = new Size(30, 30),
+                Text = section.BadgeSymbol,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Tag = ThemeManager.PRESERVE_COLORS_TAG,
+                UseMnemonic = false
+            };
+
+            Label titleLabel = new Label
+            {
+                AutoSize = false,
+                AutoEllipsis = true,
+                BackColor = Color.Transparent,
+                Font = this.cardTitleFont,
+                Location = new Point(46, 5),
+                Size = new Size(CARD_WIDTH - 62, 19),
+                Tag = ThemeManager.PRESERVE_COLORS_TAG,
+                UseMnemonic = false
+            };
+
+            Label taglineLabel = new Label
+            {
+                AutoSize = false,
+                AutoEllipsis = true,
+                BackColor = Color.Transparent,
+                Font = this.cardTaglineFont,
+                Location = new Point(46, 24),
+                Size = new Size(CARD_WIDTH - 62, 16),
+                Tag = ThemeManager.PRESERVE_COLORS_TAG,
+                UseMnemonic = false
+            };
+
+            headerPanel.Controls.Add(badgeLabel);
+            headerPanel.Controls.Add(titleLabel);
+            headerPanel.Controls.Add(taglineLabel);
+            cardPanel.Controls.Add(headerPanel);
+
+            List<GuideStepUi> stepUis = new List<GuideStepUi>();
+            foreach (GuideStepData step in section.Steps)
+            {
+                Label headingLbl = new Label
+                {
+                    AutoSize = false,
+                    BackColor = Color.Transparent,
+                    Font = this.stepHeadingFont,
+                    Location = new Point(CONTENT_LEFT, 56),
+                    Size = new Size(CONTENT_WIDTH, 18),
+                    Tag = ThemeManager.PRESERVE_COLORS_TAG,
+                    UseMnemonic = false
+                };
+
+                Label descLbl = new Label
+                {
+                    AutoSize = false,
+                    BackColor = Color.Transparent,
+                    Font = this.stepBodyFont,
+                    Location = new Point(CONTENT_LEFT + 14, 76),
+                    Size = new Size(CONTENT_WIDTH - 14, 34),
+                    Tag = ThemeManager.PRESERVE_COLORS_TAG,
+                    UseMnemonic = false
+                };
+
+                cardPanel.Controls.Add(headingLbl);
+                cardPanel.Controls.Add(descLbl);
+                stepUis.Add(new GuideStepUi
+                {
+                    Data = step,
+                    HeadingLabel = headingLbl,
+                    DescLabel = descLbl
+                });
+            }
+
+            Panel tipPanel = new Panel
+            {
+                Location = new Point(CONTENT_LEFT, 120),
+                Size = new Size(CONTENT_WIDTH, 36),
+                Tag = ThemeManager.PRESERVE_COLORS_TAG
+            };
+            tipPanel.Paint += (s, e) =>
+            {
+                using (SolidBrush leftBar = new SolidBrush(section.AccentColor))
+                {
+                    e.Graphics.FillRectangle(leftBar, 0, 0, 3, tipPanel.Height);
+                }
+            };
+
+            Label tipLabel = new Label
+            {
+                AutoSize = false,
+                BackColor = Color.Transparent,
+                Font = this.tipFont,
+                Location = new Point(10, 6),
+                Size = new Size(CONTENT_WIDTH - 18, 24),
+                Tag = ThemeManager.PRESERVE_COLORS_TAG,
+                UseMnemonic = false
+            };
+            tipPanel.Controls.Add(tipLabel);
+            cardPanel.Controls.Add(tipPanel);
+
+            return new GuideCardUi
+            {
+                Data = section,
+                CardPanel = cardPanel,
+                HeaderPanel = headerPanel,
+                BadgeLabel = badgeLabel,
+                TitleLabel = titleLabel,
+                TaglineLabel = taglineLabel,
+                StepUis = stepUis,
+                TipPanel = tipPanel,
+                TipLabel = tipLabel,
+                IsVisible = true
+            };
+        }
+
+        private static void PaintCardBorder(Panel panel, Color accent, Graphics g)
+        {
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            bool dark = ThemeManager.IsDarkMode;
+            Color borderColor = dark
+                ? Color.FromArgb(89, 66, 20)
+                : Color.FromArgb(212, 192, 152);
+            using (GraphicsPath path = SidebarNavButton.CreateRoundedRect(new Rectangle(0, 0, panel.Width - 1, panel.Height - 1), 8))
+            using (Pen pen = new Pen(borderColor, 1f))
+            {
+                g.DrawPath(pen, path);
             }
         }
 
@@ -174,168 +351,385 @@ namespace _4RTools.Forms
                 new GuideSectionData
                 {
                     Key = "getting_started",
-                    TitlePt = "1. Primeiros Passos e Barra Superior",
-                    BodyPt =
-                        "• Cliente (AureumRO.exe): quando há 1 janela aberta do AureumRO, o 4Tools seleciona automaticamente. Se abrir mais janelas, clique no botão atualizar (↻) e escolha qual janela controlar.\n" +
-                        "• Ligar / Desligar (ON/OFF): clique no botão grande ou pressione a tecla global configurada (padrão: End). Marque 'Som' para ouvir aviso ao ligar/desligar.\n" +
-                        "• Foco e Chat: 'Foco' pausa as automações quando você sai da janela do jogo. 'Chat' pausa ao apertar Enter para digitar no chat (Enter ou Esc retoma; Autopot em F1–F24 continua protegendo você).\n" +
-                        "• Cidade, Mini-HUD e Visual: desmarque 'Usar Buffs em Cidade' para economizar consumíveis/SP nas cidades. Use 'Mini-HUD' para uma barra flutuante compacta de HP/SP sobre o jogo, além de Tema Escuro/Claro e Idioma PT/EN.",
-                    TitleEn = "1. Getting Started and Top Bar",
-                    BodyEn =
-                        "• Client (AureumRO.exe): when 1 AureumRO window is open, 4Tools selects it automatically. With multiple windows, click Refresh (↻) and choose which window to control.\n" +
-                        "• Toggle ON / OFF: click the main status button or press your global toggle key (default: End). Enable 'Audio' for a sound cue on toggle.\n" +
-                        "• Focus and Chat Pause: 'Focus' pauses automations whenever Ragnarok is unfocused. 'Chat' pauses when pressing Enter to type (Enter or Esc resumes; F1–F24 Autopot remains active).\n" +
-                        "• Town Pause, Mini-HUD and Theme: uncheck 'Use Buffs in Town' to save SP and consumables in towns. Toggle 'Mini-HUD' for a compact HP/SP overlay, Dark/Light theme, and PT/EN language."
+                    BadgeSymbol = "✦",
+                    AccentColor = Color.FromArgb(214, 166, 46),
+                    TitlePt = "1. Primeiros Passos & 3 Contas em 1",
+                    TaglinePt = "Conecte suas janelas do AureumRO e controle tudo em um só lugar",
+                    TipPt = "★ Dica: passe o mouse sobre qualquer botão ou caixinha do AureumTools para abrir uma explicação rápida!",
+                    TitleEn = "1. Getting Started & 3-in-1 Accounts",
+                    TaglineEn = "Connect your AureumRO windows and control everything in one place",
+                    TipEn = "★ Tip: hover your mouse over any button or box in AureumTools to open an instant popup explanation!",
+                    Steps = new List<GuideStepData>
+                    {
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ 3 Contas em 1 Janela (Conta 1 | Conta 2 | Conta 3)",
+                            DescPt = "Alterne no topo entre 3 sessões completas e independentes — cada conta tem seu próprio Cliente (PID), Perfil, ON/OFF e automações rodando juntas em segundo plano.",
+                            HeadingEn = "▸ 3 Accounts in 1 Window (Account 1 | Account 2 | Account 3)",
+                            DescEn = "Switch at the top between 3 independent sessions — each tab has its own Client (PID), Profile, ON/OFF, and background automations running together."
+                        },
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Cliente (AureumRO.exe) & Botão Atualizar (↻)",
+                            DescPt = "Com 1 janela aberta, o AureumTools conecta automaticamente. Com várias janelas, clique em ↻ e escolha qual PID fica em cada aba (Contas 2 e 3 evitam repetir o PID).",
+                            HeadingEn = "▸ Client (AureumRO.exe) & Refresh Button (↻)",
+                            DescEn = "With 1 game window open, AureumTools connects automatically. With multiple windows, click ↻ and pick a PID per tab."
+                        },
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Ligar / Desligar (ON/OFF), Mini HUD e Barra Superior",
+                            DescPt = "Aperte sua tecla global (padrão: End) ou clique em ON/OFF. As opções Som, Foco, Chat e Mini HUD ficam organizadas no bloco LIGAR/DESLIGAR; no topo ficam Idioma, 'Pausar em cidades' (marcado por padrão) e o botão Sol/Lua do tema.",
+                            HeadingEn = "▸ Toggle ON / OFF, Mini HUD & Top Bar",
+                            DescEn = "Press your global hotkey (default: End) or click ON/OFF. Sound, Focus, Chat, and Mini HUD sit neatly in ON/OFF; Language, 'Pause in towns' (checked by default), and the Sun/Moon theme icon sit on the top bar."
+                        }
+                    }
                 },
                 new GuideSectionData
                 {
                     Key = "autopot",
-                    TitlePt = "2. Autopot e Yggdrasil",
-                    BodyPt =
-                        "• Autopot (padrão): defina a tecla da poção de HP (ex.: Branca/Mastela) e de SP (ex.: Azul/Morango) e a porcentagem limite (ex.: HP 80%, SP 40%). Sempre que cair abaixo da %, o 4Tools usa a poção.\n" +
-                        "• Yggdrasil (emergência): funciona junto com o Autopot padrão! Coloque o Fruto ou Semente de Yggdrasil numa % menor (ex.: HP 35%, SP 15%) para só gastar Yggdrasil em situações críticas.\n" +
-                        "• Atraso (ms): intervalo entre cada clique da poção (recomendado: 50 a 150ms).",
-                    TitleEn = "2. Autopot and Yggdrasil",
-                    BodyEn =
-                        "• Standard Autopot: set your HP potion key (White/Mastela) and SP potion key (Blue/Strawberry) plus thresholds (e.g., HP 80%, SP 40%). Whenever vitals drop below the threshold, 4Tools pots automatically.\n" +
-                        "• Yggdrasil (emergency): runs alongside Standard Autopot! Bind Yggdrasil Berry/Seed to a lower threshold (e.g., HP 35%, SP 15%) so it only fires in critical emergencies.\n" +
-                        "• Delay (ms): interval between potion presses (recommended: 50–150ms)."
+                    BadgeSymbol = "♥",
+                    AccentColor = Color.FromArgb(224, 92, 92),
+                    TitlePt = "2. Autopot & Yggdrasil (Unificados)",
+                    TaglinePt = "Recuperação normal e de emergência sempre visíveis no painel",
+                    TipPt = "★ Dica: coloque Yggdrasil numa % menor que o Autopot comum (ex.: Poção Branca 80% e Yggdrasil 35%) para só gastar Fruto no sufoco!",
+                    TitleEn = "2. Autopot & Yggdrasil (Unified)",
+                    TaglineEn = "Standard potions and emergency recovery visible together at a glance",
+                    TipEn = "★ Tip: set Yggdrasil to a lower % than standard Autopot (e.g., White Potion 80% and Yggdrasil 35%) so Berries only fire in emergencies!",
+                    Steps = new List<GuideStepData>
+                    {
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Autopot Comum (Poção Branca / Poção Azul)",
+                            DescPt = "Defina as teclas das suas poções de HP e SP junto com a % limite. Sempre que seu HP ou SP cair abaixo do valor, o AureumTools pota automaticamente.",
+                            HeadingEn = "▸ Standard Autopot (White Potion / Blue Potion)",
+                            DescEn = "Bind your HP and SP potion keys with percentage thresholds. Whenever vitals dip below the threshold, AureumTools pots automatically."
+                        },
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Yggdrasil (Emergência)",
+                            DescPt = "Roda junto com o Autopot padrão em prioridade de emergência (Nível 2), ideal para Fruto ou Semente de Yggdrasil quando o dano é pesado.",
+                            HeadingEn = "▸ Yggdrasil (Emergency)",
+                            DescEn = "Runs alongside Standard Autopot at emergency priority (Tier 2), ideal for Yggdrasil Berry or Seed during heavy spikes."
+                        },
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Atraso (ms)",
+                            DescPt = "Intervalo entre cada tentativa de potar. Valores entre 50ms e 150ms costumam dar o melhor equilíbrio entre resposta e fluidez.",
+                            HeadingEn = "▸ Delay (ms)",
+                            DescEn = "Interval between potion presses. Values between 50ms and 150ms give the best balance between speed and smoothness."
+                        }
+                    }
                 },
                 new GuideSectionData
                 {
                     Key = "spammer",
-                    TitlePt = "3. Spammer e Prioridade de Ações",
-                    BodyPt =
-                        "• 3 estados em cada caixinha de tecla (clique para alternar):\n" +
-                        "   – Vazio: tecla desativada.\n" +
-                        "   – Quadrado preenchido (■): spamma APENAS a tecla, sem clicar (ideal para skills sem alvo / self-cast como Impacto Explosivo, Crux Magnum, Rajada Congelante).\n" +
-                        "   – Marcado (✓): spamma tecla + clique esquerdo do mouse (ideal para skills de alvo ou chão como Bomba Ácida, Rajada de Flechas, Lanças, Nevasca).\n" +
-                        "• Compatibilidade vs. Speed Boost: Compatibilidade é o modo mais estável e libera 'Sem Shift' e 'Mouse Flick'. Speed Boost foca na máxima velocidade de spam.\n" +
-                        "• Prioridade de Ações (4 níveis, configurável em 'Prioridade de Ações' nesta aba): 1º Input do Jogador → 2º Fruto de Yggdrasil / Panaceia → 3º Consumíveis → 4º Auto-skills. Você também pode definir uma tecla em 'Segurar pausa' (ex.: Ctrl, Shift, Alt, Tab) para pausar o 4Tools momentaneamente enquanto segura (mantendo Autopot/Yggdrasil ativos, salvo se marcar 'Pausar Autopot').",
-                    TitleEn = "3. Skill Spammer and Action Priority",
-                    BodyEn =
-                        "• 3 states on every key checkbox (click to cycle):\n" +
-                        "   – Empty: disabled.\n" +
-                        "   – Filled square (■): spams ONLY the key without clicking (ideal for self-cast skills like Magnum Break, Grand Cross, Frost Nova).\n" +
-                        "   – Checked (✓): spams key + left mouse click (ideal for target/ground skills like Acid Demonstration, Double Strafe, Bolts, Storm Gust).\n" +
-                        "• Compatibility vs. Speed Boost: Compatibility is the most stable mode and enables 'No Shift' and 'Mouse Flick'. Speed Boost prioritizes raw speed.\n" +
-                        "• Action Priority (4 tiers, configurable via 'Action Priority' on this tab): 1st Player Input → 2nd Yggdrasil Berry / Panacea → 3rd Consumables → 4th Auto-skills. You can also bind a 'Hold pause' key (e.g., Ctrl, Shift, Alt, Tab) to temporarily pause 4Tools while held (keeping Autopot/Yggdrasil active unless 'Pause Autopot' is checked)."
+                    BadgeSymbol = "⚡",
+                    AccentColor = Color.FromArgb(245, 158, 11),
+                    TitlePt = "3. Spammer & Prioridade de Ações",
+                    TaglinePt = "Disparo rápido de skills respeitando seus comandos manuais",
+                    TipPt = "★ Dica: use 'Segurar pausa' (ex.: Shift ou Ctrl) quando quiser pausar as automações por 1 segundo para lootear ou digitar sem desligar o app!",
+                    TitleEn = "3. Skill Spammer & Action Priority",
+                    TaglineEn = "Rapid skill casting that always respects your manual inputs",
+                    TipEn = "★ Tip: bind a 'Hold pause' key (e.g., Shift or Ctrl) to momentarily pause automations while held without turning the app off!",
+                    Steps = new List<GuideStepData>
+                    {
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ 3 Estados em Cada Tecla (Clique para Alternar)",
+                            DescPt = "Vazio = desativado  •  Quadrado (■) = spamma só a tecla sem clicar (ex.: Impacto Explosivo, Crux Magnum)  •  Marcado (✓) = spamma tecla + clique do mouse (ex.: Bomba Ácida, Lanças, Rajada).",
+                            HeadingEn = "▸ 3 States on Every Key (Click to Cycle)",
+                            DescEn = "Empty = off  •  Square (■) = spams key only without click (self-cast skills)  •  Checked (✓) = spams key + left click (target/ground skills)."
+                        },
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Compatibilidade vs. Speed Boost",
+                            DescPt = "Compatibilidade é mais estável e libera 'Sem Shift' e 'Mouse Flick'. Speed Boost foca na velocidade máxima de disparo.",
+                            HeadingEn = "▸ Compatibility vs. Speed Boost",
+                            DescEn = "Compatibility is the most stable mode and unlocks 'No Shift' and 'Mouse Flick'. Speed Boost prioritizes raw spam speed."
+                        },
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Hierarquia de Prioridade (4 Níveis)",
+                            DescPt = "1º Seu Input no teclado  →  2º Yggdrasil / Panaceia / Auto-Fuga  →  3º Consumíveis  →  4º Auto-skills. Suas teclas sempre vêm primeiro!",
+                            HeadingEn = "▸ 4-Tier Action Priority",
+                            DescEn = "1st Your Keyboard Input  →  2nd Yggdrasil / Panacea / Auto-Escape  →  3rd Consumables  →  4th Auto-skills. Your actions always come first!"
+                        }
+                    }
                 },
                 new GuideSectionData
                 {
                     Key = "autobuff_skills",
-                    TitlePt = "4. Auto-skill",
-                    BodyPt =
-                        "• O 4Tools lê diretamente os ícones de buff ativos na memória do jogo e aperta a tecla da skill assim que o buff acabar.\n" +
-                        "• Auto-clique em si (alvo): quando marcado, buffs que exigem clique no alvo (Bênção, Aumentar Agilidade, Assumptio, Kyrie Eleison, Sufrágio, Impositio Manus e Aspersio) clicam automaticamente no centro da janela (em cima do seu personagem)!\n" +
-                        "• Pré-skill automática (Ninja): configure Aura Ninja + Imagem Falsa juntas — o 4Tools ativa a Aura Ninja primeiro e só dispara Imagem Falsa quando a Aura estiver ativa.\n" +
-                        "• Modo Pré-Renewal, SP Mín%, CD(ms) e Pausar ao sentar: mantém visíveis apenas skills Pré-Renewal (incluindo Esconderijo, Basílica, Canto de Batalha e músicas de Bardo/Odalisca) e evita gastar SP à toa.",
-                    TitleEn = "4. Auto-skill",
-                    BodyEn =
-                        "• 4Tools reads active status icons directly from client memory and recasts the skill as soon as the buff expires.\n" +
-                        "• Auto-click self (target): when enabled, target-cast buffs (Blessing, Increase Agility, Assumptio, Kyrie Eleison, Suffragium, Impositio Manus, and Aspersio) automatically click the center of the RO window (your character)!\n" +
-                        "• Automatic prerequisite (Ninja): bind both Ninja Aura and Mirror Image — 4Tools activates Ninja Aura first and waits until it is active before casting Mirror Image.\n" +
-                        "• Pre-Renewal Mode, Min SP%, CD(ms), and Pause when sitting: focuses on Pre-Renewal skills (including Hiding, Basilica, Battle Chant, and Bard/Dancer songs) without wasting SP."
+                    BadgeSymbol = "★",
+                    AccentColor = Color.FromArgb(96, 165, 250),
+                    TitlePt = "4. Auto-skill (Com Filtro de Classe)",
+                    TaglinePt = "Renovação inteligente lendo os buffs ativos na memória do jogo",
+                    TipPt = "★ Dica: use o filtro 'Classe:' no topo para achar rapidamente Furtividade, Corpo Fechado, Proteção Química Total, Kaahi/Kaupe/Kaite e muito mais!",
+                    TitleEn = "4. Auto-skill (With Class Filter)",
+                    TaglineEn = "Smart buff renewal by reading active status icons from game memory",
+                    TipEn = "★ Tip: use the 'Class:' dropdown at the top to jump straight to Cloaking, Steel Body, Full Chemical Protection, Kaahi/Kaupe/Kaite, and more!",
+                    Steps = new List<GuideStepData>
+                    {
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Filtro por Classe & Busca Bilíngue",
+                            DescPt = "Escolha sua classe no seletor 'Classe:' ou digite o nome em Português ou Inglês (ex.: 'Furtividade', 'Bênção', 'Corpo Fechado') para localizar instantaneamente.",
+                            HeadingEn = "▸ Class Filter & Bilingual Search",
+                            DescEn = "Pick your class from the 'Class:' dropdown or type in English or Portuguese (e.g., 'Cloaking', 'Blessing', 'Steel Body') to filter instantly."
+                        },
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Auto-clique em Si (Alvo) & Pré-skill Automática",
+                            DescPt = "Buffs que pedem clique no alvo (Bênção, Agi, Assumptio, Kyrie, Aspersio, Proteção Química Total, Kaahi/Kaupe/Kaite/Kaizel) clicam no seu personagem sozinhos! No Ninja, Aura Ninja é usada antes da Imagem Falsa.",
+                            HeadingEn = "▸ Auto-Click Self (Target) & Auto Prerequisite",
+                            DescEn = "Target buffs (Blessing, Agi, Assumptio, Kyrie, Aspersio, Full Chemical Protection, Kaahi/Kaupe/Kaite/Kaizel) auto-click your character! For Ninja, Ninja Aura casts automatically before Mirror Image."
+                        },
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Modo Pré-Renewal, SP% Mínimo e Pausar ao Sentar",
+                            DescPt = "Oculta skills 3rd/4th que não existem no AureumRO e protege seu SP quando estiver sentado ou com mana baixa.",
+                            HeadingEn = "▸ Pre-Renewal Mode, Min SP% & Pause When Sitting",
+                            DescEn = "Hides non-Pre-Renewal 3rd/4th skills and saves your SP while sitting or low on mana."
+                        }
+                    }
                 },
                 new GuideSectionData
                 {
                     Key = "autobuff_items",
-                    TitlePt = "5. Consumíveis",
-                    BodyPt =
-                        "• Renova automaticamente poções de ASPD, conversores elementais, comidas, caixas, pergaminhos e buffs de EXP assim que o ícone expira.\n" +
-                        "• Divisão Comuns vs. ROPs: os itens do AureumRO são organizados em 'Itens Comuns' e 'Itens de ROPs', com seletor rápido no topo para filtrar apenas Comuns, apenas ROPs ou Todos.\n" +
-                        "• Pausar ao sentar e Modo Pré-Renewal: ficam sincronizados entre Auto-skill e Consumíveis para evitar desperdício de itens.",
-                    TitleEn = "5. Consumables",
-                    BodyEn =
-                        "• Automatically refreshes ASPD potions, elemental converters, foods, boxes, scrolls, and EXP buffs as soon as their icon expires.\n" +
-                        "• Common vs. ROPs Split: AureumRO items are organized into 'Common Items' and 'ROPs Items', with a quick filter dropdown at the top.\n" +
-                        "• Pause when sitting and Pre-Renewal Mode: stay synced across Auto-skill and Consumables to avoid wasting consumables."
+                    BadgeSymbol = "⚗",
+                    AccentColor = Color.FromArgb(52, 211, 153),
+                    TitlePt = "5. Consumíveis (Comuns & ROPs)",
+                    TaglinePt = "Poções de ASPD, comidas, conversores elementais, caixas e pergaminhos",
+                    TipPt = "★ Dica: passe o mouse sobre qualquer ícone para ver o nome completo em Português e Inglês; todos os sprites seguem os ícones originais do jogo!",
+                    TitleEn = "5. Consumables (Common & ROPs)",
+                    TaglineEn = "ASPD potions, foods, elemental converters, boxes, and scrolls",
+                    TipEn = "★ Tip: hover any icon to see its full name in English and Portuguese; every sprite matches the authentic in-game item icon!",
+                    Steps = new List<GuideStepData>
+                    {
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Separação Comuns vs. ROPs",
+                            DescPt = "Os itens são organizados em blocos de 'Itens Comuns' e 'Itens de ROPs', com um seletor no topo para exibir Todos, só Comuns ou só ROPs.",
+                            HeadingEn = "▸ Common vs. ROPs Organization",
+                            DescEn = "Items are grouped into 'Common Items' and 'ROPs Items', with a quick filter at the top to view All, Common only, or ROPs only."
+                        },
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Economia Automática",
+                            DescPt = "'Pausar ao sentar' e 'Pausar em cidades' evitam queimar comidas, conversores e pergaminhos caros enquanto você descansa ou conversa em Prontera.",
+                            HeadingEn = "▸ Automatic Item Savings",
+                            DescEn = "'Pause when sitting' and 'Pause in towns' keep expensive foods, converters, and scrolls from firing while resting or idling in town."
+                        }
+                    }
                 },
                 new GuideSectionData
                 {
                     Key = "debuffs",
+                    BadgeSymbol = "✚",
+                    AccentColor = Color.FromArgb(167, 139, 250),
                     TitlePt = "6. Anti-debuffs",
-                    BodyPt =
-                        "• Mostra exclusivamente os 7 status que podem ser curados por item ou skill no AureumRO:\n" +
-                        "• Panaceia / Geleia Real (6 status): configure a 'Tecla única (todos os 6)' para curar Veneno, Silêncio, Cegueira, Maldição, Confusão/Caos e Alucinação com um único botão — ou defina teclas individuais (ex.: Poção Verde para Veneno/Silêncio/Cegueira e Água Benta para Maldição).\n" +
-                        "• Aumentar Agilidade / Velocidade: configure uma tecla (Aumentar AGI, Pergaminho, Poção do Vento/Guyak ou Bala de Guaraná) para remover Diminuir Agilidade na hora.",
+                    TaglinePt = "Cura instantânea dos 7 status removíveis no AureumRO",
+                    TipPt = "★ Dica: configure apenas a 'Tecla única (todos os 6)' com Panaceia ou Geleia Real e já cure 6 debuffs de uma só vez!",
                     TitleEn = "6. Anti-Debuffs",
-                    BodyEn =
-                        "• Displays strictly the 7 status ailments curable by items or skills on AureumRO:\n" +
-                        "• Panacea / Royal Jelly (6 statuses): set 'Single key (all 6)' to cure Poison, Silence, Blind, Curse, Confusion/Chaos, and Hallucination with one key — or set per-status keys (e.g., Green Potion for Poison/Silence/Blind and Holy Water for Curse).\n" +
-                        "• Increase Agility / Speed: bind a key (Increase AGI, AGI Scroll, Speed Potion/Guyak, or Guarana Candy) to counter Decrease Agility immediately."
+                    TaglineEn = "Instant cure for all 7 curable status ailments on AureumRO",
+                    TipEn = "★ Tip: bind Panacea or Royal Jelly to 'Single key (all 6)' to automatically cure 6 debuffs with a single hotkey!",
+                    Steps = new List<GuideStepData>
+                    {
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Panaceia / Geleia Real (6 Debuffs)",
+                            DescPt = "Cura Veneno, Silêncio, Cegueira, Maldição, Confusão e Alucinação automaticamente — com tecla única ou teclas individuais (Poção Verde, Água Benta).",
+                            HeadingEn = "▸ Panacea / Royal Jelly (6 Debuffs)",
+                            DescEn = "Cures Poison, Silence, Blind, Curse, Confusion, and Hallucination automatically — with a single key or individual keys (Green Pot, Holy Water)."
+                        },
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Aumentar Agilidade / Velocidade",
+                            DescPt = "Remove Diminuir Agilidade na hora usando Aumentar AGI, Pergaminho de Agilidade, Poção do Vento/Guyak ou Bala de Guaraná.",
+                            HeadingEn = "▸ Increase Agility / Speed",
+                            DescEn = "Immediately counters Decrease Agility using Increase AGI, AGI Scroll, Speed Potion/Guyak, or Guarana Candy."
+                        }
+                    }
                 },
                 new GuideSectionData
                 {
                     Key = "timers",
+                    BadgeSymbol = "⏱",
+                    AccentColor = Color.FromArgb(56, 189, 248),
                     TitlePt = "7. Temporizadores",
-                    BodyPt =
-                        "• Pressiona uma tecla automaticamente em intervalos fixos de tempo (em segundos), independente de ícone de status.\n" +
-                        "• Ideal para habilidades sem ícone na tela, armadilhas, itens sem status visível ou ações periódicas.\n" +
-                        "• Começa limpo com o Timer 1; clique em '+ Adicionar timer' para expandir até 6 timers independentes.",
+                    TaglinePt = "Dispare até 6 teclas automaticamente em intervalos fixos",
+                    TipPt = "★ Dica: ótimo para habilidades ou utilidades que não exibem ícone de buff na lateral da tela!",
                     TitleEn = "7. Skill Timers",
-                    BodyEn =
-                        "• Presses a hotkey automatically on a fixed second interval, regardless of status icons.\n" +
-                        "• Ideal for skills without a status icon, traps, or periodic utility actions.\n" +
-                        "• Starts cleanly with Timer 1; click '+ Add Timer' to expand up to 6 independent timers."
+                    TaglineEn = "Trigger up to 6 hotkeys automatically on fixed second intervals",
+                    TipEn = "★ Tip: perfect for skills or utilities that don't display a status icon on screen!",
+                    Steps = new List<GuideStepData>
+                    {
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Até 6 Timers Independentes",
+                            DescPt = "Começa limpo com o Timer 1. Clique em '+ Adicionar timer' para abrir mais espaços e defina a tecla + o tempo em segundos.",
+                            HeadingEn = "▸ Up to 6 Independent Timers",
+                            DescEn = "Starts clean with Timer 1. Click '+ Add Timer' to expand up to 6 slots and configure each key + interval in seconds."
+                        }
+                    }
                 },
                 new GuideSectionData
                 {
                     Key = "macros",
-                    TitlePt = "8. Macros (Troca, Músicas e ATK x DEF)",
-                    BodyPt =
-                        "• Macro Troca (só troca de equipamentos/teclas): aperte o 'Gatilho' uma vez para enviar uma sequência de até 7 teclas com Delay(ms) e Clique opcionais por passo (ex.: trocar 4 peças de equip com 1 botão). Marque 'Loop' para repetir até apertar o gatilho de novo.\n" +
-                        "• Macro Músicas (Bardo/Odalisca): aperte o 'Gatilho' para tocar até 8 músicas em sequência, trocando automaticamente para a Adaga (cancelar/cortar) e de volta para o Instrumento/Chicote.\n" +
-                        "• Macro ATK x DEF (Troca + Spammer integrado!): coloque a tecla da sua SKILL de ataque em 'Skill (Gatilho)'. Ao SEGURAR essa tecla, o 4Tools veste todo o set ATK (usando 'Troca(ms)'), spamma a própria skill enquanto você segura (usando 'Delay(ms)', com ou sem 'Com clique') e, ao SOLTAR a tecla, veste de volta todo o set DEF automaticamente!",
-                    TitleEn = "8. Macros (Switch, Songs, and ATK x DEF)",
-                    BodyEn =
-                        "• Switch Macro (gear/key chains only): press 'Trigger' once to fire up to 7 keys in sequence with per-step Delay(ms) and optional Click (e.g., swap 4 gear pieces with 1 key). Check 'Loop' to repeat until pressed again.\n" +
-                        "• Song Macro (Bard/Dancer): press 'Trigger' to play up to 8 songs in order, automatically swapping to Dagger (cancel) and back to Instrument/Whip.\n" +
-                        "• ATK x DEF Macro (Gear Swap + Spammer combined!): put your attack SKILL hotkey in 'Skill (Trigger)'. While you HOLD that key, 4Tools equips your full ATK set (using 'Switch(ms)'), spams the skill while held (using 'Delay(ms)', with or without 'With click'), and when you RELEASE the key, swaps back to your full DEF set automatically!"
+                    BadgeSymbol = "⚔",
+                    AccentColor = Color.FromArgb(249, 115, 22),
+                    TitlePt = "8. Macros (Troca, Músicas & ATK x DEF)",
+                    TaglinePt = "Trocas de equipamento em cadeia, sequências musicais e combo ATK/DEF",
+                    TipPt = "★ Dica: no Macro ATK x DEF, use 'Troca(ms)' entre 40 e 60ms para trocar várias peças sem o servidor perder nenhum clique!",
+                    TitleEn = "8. Macros (Switch, Songs & ATK x DEF)",
+                    TaglineEn = "Chained gear swaps, Bard/Dancer songs, and ATK/DEF combos",
+                    TipEn = "★ Tip: in ATK x DEF Macro, set 'Switch(ms)' to 40–60ms so the server registers every gear piece cleanly!",
+                    Steps = new List<GuideStepData>
+                    {
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Macro Troca (Switch)",
+                            DescPt = "Aperte 1 gatilho para vestir uma sequência de até 7 peças com atraso individual e clique opcional. Marque 'Loop' para repetir.",
+                            HeadingEn = "▸ Switch Macro",
+                            DescEn = "Press 1 trigger to equip up to 7 gear slots in sequence with per-step delay and optional click. Enable 'Loop' to repeat."
+                        },
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Macro Músicas (Bardo / Odalisca)",
+                            DescPt = "Toca até 8 músicas/danças em ordem, trocando automaticamente para Adaga (cortar animação) e de volta para o Instrumento/Chicote.",
+                            HeadingEn = "▸ Song Macro (Bard / Dancer)",
+                            DescEn = "Plays up to 8 songs/dances in order, automatically swapping to Dagger (cancel) and back to Instrument/Whip."
+                        },
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Macro ATK x DEF (Troca + Spammer)",
+                            DescPt = "Coloque sua SKILL em 'Skill (Gatilho)': enquanto SEGURA, veste o set ATK e spamma a skill; ao SOLTAR, volta instantaneamente para o set DEF!",
+                            HeadingEn = "▸ ATK x DEF Macro (Swap + Spammer)",
+                            DescEn = "Put your attack SKILL in 'Skill (Trigger)': while HELD, equips ATK gear and spams; on RELEASE, swaps back to DEF gear!"
+                        }
+                    }
                 },
                 new GuideSectionData
                 {
                     Key = "mount_priority",
+                    BadgeSymbol = "♞",
+                    AccentColor = Color.FromArgb(192, 132, 252),
                     TitlePt = "9. Montaria (Rédea)",
-                    BodyPt =
-                        "• Montaria (Rédea): informe a tecla da sua Rédea e ative 'Descer da montaria ao usar habilidade'. Sempre que você estiver montado e usar uma habilidade (manualmente ou pelo Spammer/Auto-skill/Temporizadores/Macros), o 4Tools desce da montaria automaticamente antes de disparar a skill!\n" +
-                        "• Teclas extras: além das teclas das outras abas, você pode cadastrar até 6 teclas manuais de habilidades para desmontar automaticamente.\n" +
-                        "• Pausar Auto-skill montado e Remontar após inatividade: opções extras para não desmontar enquanto caminha pelo mapa ou para remontar sozinho após ficar alguns segundos sem atacar.",
+                    TaglinePt = "Desça da montaria automaticamente ao lançar habilidades",
+                    TipPt = "★ Dica: ative 'Pausar Auto-skill montado' se não quiser descer da Rédea enquanto apenas atravessa um mapa!",
                     TitleEn = "9. Mount (Halter Lead)",
-                    BodyEn =
-                        "• Mount (Halter Lead): bind your Halter Lead hotkey and enable 'Dismount when using skill'. Whenever you are mounted and cast a skill (manually or via Spammer/Auto-skill/Timers/Macros), 4Tools automatically dismounts before firing the skill!\n" +
-                        "• Extra skill keys: in addition to keys from other tabs, you can bind up to 6 extra manual skill hotkeys for automatic dismount.\n" +
-                        "• Pause Auto-skill while mounted and Auto remount after idle: optional helpers to stay mounted while traveling or automatically remount after a few idle seconds."
+                    TaglineEn = "Automatically dismount your Halter Lead whenever you cast a skill",
+                    TipEn = "★ Tip: enable 'Pause Auto-skill while mounted' if you want to stay mounted while traveling across maps!",
+                    Steps = new List<GuideStepData>
+                    {
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Desmontar Automático & Teclas Extras",
+                            DescPt = "Informe a tecla da sua Rédea e ative 'Descer da montaria ao usar habilidade'. Funciona com teclas do Spammer, Auto-skill, Macros e até 6 teclas manuais extras.",
+                            HeadingEn = "▸ Auto Dismount & Extra Skill Keys",
+                            DescEn = "Bind your Halter Lead key and enable 'Dismount when using skill'. Works with Spammer, Auto-skill, Macros, and up to 6 extra manual keys."
+                        },
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Remontar Após Inatividade",
+                            DescPt = "Opcional: remonta sozinho após alguns milissegundos sem usar habilidades (somente se foi o AureumTools quem desmontou você).",
+                            HeadingEn = "▸ Auto Remount After Idle",
+                            DescEn = "Optional: automatically remounts after a brief idle delay (only when AureumTools triggered the dismount)."
+                        }
+                    }
                 },
                 new GuideSectionData
                 {
                     Key = "utilities",
-                    TitlePt = "10. Utilidades (@refresh e Auto-Fuga de Emergência)",
-                    BodyPt =
-                        "• Anti-Bug Position (@refresh): envia Enter → @refresh → Enter direto no chat sem precisar digitar! Configure um Atalho de 1 toque para ressincronizar na hora (debounce de 1,5s) e/ou ative o modo 'Auto a cada X seg' (pausa no chat, em cidade e sentado).\n" +
-                        "• Auto-Fuga de Emergência (Asa de Mosca / Teleporte): se o HP cair abaixo da % crítica configurada (ex.: < 20%), dispara automaticamente a tecla de fuga em prioridade de emergência (Nível 2), com recarga configurável (padrão 2000ms) para não gastar várias asas.\n" +
-                        "• Skill Teleporte e segurança: marque 'Confirmar com Enter' caso use a skill Teleporte (Noviço/Sacerdote/Carta Creamy); nunca dispara morto (HP = 0) nem em cidades quando marcado.",
-                    TitleEn = "10. Utilities (@refresh and Emergency Auto-Escape)",
-                    BodyEn =
-                        "• Anti-Position Bug (@refresh): sends Enter → @refresh → Enter directly into game chat without manual typing! Bind a 1-tap Hotkey to resync instantly (1.5s debounce) and/or enable 'Auto every X sec' (pauses while chatting, in town, or sitting).\n" +
-                        "• Emergency Auto-Escape (Fly Wing / Teleport): whenever HP drops below your critical % threshold (e.g., < 20%), automatically fires your escape key at emergency priority (Tier 2), with a configurable cooldown (default 2000ms) to avoid wasting multiple wings.\n" +
-                        "• Teleport skill and safety: enable 'Press Enter after key' for Teleport skill (Acolyte/Priest/Creamy Card); never triggers when dead (HP = 0) or in towns when disabled."
+                    BadgeSymbol = "⚑",
+                    AccentColor = Color.FromArgb(45, 212, 191),
+                    TitlePt = "10. Utilidades (@refresh & Auto-Fuga)",
+                    TaglinePt = "Corrija bug de posição com 1 toque e escape automaticamente no sufoco",
+                    TipPt = "★ Dica: coloque a Asa de Mosca em uma tecla F1–F24 para que o Auto-Fuga funcione até mesmo se o chat estiver aberto!",
+                    TitleEn = "10. Utilities (@refresh & Auto-Escape)",
+                    TaglineEn = "Fix position desync in 1 tap and auto-escape critical HP spikes",
+                    TipEn = "★ Tip: bind Fly Wing to an F1–F24 key so Auto-Escape works even if your chat box is open!",
+                    Steps = new List<GuideStepData>
+                    {
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Anti-Bug Position (@refresh)",
+                            DescPt = "Envia Enter → @refresh → Enter no chat automaticamente via Atalho de 1 toque (ideal em WoE/PvP/MVP) ou em intervalo automático configurável.",
+                            HeadingEn = "▸ Anti-Position Bug (@refresh)",
+                            DescEn = "Automatically sends Enter → @refresh → Enter via a 1-tap Hotkey (great for WoE/PvP/MVP) or on a periodic interval."
+                        },
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Auto-Fuga de Emergência (Asa de Mosca / Teleporte)",
+                            DescPt = "Se o HP cair abaixo da % crítica, dispara sua Asa de Mosca ou skill Teleporte (com opção 'Confirmar com Enter'). Nunca dispara morto nem em cidades.",
+                            HeadingEn = "▸ Emergency Auto-Escape (Fly Wing / Teleport)",
+                            DescEn = "When HP drops below your critical %, fires Fly Wing or Teleport skill (with optional 'Press Enter'). Never fires while dead or in towns."
+                        }
+                    }
+                },
+                new GuideSectionData
+                {
+                    Key = "aureum_hub",
+                    BadgeSymbol = "★",
+                    AccentColor = Color.FromArgb(234, 179, 8),
+                    TitlePt = "11. Aureum Hub (Votos, Cartas & Mapas)",
+                    TaglinePt = "Companheiro exclusivo do AureumRO com timers e rastreador completo",
+                    TipPt = "★ Dica: já votou pelo celular? Digite a hora do último voto (ex.: 14:30) e clique em 'Definir' para calcular automaticamente quanto tempo falta!",
+                    TitleEn = "11. Aureum Hub (Votes, Cards & Maps)",
+                    TaglineEn = "Exclusive AureumRO companion with vote timers and full collection trackers",
+                    TipEn = "★ Tip: already voted on mobile? Enter your last vote time (e.g., 14:30) and click 'Set' to automatically calculate the remaining cooldown!",
+                    Steps = new List<GuideStepData>
+                    {
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Hora da Votação (Timer 12h + Lembrete)",
+                            DescPt = "Acompanha os topsites oficiais do AureumRO, calcula o tempo restante a partir da hora do último voto e avisa na área de trabalho quando liberar de novo.",
+                            HeadingEn = "▸ Vote Time (12h Timer + Reminder)",
+                            DescEn = "Tracks official AureumRO topsites, calculates remaining time from your last vote timestamp, and sends desktop reminders when ready."
+                        },
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Coleção de Cartas (28 Coleções / 140 Cartas)",
+                            DescPt = "Filtre por categoria ou busca e clique em cada carta para marcar/tachar as que você já tem, com botão rápido '/navi Colecionador'.",
+                            HeadingEn = "▸ Card Collection (28 Collections / 140 Cards)",
+                            DescEn = "Filter by category or search and click any card to mark it collected with strikethrough, plus a quick '/navi Card Collector' button."
+                        },
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Coleção de Mapas (311 Mapas com Setas de Direção)",
+                            DescPt = "Agrupe por Cidade ou Tipo de Bônus, veja a referência e setas (← ↑ ↓ →) para chegar a pé sem precisar de @warp e consulte todos os itens de drop e % abaixo!",
+                            HeadingEn = "▸ Map Collection (311 Maps with Directional Arrows)",
+                            DescEn = "Group by City or Bonus Type, see reference town + arrows (← ↑ ↓ →) to walk there, and inspect all required drop items & rates below!"
+                        }
+                    }
                 },
                 new GuideSectionData
                 {
                     Key = "profiles",
-                    TitlePt = "11. Perfis, Backup, Conflitos e Dicas Rápidas",
-                    BodyPt =
-                        "• Perfis por personagem/build: crie perfis separados (ex.: PvM, MVP, WoE), copie ou renomeie com 1 clique.\n" +
-                        "• Troca automática por personagem: vincule um perfil ao nome do seu personagem ('Usar Personagem Ativo' → 'Salvar') e marque 'Ativar Troca Automática' para carregar o perfil sozinho ao trocar de char (enquanto em OFF).\n" +
-                        "• Verificar Conflitos e Backup .zip: use 'Verificar Conflitos' para descobrir teclas duplicadas entre abas, e 'Backup Geral (.zip)' para salvar todos os seus perfis com segurança.\n" +
-                        "• Popups em todo o app: sempre que tiver dúvida em qualquer botão, caixa ou opção, basta parar o mouse em cima por um instante para ver a explicação detalhada!",
-                    TitleEn = "11. Profiles, Backup, Conflicts, and Quick Tips",
-                    BodyEn =
-                        "• Per-character/build profiles: create separate profiles (e.g., PvM, MVP, WoE), copy, or rename in 1 click.\n" +
-                        "• Auto-Switch by Character: bind a profile to your character name ('Use Active Character' → 'Save') and enable 'Enable Auto-Switch' to auto-load when switching characters (while OFF).\n" +
-                        "• Key Conflicts and .zip Backup: use 'Check Key Conflicts' to spot duplicate keys across tabs, and 'Backup All (.zip)' to safely back up all profiles.\n" +
-                        "• Hover popups everywhere: whenever you're unsure about any button, field, or checkbox, just hover your mouse over it for a detailed popup!"
+                    BadgeSymbol = "⚙",
+                    AccentColor = Color.FromArgb(148, 163, 184),
+                    TitlePt = "12. Perfis, Backup .zip & Diagnóstico",
+                    TaglinePt = "Troca automática por personagem, backup seguro e inspetor de conflitos",
+                    TipPt = "★ Dica: faça um 'Backup (.zip)' de tempos em tempos para guardar todos os seus perfis e configurações em um único arquivo!",
+                    TitleEn = "12. Profiles, .zip Backup & Diagnostics",
+                    TaglineEn = "Auto-switch by character, one-click backups, and conflict inspector",
+                    TipEn = "★ Tip: create a 'Backup All (.zip)' occasionally to safely store all your profiles and settings in one archive!",
+                    Steps = new List<GuideStepData>
+                    {
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Perfis & Troca Automática por Personagem",
+                            DescPt = "Crie perfis separados (PvM, MVP, WoE), vincule ao nome do personagem ('Usar Personagem Ativo' → 'Salvar') e o AureumTools troca de perfil sozinho ao logar.",
+                            HeadingEn = "▸ Profiles & Auto-Switch by Character",
+                            DescEn = "Create separate profiles (PvM, MVP, WoE), bind them to your character name ('Use Active Character' → 'Save'), and AureumTools loads them automatically."
+                        },
+                        new GuideStepData
+                        {
+                            HeadingPt = "▸ Verificar Conflitos & Ver Status (IDs)",
+                            DescPt = "Descubra em 1 clique se a mesma tecla está duplicada entre abas e inspecione os IDs de status (EFST) lidos ao vivo da memória do jogo.",
+                            HeadingEn = "▸ Check Key Conflicts & Inspect Status IDs",
+                            DescEn = "Spot duplicate hotkeys across tabs in 1 click and inspect live EFST status IDs directly from game memory."
+                        }
+                    }
                 }
             };
         }
@@ -348,35 +742,56 @@ namespace _4RTools.Forms
             this.SuspendLayout();
             try
             {
-                int y = TOP_BAR_HEIGHT + 6;
+                int y = TOP_BAR_HEIGHT + 8;
                 int visibleCount = 0;
 
                 foreach (GuideCardUi card in this.cards)
                 {
-                    string title = pt ? card.Data.TitlePt : card.Data.TitleEn;
-                    string body = pt ? card.Data.BodyPt : card.Data.BodyEn;
-
-                    bool match = string.IsNullOrEmpty(normalizedQuery)
-                        || Normalize(title).Contains(normalizedQuery)
-                        || Normalize(body).Contains(normalizedQuery);
+                    bool match = string.IsNullOrEmpty(normalizedQuery) || MatchesSection(card.Data, normalizedQuery, pt);
 
                     card.IsVisible = match;
-                    card.Group.Visible = match;
+                    card.CardPanel.Visible = match;
                     if (match)
                     {
-                        card.Group.Location = new Point(CARD_LEFT, y);
-                        y += card.Group.Height + 8;
+                        card.CardPanel.Location = new Point(CARD_LEFT, y);
+                        y += card.CardPanel.Height + 12;
                         visibleCount++;
                     }
                 }
 
                 this.lblEmptyState.Visible = (visibleCount == 0);
-                this.AutoScrollMinSize = new Size(0, Math.Max(TOP_BAR_HEIGHT + 40, y + 8));
+                this.AutoScrollMinSize = new Size(0, Math.Max(TOP_BAR_HEIGHT + 40, y + 10));
             }
             finally
             {
                 this.ResumeLayout(true);
             }
+        }
+
+        private static bool MatchesSection(GuideSectionData data, string normalizedQuery, bool pt)
+        {
+            string title = pt ? data.TitlePt : data.TitleEn;
+            string tagline = pt ? data.TaglinePt : data.TaglineEn;
+            string tip = pt ? data.TipPt : data.TipEn;
+
+            if (Normalize(title).Contains(normalizedQuery)
+                || Normalize(tagline).Contains(normalizedQuery)
+                || Normalize(tip).Contains(normalizedQuery))
+            {
+                return true;
+            }
+
+            foreach (GuideStepData step in data.Steps)
+            {
+                string heading = pt ? step.HeadingPt : step.HeadingEn;
+                string desc = pt ? step.DescPt : step.DescEn;
+                if (Normalize(heading).Contains(normalizedQuery) || Normalize(desc).Contains(normalizedQuery))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void RefreshLanguage()
@@ -392,32 +807,103 @@ namespace _4RTools.Forms
             this.guideToolTip.SetToolTip(
                 this.txtSearch,
                 pt
-                    ? "Digite qualquer palavra-chave (ex.: 'clique', 'atk', 'panaceia', 'ygg', 'chat', 'musica') para filtrar o guia."
-                    : "Type any keyword (e.g., 'click', 'atk', 'panacea', 'ygg', 'chat', 'song') to filter guide sections.");
+                    ? "Digite qualquer palavra-chave (ex.: 'clique', 'atk', 'panaceia', 'ygg', 'voto', 'furtividade') para filtrar o guia."
+                    : "Type any keyword (e.g., 'click', 'atk', 'panacea', 'ygg', 'vote', 'cloaking') to filter guide sections.");
             this.guideToolTip.SetToolTip(
                 this.btnClearSearch,
                 pt ? "Limpa o campo de busca do guia." : "Clears the guide search filter.");
 
             foreach (GuideCardUi card in this.cards)
             {
-                string title = pt ? card.Data.TitlePt : card.Data.TitleEn;
-                string body = pt ? card.Data.BodyPt : card.Data.BodyEn;
+                string cardTitle = pt ? card.Data.TitlePt : card.Data.TitleEn;
+                card.CardPanel.Text = cardTitle;
+                card.TitleLabel.Text = cardTitle;
+                card.TaglineLabel.Text = pt ? card.Data.TaglinePt : card.Data.TaglineEn;
 
-                card.Group.Text = title;
-                card.BodyLabel.Text = body;
+                int cursorY = HEADER_HEIGHT + 12;
 
-                Size measured = TextRenderer.MeasureText(
-                    body,
-                    this.bodyFont,
-                    new Size(BODY_WIDTH, int.MaxValue),
+                foreach (GuideStepUi stepUi in card.StepUis)
+                {
+                    string heading = pt ? stepUi.Data.HeadingPt : stepUi.Data.HeadingEn;
+                    string desc = pt ? stepUi.Data.DescPt : stepUi.Data.DescEn;
+
+                    stepUi.HeadingLabel.Text = heading;
+                    Size headingSize = TextRenderer.MeasureText(
+                        heading,
+                        this.stepHeadingFont,
+                        new Size(CONTENT_WIDTH, int.MaxValue),
+                        TextFormatFlags.WordBreak | TextFormatFlags.TextBoxControl);
+                    int headingH = Math.Max(18, headingSize.Height + 2);
+                    stepUi.HeadingLabel.Location = new Point(CONTENT_LEFT, cursorY);
+                    stepUi.HeadingLabel.Size = new Size(CONTENT_WIDTH, headingH);
+                    cursorY += headingH + 3;
+
+                    stepUi.DescLabel.Text = desc;
+                    Size descSize = TextRenderer.MeasureText(
+                        desc,
+                        this.stepBodyFont,
+                        new Size(CONTENT_WIDTH - 14, int.MaxValue),
+                        TextFormatFlags.WordBreak | TextFormatFlags.TextBoxControl);
+                    int descH = Math.Max(20, descSize.Height + 4);
+                    stepUi.DescLabel.Location = new Point(CONTENT_LEFT + 14, cursorY);
+                    stepUi.DescLabel.Size = new Size(CONTENT_WIDTH - 14, descH);
+                    cursorY += descH + 10;
+                }
+
+                string tipText = pt ? card.Data.TipPt : card.Data.TipEn;
+                card.TipLabel.Text = tipText;
+                Size tipSize = TextRenderer.MeasureText(
+                    tipText,
+                    this.tipFont,
+                    new Size(CONTENT_WIDTH - 18, int.MaxValue),
                     TextFormatFlags.WordBreak | TextFormatFlags.TextBoxControl);
+                int tipLabelH = Math.Max(18, tipSize.Height + 4);
+                card.TipLabel.Size = new Size(CONTENT_WIDTH - 18, tipLabelH);
+                card.TipPanel.Location = new Point(CONTENT_LEFT, cursorY + 2);
+                card.TipPanel.Size = new Size(CONTENT_WIDTH, tipLabelH + 12);
 
-                int bodyHeight = Math.Max(36, measured.Height + 6);
-                card.BodyLabel.Size = new Size(BODY_WIDTH, bodyHeight);
-                card.Group.Size = new Size(CARD_WIDTH, 20 + bodyHeight + 10);
+                int cardHeight = card.TipPanel.Bottom + 12;
+                card.CardPanel.Size = new Size(CARD_WIDTH, cardHeight);
             }
 
             ApplySearchFilter(this.txtSearch != null ? this.txtSearch.Text : string.Empty);
+        }
+
+        private void ApplyCustomThemeStyling()
+        {
+            bool dark = ThemeManager.IsDarkMode;
+            Color cardBg = dark ? Color.FromArgb(30, 21, 6) : Color.FromArgb(255, 253, 246);
+            Color headerBg = dark ? Color.FromArgb(44, 31, 10) : Color.FromArgb(247, 238, 212);
+            Color titleColor = dark ? Color.FromArgb(250, 240, 212) : Color.FromArgb(46, 33, 12);
+            Color taglineColor = dark ? Color.FromArgb(196, 178, 138) : Color.FromArgb(115, 96, 68);
+            Color headingColor = dark ? Color.FromArgb(244, 214, 118) : Color.FromArgb(138, 94, 14);
+            Color bodyColor = dark ? Color.FromArgb(236, 227, 202) : Color.FromArgb(52, 39, 18);
+            Color tipBg = dark ? Color.FromArgb(42, 32, 12) : Color.FromArgb(250, 243, 222);
+            Color tipFg = dark ? Color.FromArgb(248, 226, 152) : Color.FromArgb(108, 74, 14);
+
+            foreach (GuideCardUi card in this.cards)
+            {
+                card.CardPanel.BackColor = cardBg;
+                card.HeaderPanel.BackColor = headerBg;
+                card.TitleLabel.ForeColor = titleColor;
+                card.TaglineLabel.ForeColor = taglineColor;
+
+                foreach (GuideStepUi stepUi in card.StepUis)
+                {
+                    stepUi.HeadingLabel.ForeColor = headingColor;
+                    stepUi.DescLabel.ForeColor = bodyColor;
+                }
+
+                card.TipPanel.BackColor = tipBg;
+                card.TipLabel.ForeColor = tipFg;
+                card.CardPanel.Invalidate();
+            }
+        }
+
+        protected override void OnBackColorChanged(EventArgs e)
+        {
+            base.OnBackColorChanged(e);
+            ApplyCustomThemeStyling();
         }
 
         private static string Normalize(string input)
@@ -463,11 +949,7 @@ namespace _4RTools.Forms
                     this.guideToolTip.Dispose();
                     this.guideToolTip = null;
                 }
-                if (this.bodyFont != null)
-                {
-                    this.bodyFont.Dispose();
-                    this.bodyFont = null;
-                }
+                if (this.badgeFont != null) { this.badgeFont.Dispose(); this.badgeFont = null; }
             }
 
             base.Dispose(disposing);

@@ -243,9 +243,9 @@ namespace _4RTools.Forms
                 this.btnClearExtraSkills = new Button
                 {
                     Cursor = System.Windows.Forms.Cursors.Hand,
-                    Location = new Point(486, 49),
+                    Location = new Point(482, 48),
                     Name = "btnClearExtraSkills",
-                    Size = new Size(70, 22),
+                    Size = new Size(76, 25),
                     Text = "Clear",
                     UseVisualStyleBackColor = true
                 };

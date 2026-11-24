@@ -1,4 +1,4 @@
-﻿namespace _4RTools.Forms
+namespace _4RTools.Forms
 {
     partial class ProfileForm
     {
@@ -118,7 +118,7 @@
             // ProfileForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(374, 232);
             this.Controls.Add(this.btnCopy);
             this.Controls.Add(this.btnEditProfile);

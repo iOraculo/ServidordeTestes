@@ -134,9 +134,9 @@ namespace _4RTools.Forms
             this.btnClearDef = new Button
             {
                 Cursor = System.Windows.Forms.Cursors.Hand,
-                Location = new Point(98, 192),
+                Location = new Point(92, 189),
                 Name = "btnClearDefSlots",
-                Size = new Size(80, 22),
+                Size = new Size(88, 25),
                 Text = "Clear DEF",
                 UseVisualStyleBackColor = true
             };
@@ -160,9 +160,9 @@ namespace _4RTools.Forms
             this.btnClearAtk = new Button
             {
                 Cursor = System.Windows.Forms.Cursors.Hand,
-                Location = new Point(98, 192),
+                Location = new Point(92, 189),
                 Name = "btnClearAtkSlots",
-                Size = new Size(80, 22),
+                Size = new Size(88, 25),
                 Text = "Clear ATK",
                 UseVisualStyleBackColor = true
             };

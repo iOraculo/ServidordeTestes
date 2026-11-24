@@ -78,6 +78,7 @@ namespace _4RTools.Model
 
             // Mage / Wizard / Sage / High Wizard / Professor
             EffectStatusIDs.ENERGYCOAT,
+            EffectStatusIDs.EFST_SIGHT,
             EffectStatusIDs.SIGHTBLASTER,
             EffectStatusIDs.AUTOSPELL,
             EffectStatusIDs.DOUBLECASTING,
@@ -94,9 +95,12 @@ namespace _4RTools.Model
             EffectStatusIDs.MAXIMIZE,
             EffectStatusIDs.CARTBOOST,
             EffectStatusIDs.MELTDOWN,
+            EffectStatusIDs.PROTECTARMOR,
 
             // Thief / Assassin / Rogue / Assassin Cross / Stalker
             EffectStatusIDs.EFST_HIDING,
+            EffectStatusIDs.EFST_CLOAKING,
+            EffectStatusIDs.EFST_CHASEWALK,
             EffectStatusIDs.POISONREACT,
             EffectStatusIDs.SWORDREJECT,
             EffectStatusIDs.PRESERVE,
@@ -112,7 +116,9 @@ namespace _4RTools.Model
             EffectStatusIDs.GLORIA,
             EffectStatusIDs.MAGNIFICAT,
             EffectStatusIDs.ANGELUS,
+            EffectStatusIDs.EFST_RUWACH,
             EffectStatusIDs.FURY,
+            EffectStatusIDs.EFST_STEELBODY,
             EffectStatusIDs.IMPOSITIO,
             EffectStatusIDs.ASPERSIO,
 
@@ -121,7 +127,7 @@ namespace _4RTools.Model
             EffectStatusIDs.AURA_NINJA,
             EffectStatusIDs.EFST_NJ_BUNSINJYUTSU,
 
-            // Taekwon / Star Gladiator
+            // Taekwon / Star Gladiator / Soul Linker
             EffectStatusIDs.PROPERTYGROUND,
             EffectStatusIDs.PROPERTYFIRE,
             EffectStatusIDs.PROPERTYWATER,
@@ -136,6 +142,10 @@ namespace _4RTools.Model
             EffectStatusIDs.EFST_SG_STAR_WARM,
             EffectStatusIDs.EFST_STAR_COMFORT,
             EffectStatusIDs.DODGE_ON,
+            EffectStatusIDs.EFST_KAAHI,
+            EffectStatusIDs.EFST_KAUPE,
+            EffectStatusIDs.EFST_KAITE,
+            EffectStatusIDs.EFST_KAIZEL,
 
             // Gunslinger
             EffectStatusIDs.GATLINGFEVER,
@@ -238,6 +248,7 @@ namespace _4RTools.Model
             List<Buff> skills = new List<Buff>
             {
                 new Buff("Energy Coat", EffectStatusIDs.ENERGYCOAT, Resources._4RTools.Icons.mg_energycoat),
+                new Buff("Sight", EffectStatusIDs.EFST_SIGHT, Resources._4RTools.Icons.mg_sight),
                 new Buff("Sight Blaster", EffectStatusIDs.SIGHTBLASTER, Resources._4RTools.Icons.wz_sightblaster),
                 new Buff("Autospell", EffectStatusIDs.AUTOSPELL, Resources._4RTools.Icons.sa_autospell),
                 new Buff("Double Casting", EffectStatusIDs.DOUBLECASTING, Resources._4RTools.Icons.pf_doublecasting),
@@ -265,6 +276,7 @@ namespace _4RTools.Model
                 new Buff("Power Maximize", EffectStatusIDs.MAXIMIZE, Resources._4RTools.Icons.bs_maximize),
                 new Buff("Cart Boost", EffectStatusIDs.CARTBOOST, Resources._4RTools.Icons.ws_cartboost),
                 new Buff("Meltdown", EffectStatusIDs.MELTDOWN, Resources._4RTools.Icons.ws_meltdown),
+                new Buff("Full Chemical Protection", EffectStatusIDs.PROTECTARMOR, Resources._4RTools.Icons.cr_fullprotection),
                 new Buff("Acceleration", EffectStatusIDs.ACCELERATION, Resources._4RTools.Icons.mec_acceleration),
                 new Buff("Cart Boost", EffectStatusIDs.GN_CARTBOOST, Resources._4RTools.Icons.cart_boost),
                 new Buff("Research Report", EffectStatusIDs.EFST_RESEARCHREPORT, Resources._4RTools.Icons.researchreport),
@@ -280,6 +292,8 @@ namespace _4RTools.Model
             List<Buff> skills = new List<Buff>
             {
                 new Buff("Hiding", EffectStatusIDs.EFST_HIDING, Resources._4RTools.Icons.tf_hiding),
+                new Buff("Cloaking", EffectStatusIDs.EFST_CLOAKING, Resources._4RTools.Icons.as_cloaking),
+                new Buff("Chase Walk", EffectStatusIDs.EFST_CHASEWALK, Resources._4RTools.Icons.st_chasewalk),
                 new Buff("Poison React", EffectStatusIDs.POISONREACT, Resources._4RTools.Icons.as_poisonreact),
                 new Buff("Reject Sword", EffectStatusIDs.SWORDREJECT, Resources._4RTools.Icons.st_rejectsword),
                 new Buff("Preserve", EffectStatusIDs.PRESERVE, Resources._4RTools.Icons.st_preserve),
@@ -311,6 +325,8 @@ namespace _4RTools.Model
                 new Buff("Gloria", EffectStatusIDs.GLORIA, Resources._4RTools.Icons.pr_gloria),
                 new Buff("Magnificat", EffectStatusIDs.MAGNIFICAT, Resources._4RTools.Icons.pr_magnificat),
                 new Buff("Angelus", EffectStatusIDs.ANGELUS, Resources._4RTools.Icons.al_angelus),
+                new Buff("Ruwach", EffectStatusIDs.EFST_RUWACH, Resources._4RTools.Icons.al_ruwach),
+                new Buff("Steel Body", EffectStatusIDs.EFST_STEELBODY, Resources._4RTools.Icons.mo_steelbody),
                 new Buff("Rising Dragon", EffectStatusIDs.RAISINGDRAGON, Resources._4RTools.Icons.rising_dragon),
                 new Buff("Gentle Touch-Revitalize", EffectStatusIDs.GENTLETOUCH_REVITALIZE, Resources._4RTools.Icons.gentle_touch_revitalize),
                 new Buff("Gentle Touch-Convert", EffectStatusIDs.GENTLETOUCH_CHANGE, Resources._4RTools.Icons.gentle_touch_convert),
@@ -362,6 +378,10 @@ namespace _4RTools.Model
                 new Buff("Calor estelar", EffectStatusIDs.EFST_SG_STAR_WARM, Resources._4RTools.Icons.SG_STAR_WARM),
                 new Buff("Proteção estelar", EffectStatusIDs.EFST_STAR_COMFORT, Resources._4RTools.Icons.SG_STAR_COMFORT),
                 new Buff("Tumbling", EffectStatusIDs.DODGE_ON, Resources._4RTools.Icons.tumbling),
+                new Buff("Kaahi", EffectStatusIDs.EFST_KAAHI, Resources._4RTools.Icons.sl_kaahi),
+                new Buff("Kaupe", EffectStatusIDs.EFST_KAUPE, Resources._4RTools.Icons.sl_kaupe),
+                new Buff("Kaite", EffectStatusIDs.EFST_KAITE, Resources._4RTools.Icons.sl_kaite),
+                new Buff("Kaizel", EffectStatusIDs.EFST_KAIZEL, Resources._4RTools.Icons.sl_kaizel),
                 new Buff("Enchanting Sky", EffectStatusIDs.EFST_SKY_ENCHANT, Resources._4RTools.Icons.enchanting_sky),
                 new Buff("Universal Stance", EffectStatusIDs.EFST_UNIVERSESTANCE, Resources._4RTools.Icons.universal_stance),
             };

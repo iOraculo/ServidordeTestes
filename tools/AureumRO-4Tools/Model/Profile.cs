@@ -14,7 +14,12 @@ namespace _4RTools.Model
     {
         private static readonly object FileLock = new object();
         private static int suppressSaveDepth = 0;
-        public static Profile profile = new Profile("Default");
+
+        public static Profile profile
+        {
+            get { return SessionContext.Current.Profile; }
+            set { SessionContext.Current.Profile = value; }
+        }
 
         private sealed class SaveSuppressionScope : IDisposable
         {

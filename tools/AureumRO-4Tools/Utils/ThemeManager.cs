@@ -47,6 +47,16 @@ namespace _4RTools.Utils
         private static readonly Color DarkDivider = Color.FromArgb(71, 52, 15);          // #47340F
         private static readonly Color DarkLink = Color.FromArgb(244, 217, 122);          // #F4D97A
 
+        public static Color GetCanvasColor(bool darkMode)
+        {
+            return darkMode ? DarkCanvas : LightCanvas;
+        }
+
+        public static Color GetCardColor(bool darkMode)
+        {
+            return darkMode ? DarkBackground : LightBackground;
+        }
+
         public static bool IsDarkMode { get; private set; }
 
         private static readonly object IconCacheLock = new object();
@@ -282,6 +292,7 @@ namespace _4RTools.Utils
             root.SuspendLayout();
             try
             {
+                FontManager.ApplyFontTree(root);
                 ApplyControlTheme(root, darkMode);
             }
             finally
@@ -313,6 +324,10 @@ namespace _4RTools.Utils
                 else if (control is SegmentedTabButton)
                 {
                     ((SegmentedTabButton)control).ApplyTheme(darkMode);
+                }
+                else if (control is ThemeToggleButton)
+                {
+                    ((ThemeToggleButton)control).ApplyTheme(darkMode);
                 }
                 else if (control is ModernCardPanel)
                 {
@@ -387,6 +402,7 @@ namespace _4RTools.Utils
                     {
                         btn.Padding = Padding.Empty;
                         btn.TextAlign = ContentAlignment.MiddleCenter;
+                        btn.UseCompatibleTextRendering = false;
                     }
                     if (darkMode)
                     {

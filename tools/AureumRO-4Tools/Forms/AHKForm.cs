@@ -27,7 +27,7 @@ namespace _4RTools.Forms
         {
             InitializeComponent();
             this.helpToolTip = FormUtils.CreateHelpToolTip(this.components);
-            this.priorityOrderFont = new Font("Segoe UI", 7.75F, FontStyle.Bold);
+            this.priorityOrderFont = FontManager.Bold(7.75F);
             InitializeClearAllButton();
             InitializePriorityControls();
             InitializeCheckAsThreeState();
@@ -37,30 +37,60 @@ namespace _4RTools.Forms
 
         private void InitializePriorityControls()
         {
-            // Align Example card and Clear button flush with the bottom cards' right edge (x = 570).
-            this.groupBox3.Location = new Point(426, 10);
-            this.groupBox3.Size = new Size(144, 100);
+            // Lay out all 5 key rows with deterministic X/Y positions (immune to Designer AutoScaleMode.Font)
+            // so column 9 (F9 / 9 / O / L) always keeps crisp spacing from the Legend box.
+            CheckBox[][] keyRows = new CheckBox[][]
+            {
+                new CheckBox[] { this.chkF1, this.chkF2, this.chkF3, this.chkF4, this.chkF5, this.chkF6, this.chkF7, this.chkF8, this.chkF9 },
+                new CheckBox[] { this.chk1, this.chk2, this.chk3, this.chk4, this.chk5, this.chk6, this.chk7, this.chk8, this.chk9 },
+                new CheckBox[] { this.chkQ, this.chkW, this.chkE, this.chkR, this.chkT, this.chkY, this.chkU, this.chkI, this.chkO },
+                new CheckBox[] { this.chkA, this.chkS, this.chkD, this.chkF, this.chkG, this.chkH, this.chkJ, this.chkK, this.chkL },
+                new CheckBox[] { this.chkZ, this.chkX, this.chkC, this.chkV, this.chkB, this.chkN, this.chkM }
+            };
+            int[] rowTops = new int[] { 8, 38, 70, 93, 116 };
+            for (int r = 0; r < keyRows.Length; r++)
+            {
+                for (int c = 0; c < keyRows[r].Length; c++)
+                {
+                    if (keyRows[r][c] != null)
+                    {
+                        keyRows[r][c].Location = new Point(15 + (c * 48), rowTops[r]);
+                    }
+                }
+            }
+
+            this.panel4.Location = new Point(14, 30);
+            this.panel4.Size = new Size(430, 1);
+            this.panel2.Location = new Point(14, 61);
+            this.panel2.Size = new Size(430, 1);
+
+            // Align Example card and Clear button flush with the bottom cards' right edge (x = 602).
+            this.groupBox3.Location = new Point(456, 8);
+            this.groupBox3.Size = new Size(146, 102);
+            this.cbWithClick.Location = new Point(10, 22);
+            this.cbWithNoClick.Location = new Point(10, 48);
+            this.cbDeactivated.Location = new Point(10, 74);
             if (this.btnClearAllKeys != null)
             {
-                this.btnClearAllKeys.Location = new Point(426, 115);
-                this.btnClearAllKeys.Size = new Size(144, 26);
+                this.btnClearAllKeys.Location = new Point(456, 114);
+                this.btnClearAllKeys.Size = new Size(146, 26);
             }
 
             // Compact Spammer Configuration card so Action Priority sits in its own unified card right below.
             this.groupAhkConfig.Location = new Point(14, 146);
-            this.groupAhkConfig.Size = new Size(556, 63);
+            this.groupAhkConfig.Size = new Size(588, 63);
 
             this.ahkCompatibility.Location = new Point(14, 19);
             this.ahkSpeedBoost.Location = new Point(14, 39);
 
-            this.groupBox4.Location = new Point(142, 12);
-            this.groupBox4.Size = new Size(242, 44);
-            this.chkMouseFlick.Location = new Point(152, 28);
-            this.pbUpAndDownArrow.Location = new Point(238, 28);
-            this.chkNoShift.Location = new Point(268, 28);
-            this.pictureBox1.Location = new Point(344, 26);
+            this.groupBox4.Location = new Point(150, 12);
+            this.groupBox4.Size = new Size(266, 44);
+            this.chkMouseFlick.Location = new Point(162, 28);
+            this.pbUpAndDownArrow.Location = new Point(256, 28);
+            this.chkNoShift.Location = new Point(290, 28);
+            this.pictureBox1.Location = new Point(372, 26);
 
-            this.groupBox2.Location = new Point(394, 12);
+            this.groupBox2.Location = new Point(426, 12);
             this.groupBox2.Size = new Size(150, 44);
             this.txtSpammerDelay.Location = new Point(14, 16);
             this.txtSpammerDelay.Size = new Size(64, 23);
@@ -71,7 +101,7 @@ namespace _4RTools.Forms
             {
                 Location = new Point(14, 213),
                 Name = "gbPlayerPriority",
-                Size = new Size(556, 62),
+                Size = new Size(588, 64),
                 TabStop = false,
                 Text = "Action Priority"
             };
@@ -147,7 +177,7 @@ namespace _4RTools.Forms
                 Font = this.priorityOrderFont,
                 Location = new Point(12, 38),
                 Name = "lblPriorityOrder",
-                Size = new Size(534, 19),
+                Size = new Size(564, 19),
                 Tag = ThemeManager.TAG_ACCENT_TEXT,
                 TextAlign = ContentAlignment.MiddleLeft
             };
@@ -603,12 +633,7 @@ namespace _4RTools.Forms
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
-            if (this.priorityOrderFont != null)
-            {
-                this.priorityOrderFont.Dispose();
-                this.priorityOrderFont = null;
-            }
-
+            this.priorityOrderFont = null;
             base.OnFormClosed(e);
         }
     }

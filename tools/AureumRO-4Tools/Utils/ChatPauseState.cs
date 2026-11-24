@@ -6,32 +6,28 @@ namespace _4RTools.Utils
 {
     public static class ChatPauseState
     {
-        private static int chattingFlag = 0;
-
         public static event EventHandler StateChanged;
 
         public static bool IsChatting
         {
-            get { return Volatile.Read(ref chattingFlag) == 1; }
+            get { return SessionContext.Current.IsChatting; }
         }
 
         public static void ToggleChatting()
         {
-            int next = IsChatting ? 0 : 1;
-            int prev = Interlocked.Exchange(ref chattingFlag, next);
-            if (prev != next)
+            SessionContext current = SessionContext.Current;
+            if (current.ToggleChatting())
             {
-                RaiseStateChanged();
+                RaiseStateChanged(current);
             }
         }
 
         public static void SetChatting(bool chatting)
         {
-            int next = chatting ? 1 : 0;
-            int prev = Interlocked.Exchange(ref chattingFlag, next);
-            if (prev != next)
+            SessionContext current = SessionContext.Current;
+            if (current.SetChatting(chatting))
             {
-                RaiseStateChanged();
+                RaiseStateChanged(current);
             }
         }
 
@@ -56,14 +52,14 @@ namespace _4RTools.Utils
             return true;
         }
 
-        private static void RaiseStateChanged()
+        private static void RaiseStateChanged(SessionContext senderSession)
         {
             EventHandler handler = StateChanged;
             if (handler != null)
             {
                 try
                 {
-                    handler(null, EventArgs.Empty);
+                    handler(senderSession, EventArgs.Empty);
                 }
                 catch (Exception ex)
                 {
