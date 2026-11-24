@@ -31,6 +31,7 @@ namespace _4RTools.Model
         private long lastDismountMs = -DISMOUNT_DEBOUNCE_MS;
         private long lastSkillActivityMs = 0;
         private bool dismountedByAutoMount = false;
+        private bool pendingInitialMount = false;
 
         public bool Enabled { get; set; } = false;
         public Key MountKey { get; set; } = Key.None;
@@ -318,7 +319,7 @@ namespace _4RTools.Model
         /// </summary>
         public bool DismountNow(Client client, CancellationToken token)
         {
-            if (!IsActiveForDismount() || client == null || KeyHelper.IsAltPressed())
+            if (!IsActiveForDismount() || client == null || ActionPriorityCoordinator.IsHoldPauseActive())
             {
                 return false;
             }
@@ -342,6 +343,7 @@ namespace _4RTools.Model
             {
                 long now = this.clock.ElapsedMilliseconds;
                 this.lastSkillActivityMs = now;
+                this.pendingInitialMount = false;
                 if ((now - this.lastDismountMs) >= DISMOUNT_DEBOUNCE_MS)
                 {
                     this.lastDismountMs = now;
@@ -367,6 +369,80 @@ namespace _4RTools.Model
             }
         }
 
+        public void RequestInitialMount()
+        {
+            lock (this.stateLock)
+            {
+                this.pendingInitialMount = this.Enabled && FormUtils.IsValidKey(this.MountKey);
+            }
+        }
+
+        internal bool HasPendingInitialMount
+        {
+            get
+            {
+                lock (this.stateLock)
+                {
+                    return this.pendingInitialMount;
+                }
+            }
+        }
+
+        public bool ShouldMountOnTick(
+            bool isMounted,
+            bool isSitting,
+            bool hasReuseLimit,
+            bool isInPostDelay,
+            long nowMs)
+        {
+            if (!this.Enabled || !FormUtils.IsValidKey(this.MountKey))
+            {
+                return false;
+            }
+
+            bool wantInitialMount;
+            bool wantIdleRemount;
+            long delayMs = GetEffectiveRemountDelayMs();
+
+            lock (this.stateLock)
+            {
+                wantInitialMount = this.pendingInitialMount;
+                wantIdleRemount = this.AutoRemountAfterIdle
+                    && this.dismountedByAutoMount
+                    && (nowMs - this.lastSkillActivityMs) >= delayMs;
+
+                if (!wantInitialMount && !wantIdleRemount)
+                {
+                    return false;
+                }
+
+                if (isMounted)
+                {
+                    this.pendingInitialMount = false;
+                    this.dismountedByAutoMount = false;
+                    return false;
+                }
+
+                if (hasReuseLimit || isSitting || isInPostDelay)
+                {
+                    return false;
+                }
+
+                this.pendingInitialMount = false;
+                this.dismountedByAutoMount = false;
+                return true;
+            }
+        }
+
+        internal void MarkDismountedForTest(long atMs)
+        {
+            lock (this.stateLock)
+            {
+                this.dismountedByAutoMount = true;
+                this.lastSkillActivityMs = atMs;
+            }
+        }
+
         public void Start()
         {
             Stop();
@@ -380,6 +456,7 @@ namespace _4RTools.Model
             {
                 this.boundSession = SessionContext.Current;
                 this.dismountedByAutoMount = false;
+                this.pendingInitialMount = this.Enabled && FormUtils.IsValidKey(this.MountKey);
                 this.lastSkillActivityMs = this.clock.ElapsedMilliseconds;
                 if (!this.hookSubscribed)
                 {
@@ -403,6 +480,7 @@ namespace _4RTools.Model
                 }
 
                 this.dismountedByAutoMount = false;
+                this.pendingInitialMount = false;
             }
 
             _4RThread.Stop(this.remountThread);
@@ -414,7 +492,7 @@ namespace _4RTools.Model
             SessionContext targetSession = this.boundSession ?? SessionContext.Current;
             using (SessionContext.Enter(targetSession))
             {
-                if (!IsActiveForDismount() || KeyboardHook.Alt || KeyboardHook.Control || ActionPriorityCoordinator.IsHoldPauseActive())
+                if (!IsActiveForDismount() || KeyboardHook.Control || ActionPriorityCoordinator.IsHoldPauseActive())
                 {
                     return;
                 }
@@ -470,79 +548,74 @@ namespace _4RTools.Model
 
         private void IdleRemountTick(Client client, CancellationToken token)
         {
-            if (this.Enabled
-                && this.AutoRemountAfterIdle
+            bool wantsCheck;
+            long delayMs = GetEffectiveRemountDelayMs();
+            long now = this.clock.ElapsedMilliseconds;
+            lock (this.stateLock)
+            {
+                wantsCheck = this.pendingInitialMount
+                    || (this.AutoRemountAfterIdle && this.dismountedByAutoMount && (now - this.lastSkillActivityMs) >= delayMs);
+            }
+
+            if (wantsCheck
+                && this.Enabled
                 && FormUtils.IsValidKey(this.MountKey)
                 && client.HasMemorySupport
                 && client.IsProcessAlive()
-                && !client.ShouldPauseAutomation()
-                && !KeyHelper.IsAltPressed()
+                && !client.ShouldPauseForFocus()
+                && !ChatPauseState.IsChatting
+                && !AutoRefreshCommand.IsSendingCommand
+                && !ActionPriorityCoordinator.IsHoldPauseActive()
                 && !ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther))
             {
-                bool shouldCheckRemount;
-                long delayMs = GetEffectiveRemountDelayMs();
+                byte[] rawBuffer = new byte[Constants.STATUS_BUFFER_BYTE_SIZE];
+                uint[] statusBuffer = new uint[Constants.MAX_BUFF_LIST_INDEX_SIZE];
+                byte[] vitalsBuffer = new byte[Constants.HP_SP_BLOCK_BYTE_SIZE];
 
-                lock (this.stateLock)
+                uint currentHp;
+                uint maxHp;
+                uint currentSp;
+                uint maxSp;
+                bool alive = client.TryReadVitals(vitalsBuffer, out currentHp, out maxHp, out currentSp, out maxSp)
+                    && currentHp >= Constants.MINIMUM_HP_TO_RECOVER;
+
+                if (alive)
                 {
-                    long now = this.clock.ElapsedMilliseconds;
-                    shouldCheckRemount = this.dismountedByAutoMount && (now - this.lastSkillActivityMs) >= delayMs;
-                }
-
-                if (shouldCheckRemount)
-                {
-                    byte[] rawBuffer = new byte[Constants.STATUS_BUFFER_BYTE_SIZE];
-                    uint[] statusBuffer = new uint[Constants.MAX_BUFF_LIST_INDEX_SIZE];
-                    byte[] vitalsBuffer = new byte[Constants.HP_SP_BLOCK_BYTE_SIZE];
-
-                    uint currentHp;
-                    uint maxHp;
-                    uint currentSp;
-                    uint maxSp;
-                    bool alive = client.TryReadVitals(vitalsBuffer, out currentHp, out maxHp, out currentSp, out maxSp)
-                        && currentHp >= Constants.MINIMUM_HP_TO_RECOVER;
-
-                    if (alive)
+                    bool isMounted = false;
+                    bool isSitting = false;
+                    bool hasReuseLimit = false;
+                    bool isInPostDelay = false;
+                    int count = client.ReadBuffStatusBuffer(rawBuffer, statusBuffer);
+                    List<uint> activeStatuses = new List<uint>(32);
+                    Client.ExtractActiveStatuses(statusBuffer, count, activeStatuses);
+                    for (int i = 0; i < activeStatuses.Count; i++)
                     {
-                        bool isMounted = false;
-                        bool isSitting = false;
-                        bool hasReuseLimit = false;
-                        int count = client.ReadBuffStatusBuffer(rawBuffer, statusBuffer);
-                        List<uint> activeStatuses = new List<uint>(32);
-                        Client.ExtractActiveStatuses(statusBuffer, count, activeStatuses);
-                        for (int i = 0; i < activeStatuses.Count; i++)
+                        uint st = activeStatuses[i];
+                        if (st == (uint)EffectStatusIDs.EFST_ALL_RIDING)
                         {
-                            uint st = activeStatuses[i];
-                            if (st == (uint)EffectStatusIDs.EFST_ALL_RIDING)
-                            {
-                                isMounted = true;
-                            }
-                            else if (st == (uint)EffectStatusIDs.EFST_SIT)
-                            {
-                                isSitting = true;
-                            }
-                            else if (st == (uint)EffectStatusIDs.EFST_ALL_RIDING_REUSE_LIMIT)
-                            {
-                                hasReuseLimit = true;
-                            }
+                            isMounted = true;
                         }
-
-                        // If the server mount reuse cooldown is still active, wait for it to clear before remounting.
-                        if (!hasReuseLimit)
+                        else if (st == (uint)EffectStatusIDs.EFST_SIT)
                         {
-                            if (!isMounted && !isSitting)
-                            {
-                                IntPtr hWnd = client.GetWindowHandle();
-                                Keys formsMountKey = KeyHelper.ToFormsKeys(this.MountKey);
-                                if (hWnd != IntPtr.Zero && formsMountKey != Keys.None)
-                                {
-                                    Interop.SendKeyPress(hWnd, formsMountKey);
-                                }
-                            }
+                            isSitting = true;
+                        }
+                        else if (st == (uint)EffectStatusIDs.EFST_ALL_RIDING_REUSE_LIMIT)
+                        {
+                            hasReuseLimit = true;
+                        }
+                        else if (st == (uint)EffectStatusIDs.EFST_POSTDELAY)
+                        {
+                            isInPostDelay = true;
+                        }
+                    }
 
-                            lock (this.stateLock)
-                            {
-                                this.dismountedByAutoMount = false;
-                            }
+                    if (ShouldMountOnTick(isMounted, isSitting, hasReuseLimit, isInPostDelay, this.clock.ElapsedMilliseconds))
+                    {
+                        IntPtr hWnd = client.GetWindowHandle();
+                        Keys formsMountKey = KeyHelper.ToFormsKeys(this.MountKey);
+                        if (hWnd != IntPtr.Zero && formsMountKey != Keys.None)
+                        {
+                            Interop.SendKeyPress(hWnd, formsMountKey);
                         }
                     }
                 }

@@ -166,7 +166,7 @@ namespace _4RTools.Model
             SessionContext targetSession = this.boundSession ?? SessionContext.Current;
             using (SessionContext.Enter(targetSession))
             {
-                if (!this.Enabled || KeyHelper.IsAltPressed())
+                if (!this.Enabled || ActionPriorityCoordinator.IsHoldPauseActive())
                 {
                     return;
                 }
@@ -222,7 +222,6 @@ namespace _4RTools.Model
                     && client.IsProcessAlive()
                     && client.IsGameWindowFocused()
                     && !client.ShouldPauseAutomation()
-                    && !KeyHelper.IsAltPressed()
                     && !ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther))
                 {
                     bool isSitting = false;

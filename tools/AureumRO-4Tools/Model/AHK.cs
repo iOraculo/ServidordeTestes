@@ -97,11 +97,6 @@ namespace _4RTools.Model
 
             if (isCompatibility)
             {
-                if (KeyHelper.IsAltPressed())
-                {
-                    return;
-                }
-
                 foreach (KeyConfig config in entriesSnapshot)
                 {
                     if (token.IsCancellationRequested)
@@ -194,7 +189,7 @@ namespace _4RTools.Model
 
             if (this.mouseFlick)
             {
-                while (!token.IsCancellationRequested && KeyHelper.IsKeyDown(config.key))
+                while (!token.IsCancellationRequested && !ActionPriorityCoordinator.IsHoldPauseActive() && KeyHelper.IsKeyDown(config.key))
                 {
                     if (ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, null, false))
                     {
@@ -224,7 +219,7 @@ namespace _4RTools.Model
             }
             else
             {
-                while (!token.IsCancellationRequested && KeyHelper.IsKeyDown(config.key))
+                while (!token.IsCancellationRequested && !ActionPriorityCoordinator.IsHoldPauseActive() && KeyHelper.IsKeyDown(config.key))
                 {
                     if (ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, null, false))
                     {
@@ -256,7 +251,7 @@ namespace _4RTools.Model
 
             int delay = Math.Max(1, this.AhkDelay);
 
-            while (!token.IsCancellationRequested && !KeyHelper.IsAltPressed() && KeyHelper.IsKeyDown(config.key))
+            while (!token.IsCancellationRequested && !ActionPriorityCoordinator.IsHoldPauseActive() && KeyHelper.IsKeyDown(config.key))
             {
                 if (ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, null, false))
                 {
@@ -290,7 +285,7 @@ namespace _4RTools.Model
 
             int delay = Math.Max(1, this.AhkDelay);
 
-            while (!token.IsCancellationRequested && KeyHelper.IsKeyDown(config.key))
+            while (!token.IsCancellationRequested && !ActionPriorityCoordinator.IsHoldPauseActive() && KeyHelper.IsKeyDown(config.key))
             {
                 if (ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, null, false))
                 {

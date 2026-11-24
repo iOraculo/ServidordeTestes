@@ -131,7 +131,7 @@ namespace _4RTools.Model
 
         protected void SendRecoveryKey(Client client, Key key)
         {
-            if (key == Key.None || KeyHelper.IsAltPressed() || client == null)
+            if (key == Key.None || client == null)
             {
                 return;
             }

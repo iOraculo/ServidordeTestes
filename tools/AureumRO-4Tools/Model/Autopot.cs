@@ -91,7 +91,7 @@ namespace _4RTools.Model
                         // Prioritize HP recovery first; every 3 consecutive HP pots also check SP to prevent SP starvation.
                         if (needsHp)
                         {
-                            Pot(roClient, this.hpKey, isYgg);
+                            Pot(roClient, this.hpKey, isYgg, token);
                             hpPotCount++;
 
                             if (hpPotCount >= 3)
@@ -99,7 +99,7 @@ namespace _4RTools.Model
                                 hpPotCount = 0;
                                 if (needsSp && !ActionPriorityCoordinator.ShouldYield(priority))
                                 {
-                                    Pot(roClient, this.spKey, isYgg);
+                                    Pot(roClient, this.spKey, isYgg, token);
                                     pottedSpThisTick = true;
                                 }
                             }
@@ -111,7 +111,7 @@ namespace _4RTools.Model
 
                         if (!pottedSpThisTick && needsSp && !ActionPriorityCoordinator.ShouldYield(priority))
                         {
-                            Pot(roClient, this.spKey, isYgg);
+                            Pot(roClient, this.spKey, isYgg, token);
                         }
                     }
                 }
@@ -128,11 +128,42 @@ namespace _4RTools.Model
             _4RThread.Sleep(Math.Max(1, this.delay), token);
         }
 
-        private void Pot(Client roClient, Key key, bool isYgg)
+        public static bool NeedsChatCloseToPot(Key key, bool isChatting)
         {
-            if (key == Key.None || KeyHelper.IsAltPressed() || roClient == null || roClient.ShouldPauseAutopotKey(key))
+            return isChatting && ChatPauseState.IsTypingKey(key);
+        }
+
+        private void Pot(Client roClient, Key key, bool isYgg, CancellationToken token)
+        {
+            if (key == Key.None
+                || roClient == null
+                || roClient.ShouldPauseForFocus()
+                || roClient.ShouldPauseForTown()
+                || ActionPriorityCoordinator.IsHoldPauseBlockingAutopot()
+                || AutoRefreshCommand.IsSendingCommand)
             {
                 return;
+            }
+
+            IntPtr hWnd = roClient.GetWindowHandle();
+            if (hWnd == IntPtr.Zero)
+            {
+                return;
+            }
+
+            // Function keys (F1-F24) work natively in Ragnarok even while chat is open.
+            // For typing keys (letters/numbers), automatically close chat first so the potion fires instead of typing into chat.
+            if (NeedsChatCloseToPot(key, ChatPauseState.IsChatting))
+            {
+                if (ChatPauseState.TryConsumeChatting())
+                {
+                    Interop.SendKeyPress(hWnd, Keys.Return);
+                }
+
+                if (!_4RThread.Sleep(35, token))
+                {
+                    return;
+                }
             }
 
             Keys formsKey = KeyHelper.ToFormsKeys(key);
@@ -147,7 +178,7 @@ namespace _4RTools.Model
                     ActionPriorityCoordinator.NotifyPotionAction();
                 }
 
-                Interop.SendKeyPress(roClient.GetWindowHandle(), formsKey);
+                Interop.SendKeyPress(hWnd, formsKey);
             }
         }
 

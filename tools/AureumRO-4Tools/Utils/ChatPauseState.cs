@@ -36,6 +36,18 @@ namespace _4RTools.Utils
             SetChatting(false);
         }
 
+        public static bool TryConsumeChatting()
+        {
+            SessionContext current = SessionContext.Current;
+            if (current.TryConsumeChatting())
+            {
+                RaiseStateChanged(current);
+                return true;
+            }
+
+            return false;
+        }
+
         public static bool IsTypingKey(Key key)
         {
             if (key == Key.None)

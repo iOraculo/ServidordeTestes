@@ -416,7 +416,7 @@ namespace _4RTools.Utils
 
             // ToggleApplicationStateForm
             { "tooltip.focus_only", "Pausar automações quando a janela do Ragnarok não estiver em foco" },
-            { "tooltip.chat_pause", "Pausa de Chat: aperte Enter no Ragnarok para pausar ao digitar (Esc ou Enter retoma; Autopot em F1–F24 continua ativo)" },
+            { "tooltip.chat_pause", "Pausa de Chat: aperte Enter no Ragnarok para pausar skills ao digitar (Autopot em F1–F24 pota direto com chat aberto; em teclas de letra/número fecha o chat automaticamente para potar)" },
             { "status.press_to_start", "Aperte a tecla p/ iniciar!" },
             { "status.press_to_stop", "Aperte a tecla p/ parar!" },
             { "status.chat_paused", "Pausa de chat (Esc/Enter)" },
@@ -825,7 +825,7 @@ namespace _4RTools.Utils
             { "msg.profile_load_error", "Error while loading the new profile.\nDetails: {0}" },
 
             { "tooltip.focus_only", "Pause automations when the Ragnarok window is not focused" },
-            { "tooltip.chat_pause", "Chat-Safe Pause: press Enter in Ragnarok to pause automations while typing (Esc or Enter resumes; F-key Autopot stays active)" },
+            { "tooltip.chat_pause", "Chat-Safe Pause: press Enter in Ragnarok to pause skills while typing (F1–F24 Autopot fires directly with chat open; typing-key Autopot auto-closes chat to pot)" },
             { "status.press_to_start", "Press the key to start!" },
             { "status.press_to_stop", "Press the key to stop!" },
             { "status.chat_paused", "Chat paused (Esc/Enter)" },

@@ -276,6 +276,17 @@ namespace _4RTools.Utils
             SetChatting(false);
         }
 
+        public bool TryConsumeChatting()
+        {
+            if (Interlocked.CompareExchange(ref this.chattingFlag, 0, 1) == 1)
+            {
+                RaiseChatStateChanged();
+                return true;
+            }
+
+            return false;
+        }
+
         public bool IsSendingCommand
         {
             get { return Volatile.Read(ref this.sendingCommandFlag) == 1; }

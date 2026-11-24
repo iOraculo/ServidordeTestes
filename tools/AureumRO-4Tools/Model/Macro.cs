@@ -143,7 +143,6 @@ namespace _4RTools.Model
                 return;
             }
 
-            bool altPressed = KeyHelper.IsAltPressed();
             List<ChainConfig> chainsToRun = null;
 
             lock (this.configLock)
@@ -156,7 +155,7 @@ namespace _4RTools.Model
                         continue;
                     }
 
-                    bool triggerDown = !altPressed && KeyHelper.IsKeyDown(cfg.trigger);
+                    bool triggerDown = KeyHelper.IsKeyDown(cfg.trigger);
                     bool shouldExecute = false;
 
                     if (cfg.infinityLoop)

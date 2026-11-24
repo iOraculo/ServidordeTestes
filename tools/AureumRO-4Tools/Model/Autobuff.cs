@@ -61,9 +61,16 @@ namespace _4RTools.Model
             EffectStatusIDs.EFST_KAIZEL
         };
 
-        // Minimum recast guards for skills that have long cast time or no Pre-Renewal EFST icon (e.g. Basilica).
+        // Minimum recast guards for skills that have long cast time or no Pre-Renewal EFST icon (e.g. Basilica, Gospel).
         public const int BASILICA_NO_ICON_RECAST_MS = 25000;
         public const int BASILICA_ICON_CAST_GUARD_MS = 1200;
+        public const int GOSPEL_NO_ICON_RECAST_MS = 60000;
+        public const int GOSPEL_ICON_CAST_GUARD_MS = 1200;
+
+        private static bool IsChannelingSelfLockBuff(EffectStatusIDs status)
+        {
+            return status == EffectStatusIDs.EFST_BASILICA || status == EffectStatusIDs.EFST_GOSPEL;
+        }
 
         private readonly object mappingLock = new object();
         private readonly Dictionary<EffectStatusIDs, long> lastCastTimesMs = new Dictionary<EffectStatusIDs, long>();
@@ -202,9 +209,9 @@ namespace _4RTools.Model
                                         break;
                                     }
 
-                                    // Always cast Basilica last and defer to the next cycle if another buff was cast
+                                    // Always cast Basilica / Gospel last and defer to the next cycle if another buff was cast
                                     // in this cycle (avoids locking other skills or misfiring during post-delay).
-                                    if (item.Key == EffectStatusIDs.EFST_BASILICA && castAnyOtherBuff)
+                                    if (IsChannelingSelfLockBuff(item.Key) && castAnyOtherBuff)
                                     {
                                         continue;
                                     }
@@ -230,7 +237,7 @@ namespace _4RTools.Model
 
                                     UseAutobuff(c, item.Key, item.Value, token);
                                     RecordBuffCast(item.Key, nowMs);
-                                    if (item.Key != EffectStatusIDs.EFST_BASILICA)
+                                    if (!IsChannelingSelfLockBuff(item.Key))
                                     {
                                         castAnyOtherBuff = true;
                                     }
@@ -315,6 +322,18 @@ namespace _4RTools.Model
                 return Math.Max(cooldown, minGuard);
             }
 
+            if (status == EffectStatusIDs.EFST_GOSPEL)
+            {
+                bool iconObserved;
+                lock (this.mappingLock)
+                {
+                    iconObserved = this.observedStatusIcons.Contains(EffectStatusIDs.EFST_GOSPEL);
+                }
+
+                int minGuard = iconObserved ? GOSPEL_ICON_CAST_GUARD_MS : GOSPEL_NO_ICON_RECAST_MS;
+                return Math.Max(cooldown, minGuard);
+            }
+
             return cooldown;
         }
 
@@ -334,12 +353,16 @@ namespace _4RTools.Model
                 return ordered;
             }
 
-            KeyValuePair<EffectStatusIDs, Key>? basilicaEntry = null;
+            List<KeyValuePair<EffectStatusIDs, Key>> deferredChanneling = null;
             foreach (KeyValuePair<EffectStatusIDs, Key> item in missingBuffs)
             {
-                if (item.Key == EffectStatusIDs.EFST_BASILICA)
+                if (IsChannelingSelfLockBuff(item.Key))
                 {
-                    basilicaEntry = item;
+                    if (deferredChanneling == null)
+                    {
+                        deferredChanneling = new List<KeyValuePair<EffectStatusIDs, Key>>(2);
+                    }
+                    deferredChanneling.Add(item);
                 }
                 else
                 {
@@ -347,9 +370,9 @@ namespace _4RTools.Model
                 }
             }
 
-            if (basilicaEntry.HasValue)
+            if (deferredChanneling != null)
             {
-                ordered.Add(basilicaEntry.Value);
+                ordered.AddRange(deferredChanneling);
             }
 
             return ordered;
@@ -479,7 +502,7 @@ namespace _4RTools.Model
 
         private void UseAutobuff(Client client, EffectStatusIDs status, Key key, CancellationToken token)
         {
-            if (key == Key.None || KeyHelper.IsAltPressed() || client == null)
+            if (key == Key.None || client == null)
             {
                 return;
             }

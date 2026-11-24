@@ -151,6 +151,46 @@ namespace _4RTools.Model
             "ecl_in01", "lasagna_in"
         };
 
+        private static readonly string[] KnownMapPrefixes = new string[]
+        {
+            "prt_", "moc_", "gef_", "pay_", "alde_", "alb_", "iz_", "lhz_",
+            "ra_", "ve_", "ein_", "hu_", "yuno_", "cmd_", "xmas_", "ama_",
+            "gon_", "lou_", "ayo_", "um_", "nif_", "mosk_", "bra_", "dic_",
+            "man_", "spl_", "gl_", "mjo_", "mag_", "c_tower", "tur_", "abyss_",
+            "odin_", "thor_", "abbey", "ice_", "juperos_", "tha_", "kh_",
+            "orcsdun", "anthell", "beach_", "in_sphinx", "guild_", "pvp_",
+            "aldeg_", "gefg_", "payg_", "prtg_", "arug_", "schg_", "sec_",
+            "nameless_", "nyd_", "que_", "job_", "new_", "bat_", "quiz_",
+            "turbo_", "mal_", "ecl_", "dew_", "ma_", "lasagna", "paramk"
+        };
+
+        private static readonly Lazy<HashSet<string>> KnownMapNames = new Lazy<HashSet<string>>(BuildKnownMapNames);
+
+        private static HashSet<string> BuildKnownMapNames()
+        {
+            HashSet<string> set = new HashSet<string>(TownMaps, StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                AureumCatalogData catalog = AureumCatalog.Load();
+                if (catalog != null && catalog.MapCollections != null)
+                {
+                    foreach (AureumMapEntry entry in catalog.MapCollections)
+                    {
+                        if (entry != null && !string.IsNullOrWhiteSpace(entry.MapCode))
+                        {
+                            set.Add(NormalizeMapName(entry.MapCode));
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Catalog is optional; TownMaps + KnownMapPrefixes still provide full coverage.
+            }
+
+            return set;
+        }
+
         public const int DEFAULT_STATUS_BUFFER_OFFSET = 0x474;
         public const int RAGEXE_2022_STATUS_BUFFER_OFFSET = 0x480;
 
@@ -164,7 +204,11 @@ namespace _4RTools.Model
         public int StatusBufferAddress { get { return this.statusBufferAddress; } }
         private readonly Stopwatch mapCacheClock = Stopwatch.StartNew();
         private long lastMapReadMs = -10000;
+        private long lastMapScanMs = -10000;
         private string cachedMapName = string.Empty;
+        private bool mapAddressAutoDetected = false;
+        private readonly object mapDetectLock = new object();
+        private readonly List<KeyValuePair<int, string>> detectedMapCandidates = new List<KeyValuePair<int, string>>();
         private readonly object processCacheLock = new object();
         private long lastProcessProbeMs = -10000;
         private bool cachedProcessAlive = false;
@@ -379,9 +423,223 @@ namespace _4RTools.Model
             return TownMaps.Contains(normalized);
         }
 
+        public static bool IsLikelyRagnarokMapName(string rawMap)
+        {
+            string normalized = NormalizeMapName(rawMap);
+            if (normalized.Length < 3 || normalized.Length > 24)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < normalized.Length; i++)
+            {
+                char ch = normalized[i];
+                bool valid = (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '-';
+                if (!valid)
+                {
+                    return false;
+                }
+            }
+
+            if (KnownMapNames.Value.Contains(normalized))
+            {
+                return true;
+            }
+
+            for (int i = 0; i < KnownMapPrefixes.Length; i++)
+            {
+                if (normalized.StartsWith(KnownMapPrefixes[i], StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsRawRswMapString(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw) || raw.Length < 7 || raw.Length > 28)
+            {
+                return false;
+            }
+
+            string trimmed = raw.Trim();
+            if (!trimmed.EndsWith(".rsw", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return IsLikelyRagnarokMapName(trimmed);
+        }
+
+        public static List<int> ScanBufferForMapOffsets(byte[] buffer, int validLength)
+        {
+            List<int> offsets = new List<int>();
+            if (buffer == null || validLength < 8)
+            {
+                return offsets;
+            }
+
+            int limit = Math.Min(validLength, buffer.Length);
+            for (int i = 3; i <= limit - 5; i++)
+            {
+                if (buffer[i] != (byte)'.')
+                {
+                    continue;
+                }
+
+                byte b1 = buffer[i + 1];
+                byte b2 = buffer[i + 2];
+                byte b3 = buffer[i + 3];
+                byte b4 = buffer[i + 4];
+                bool isRsw = (b1 == (byte)'r' || b1 == (byte)'R')
+                    && (b2 == (byte)'s' || b2 == (byte)'S')
+                    && (b3 == (byte)'w' || b3 == (byte)'W')
+                    && b4 == 0;
+                if (!isRsw)
+                {
+                    continue;
+                }
+
+                int start = i;
+                int minStart = Math.Max(0, i - 24);
+                while (start > minStart)
+                {
+                    byte prev = buffer[start - 1];
+                    bool validChar = (prev >= (byte)'a' && prev <= (byte)'z')
+                        || (prev >= (byte)'A' && prev <= (byte)'Z')
+                        || (prev >= (byte)'0' && prev <= (byte)'9')
+                        || prev == (byte)'_'
+                        || prev == (byte)'-';
+                    if (!validChar)
+                    {
+                        break;
+                    }
+                    start--;
+                }
+
+                int nameLen = i - start;
+                if (nameLen < 3 || nameLen > 24)
+                {
+                    continue;
+                }
+
+                // Require a null delimiter before the map name so paths like "data\prontera.rsw" or log text are skipped.
+                if (start > 0 && buffer[start - 1] != 0)
+                {
+                    continue;
+                }
+
+                string bareName = Encoding.ASCII.GetString(buffer, start, nameLen).ToLowerInvariant();
+                if (IsLikelyRagnarokMapName(bareName))
+                {
+                    offsets.Add(start);
+                }
+            }
+
+            return offsets;
+        }
+
+        private void TryAutoDetectMapCandidates()
+        {
+            if (this.PMR == null || !this.PMR.IsOpen || this.currentHPBaseAddress <= 0)
+            {
+                return;
+            }
+
+            long hpAddr = this.currentHPBaseAddress;
+            long minAddr = Math.Max(0x00400000L, hpAddr - 0x400000L);
+            long maxAddr = hpAddr + 0x400000L;
+
+            List<ProcessMemoryReader.MemoryRegion> regions = this.PMR.EnumerateWritableRegions(minAddr, maxAddr);
+            if (regions.Count == 0)
+            {
+                // Fallback when VirtualQueryEx access is unavailable: scan a tighter window around hpAddress.
+                long fallbackMin = Math.Max(0x00400000L, hpAddr - 0x40000L);
+                long fallbackMax = hpAddr + 0x40000L;
+                regions.Add(new ProcessMemoryReader.MemoryRegion
+                {
+                    BaseAddress = (IntPtr)fallbackMin,
+                    RegionSize = (int)(fallbackMax - fallbackMin)
+                });
+            }
+
+            // Prefer writable regions closest to hpAddress (where Ragexe CSession / CModeMgr live).
+            regions.Sort((a, b) =>
+            {
+                long distA = Math.Abs(a.BaseAddress.ToInt64() - hpAddr);
+                long distB = Math.Abs(b.BaseAddress.ToInt64() - hpAddr);
+                return distA.CompareTo(distB);
+            });
+
+            const int chunkSize = 65536;
+            const int overlap = 32;
+            byte[] buffer = new byte[chunkSize];
+            HashSet<int> seenAddrs = new HashSet<int>();
+            List<KeyValuePair<int, string>> found = new List<KeyValuePair<int, string>>();
+
+            for (int r = 0; r < regions.Count && found.Count < 16; r++)
+            {
+                long regStart = regions[r].BaseAddress.ToInt64();
+                long regEnd = regStart + regions[r].RegionSize;
+                long cursor = regStart;
+
+                while (cursor < regEnd && found.Count < 16)
+                {
+                    int toRead = (int)Math.Min(chunkSize, regEnd - cursor);
+                    int bytesRead;
+                    if (this.PMR.ReadProcessMemory((IntPtr)cursor, buffer, toRead, out bytesRead) && bytesRead >= 8)
+                    {
+                        List<int> matches = ScanBufferForMapOffsets(buffer, bytesRead);
+                        for (int m = 0; m < matches.Count && found.Count < 16; m++)
+                        {
+                            long absAddr = cursor + matches[m];
+                            if (absAddr > int.MaxValue)
+                            {
+                                continue;
+                            }
+
+                            int addr32 = (int)absAddr;
+                            if (!seenAddrs.Add(addr32))
+                            {
+                                continue;
+                            }
+
+                            string raw = ReadMemoryAsString(addr32);
+                            if (IsRawRswMapString(raw))
+                            {
+                                found.Add(new KeyValuePair<int, string>(addr32, NormalizeMapName(raw)));
+                            }
+                        }
+                    }
+
+                    if (toRead < chunkSize)
+                    {
+                        break;
+                    }
+
+                    cursor += chunkSize - overlap;
+                }
+            }
+
+            if (found.Count == 1)
+            {
+                this.currentMapAddress = found[0].Key;
+                this.mapAddressAutoDetected = true;
+                this.detectedMapCandidates.Clear();
+            }
+            else if (found.Count > 1)
+            {
+                found.Sort((a, b) => Math.Abs((long)a.Key - hpAddr).CompareTo(Math.Abs((long)b.Key - hpAddr)));
+                this.detectedMapCandidates.Clear();
+                this.detectedMapCandidates.AddRange(found);
+            }
+        }
+
         public string ReadCurrentMap()
         {
-            if (this.currentMapAddress == 0 || !HasMemorySupport)
+            if (!HasMemorySupport)
             {
                 return string.Empty;
             }
@@ -392,14 +650,94 @@ namespace _4RTools.Model
                 return this.cachedMapName;
             }
 
-            this.cachedMapName = NormalizeMapName(ReadMemoryAsString(this.currentMapAddress));
-            this.lastMapReadMs = now;
-            return this.cachedMapName;
+            lock (this.mapDetectLock)
+            {
+                now = this.mapCacheClock.ElapsedMilliseconds;
+                if (now - this.lastMapReadMs < 500)
+                {
+                    return this.cachedMapName;
+                }
+
+                if (this.currentMapAddress != 0)
+                {
+                    string raw = ReadMemoryAsString(this.currentMapAddress);
+                    if (this.mapAddressAutoDetected && !IsRawRswMapString(raw))
+                    {
+                        this.currentMapAddress = 0;
+                        this.mapAddressAutoDetected = false;
+                        this.detectedMapCandidates.Clear();
+                    }
+                    else
+                    {
+                        this.cachedMapName = NormalizeMapName(raw);
+                        this.lastMapReadMs = now;
+                        return this.cachedMapName;
+                    }
+                }
+
+                if (this.detectedMapCandidates.Count == 0 && (now - this.lastMapScanMs) >= 3000)
+                {
+                    this.lastMapScanMs = now;
+                    TryAutoDetectMapCandidates();
+                }
+
+                if (this.currentMapAddress != 0)
+                {
+                    this.cachedMapName = NormalizeMapName(ReadMemoryAsString(this.currentMapAddress));
+                    this.lastMapReadMs = now;
+                    return this.cachedMapName;
+                }
+
+                if (this.detectedMapCandidates.Count > 0)
+                {
+                    string fallbackMap = string.Empty;
+                    for (int i = 0; i < this.detectedMapCandidates.Count; i++)
+                    {
+                        int addr = this.detectedMapCandidates[i].Key;
+                        string initialMap = this.detectedMapCandidates[i].Value;
+                        string raw = ReadMemoryAsString(addr);
+                        if (!IsRawRswMapString(raw))
+                        {
+                            continue;
+                        }
+
+                        string liveMap = NormalizeMapName(raw);
+                        if (!string.Equals(liveMap, initialMap, StringComparison.OrdinalIgnoreCase))
+                        {
+                            // Candidate updated live after a map change -> lock directly onto it!
+                            this.currentMapAddress = addr;
+                            this.mapAddressAutoDetected = true;
+                            this.detectedMapCandidates.Clear();
+                            this.cachedMapName = liveMap;
+                            this.lastMapReadMs = now;
+                            return this.cachedMapName;
+                        }
+
+                        if (string.IsNullOrEmpty(fallbackMap))
+                        {
+                            fallbackMap = liveMap;
+                        }
+                    }
+
+                    if (string.IsNullOrEmpty(fallbackMap))
+                    {
+                        this.detectedMapCandidates.Clear();
+                    }
+
+                    this.cachedMapName = fallbackMap;
+                    this.lastMapReadMs = now;
+                    return this.cachedMapName;
+                }
+
+                this.cachedMapName = string.Empty;
+                this.lastMapReadMs = now;
+                return this.cachedMapName;
+            }
         }
 
         public bool IsInTown()
         {
-            return this.currentMapAddress != 0 && IsTownMap(ReadCurrentMap());
+            return IsTownMap(ReadCurrentMap());
         }
 
         public bool ShouldPauseForTown()
@@ -613,12 +951,26 @@ namespace _4RTools.Model
             StringBuilder sb = new StringBuilder();
             string charName = ReadCharacterName();
             string mapName = ReadCurrentMap();
+            string mapDisplay;
+            if (string.IsNullOrWhiteSpace(mapName))
+            {
+                mapDisplay = "-";
+            }
+            else
+            {
+                string zoneTag = IsTownMap(mapName)
+                    ? (LocalizationManager.IsPortuguese ? "Cidade" : "Town")
+                    : (LocalizationManager.IsPortuguese ? "Campo" : "Field");
+                mapDisplay = this.currentMapAddress != 0
+                    ? string.Format("{0} [{1} · 0x{2:X8}]", mapName, zoneTag, this.currentMapAddress)
+                    : string.Format("{0} [{1}]", mapName, zoneTag);
+            }
             sb.AppendFormat(
                 LocalizationManager.IsPortuguese
                     ? "Personagem: {0}  |  Mapa: {1}"
                     : "Character: {0}  |  Map: {1}",
                 string.IsNullOrWhiteSpace(charName) ? "-" : charName.Trim(),
-                string.IsNullOrWhiteSpace(mapName) ? "-" : mapName);
+                mapDisplay);
             sb.AppendLine();
             sb.AppendLine(new string('-', 44));
 

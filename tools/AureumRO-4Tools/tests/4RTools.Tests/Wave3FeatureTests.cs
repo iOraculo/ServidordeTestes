@@ -2159,5 +2159,142 @@ namespace _4RTools.Tests
             Assert.False(ClientUpdaterForm.IsBuiltInTestServerName(""));
             Assert.False(ClientUpdaterForm.IsBuiltInTestServerName(null));
         }
+
+        [Fact]
+        public void V2393_ChatAutoCloseHoldPauseWithoutAltGospelGuardAutoMountInitialAndMapScanner()
+        {
+            // 1. Atomic chat auto-close for Autopot typing keys vs F-keys.
+            ChatPauseState.Resume();
+            try
+            {
+                Assert.False(Autopot.NeedsChatCloseToPot(Key.Q, false));
+                Assert.False(Autopot.NeedsChatCloseToPot(Key.F1, true));
+                Assert.True(Autopot.NeedsChatCloseToPot(Key.Q, true));
+                Assert.True(Autopot.NeedsChatCloseToPot(Key.D1, true));
+
+                ChatPauseState.SetChatting(true);
+                Assert.True(ChatPauseState.IsChatting);
+                Assert.True(ChatPauseState.TryConsumeChatting());
+                Assert.False(ChatPauseState.IsChatting);
+                // Second concurrent consumer must NOT fire a duplicate Enter.
+                Assert.False(ChatPauseState.TryConsumeChatting());
+            }
+            finally
+            {
+                ChatPauseState.Resume();
+            }
+
+            // 2. Holding Alt must NOT pause when HoldPauseKey is None or another key (e.g. Tab).
+            ActionPriorityCoordinator.Reset();
+            Client testClient = new Client("AureumRO", 0x015FF908, 0x01602568, 0x480);
+            try
+            {
+                ProfileSingleton.Create("HoldPauseAltFix");
+                ProfileSingleton.GetCurrent().UserPreferences.pauseWhenUnfocused = false;
+                KeyHelper.VirtualKeyDownOverride = vk => vk == KeyHelper.VK_LMENU;
+
+                ActionPriorityCoordinator.HoldPauseKey = Key.None;
+                ActionPriorityCoordinator.HoldPauseIncludeAutopot = true;
+                Assert.False(ActionPriorityCoordinator.IsHoldPauseActive());
+                Assert.False(testClient.ShouldPauseAutomation());
+                Assert.False(testClient.ShouldPauseAutopotKey(Key.F1));
+
+                ActionPriorityCoordinator.HoldPauseKey = Key.Tab;
+                Assert.False(ActionPriorityCoordinator.IsHoldPauseActive());
+                Assert.False(testClient.ShouldPauseAutomation());
+                Assert.False(testClient.ShouldPauseAutopotKey(Key.F1));
+
+                // When the user explicitly selects LeftAlt as HoldPauseKey, Alt pauses cleanly.
+                ActionPriorityCoordinator.HoldPauseKey = Key.LeftAlt;
+                Assert.True(ActionPriorityCoordinator.IsHoldPauseActive());
+                Assert.True(testClient.ShouldPauseAutomation());
+                Assert.True(testClient.ShouldPauseAutopotKey(Key.F1));
+            }
+            finally
+            {
+                KeyHelper.VirtualKeyDownOverride = null;
+                ActionPriorityCoordinator.Reset();
+                testClient.Dispose();
+            }
+
+            // 3. Gospel (EFST_GOSPEL = 109) anti-spam guard + cast-last ordering.
+            AutoBuff gospelBuff = new AutoBuff();
+            Assert.True(gospelBuff.ShouldCastBuff(EffectStatusIDs.EFST_GOSPEL, 1000, false, false, 100, 100));
+            gospelBuff.RecordBuffCast(EffectStatusIDs.EFST_GOSPEL, 1000);
+            // Without observed EFST_GOSPEL icon (Pre-Renewal Send=false), must NOT spam for 60s.
+            Assert.False(gospelBuff.ShouldCastBuff(EffectStatusIDs.EFST_GOSPEL, 1000 + 5000, false, false, 100, 100));
+            Assert.False(gospelBuff.ShouldCastBuff(EffectStatusIDs.EFST_GOSPEL, 1000 + AutoBuff.GOSPEL_NO_ICON_RECAST_MS - 1, false, false, 100, 100));
+            Assert.True(gospelBuff.ShouldCastBuff(EffectStatusIDs.EFST_GOSPEL, 1000 + AutoBuff.GOSPEL_NO_ICON_RECAST_MS, false, false, 100, 100));
+
+            // If a server DOES emit EFST_GOSPEL, cast guard drops to 1200ms and expiration resets immediately.
+            gospelBuff.MarkStatusObserved(EffectStatusIDs.EFST_GOSPEL);
+            gospelBuff.RecordBuffCast(EffectStatusIDs.EFST_GOSPEL, 10000);
+            Assert.False(gospelBuff.ShouldCastBuff(EffectStatusIDs.EFST_GOSPEL, 10000 + 1199, false, false, 100, 100));
+            Assert.True(gospelBuff.ShouldCastBuff(EffectStatusIDs.EFST_GOSPEL, 10000 + AutoBuff.GOSPEL_ICON_CAST_GUARD_MS, false, false, 100, 100));
+            gospelBuff.SyncActiveBuffTransitions(new HashSet<EffectStatusIDs> { EffectStatusIDs.EFST_GOSPEL });
+            gospelBuff.SyncActiveBuffTransitions(new HashSet<EffectStatusIDs>());
+            Assert.True(gospelBuff.ShouldCastBuff(EffectStatusIDs.EFST_GOSPEL, 10500, false, false, 100, 100));
+
+            Dictionary<EffectStatusIDs, Key> paladinBuffs = new Dictionary<EffectStatusIDs, Key>
+            {
+                { EffectStatusIDs.EFST_GOSPEL, Key.F1 },
+                { EffectStatusIDs.AUTOGUARD, Key.F2 },
+                { EffectStatusIDs.REFLECTSHIELD, Key.F3 }
+            };
+            List<KeyValuePair<EffectStatusIDs, Key>> orderedPaladin = AutoBuff.OrderBuffsForCast(paladinBuffs);
+            Assert.Equal(3, orderedPaladin.Count);
+            Assert.Equal(EffectStatusIDs.EFST_GOSPEL, orderedPaladin[orderedPaladin.Count - 1].Key);
+
+            // 4. AutoMount mounts automatically on startup when Enabled + MountKey configured.
+            AutoMount mount = new AutoMount
+            {
+                Enabled = true,
+                MountKey = Key.F8,
+                AutoRemountAfterIdle = false,
+                RemountDelayMs = 1000
+            };
+            mount.RequestInitialMount();
+            Assert.True(mount.HasPendingInitialMount);
+            // Sitting or reuse-limit defers initial mount without consuming it.
+            Assert.False(mount.ShouldMountOnTick(false, true, false, false, 500));
+            Assert.True(mount.HasPendingInitialMount);
+            Assert.False(mount.ShouldMountOnTick(false, false, true, false, 500));
+            Assert.True(mount.HasPendingInitialMount);
+            // Standing, unmounted, ready -> mounts once and clears pending flag.
+            Assert.True(mount.ShouldMountOnTick(false, false, false, false, 600));
+            Assert.False(mount.HasPendingInitialMount);
+            Assert.False(mount.ShouldMountOnTick(false, false, false, false, 700));
+
+            // If already mounted on startup, consumes pending flag WITHOUT pressing MountKey (never dismounts!).
+            mount.RequestInitialMount();
+            Assert.False(mount.ShouldMountOnTick(true, false, false, false, 800));
+            Assert.False(mount.HasPendingInitialMount);
+
+            // Idle remount works after dismount once RemountDelayMs elapses.
+            mount.AutoRemountAfterIdle = true;
+            mount.MarkDismountedForTest(1000);
+            Assert.False(mount.ShouldMountOnTick(false, false, false, false, 1999));
+            Assert.True(mount.ShouldMountOnTick(false, false, false, false, 2000));
+
+            // 5. Runtime .rsw map memory scanner detects clean maps and ignores paths/garbage.
+            Assert.True(Client.IsLikelyRagnarokMapName("prontera.rsw"));
+            Assert.True(Client.IsLikelyRagnarokMapName("prt_fild08.rsw"));
+            Assert.False(Client.IsLikelyRagnarokMapName("random_garbage_xyz.rsw"));
+
+            byte[] mem = Encoding.ASCII.GetBytes(
+                "data\\prontera.rsw\0" +     // path prefix -> must be ignored
+                "xx\0prontera.rsw\0" +       // valid null-delimited town map
+                "zz\0notamap.rsw\0" +        // unknown non-RO map -> ignored
+                "yy\0prt_fild08.rsw\0");     // valid null-delimited field map
+            List<int> foundOffsets = Client.ScanBufferForMapOffsets(mem, mem.Length);
+            Assert.Equal(2, foundOffsets.Count);
+
+            string firstMap = Encoding.ASCII.GetString(mem, foundOffsets[0], "prontera.rsw".Length);
+            string secondMap = Encoding.ASCII.GetString(mem, foundOffsets[1], "prt_fild08.rsw".Length);
+            Assert.Equal("prontera.rsw", firstMap);
+            Assert.Equal("prt_fild08.rsw", secondMap);
+            Assert.True(Client.IsTownMap(firstMap));
+            Assert.False(Client.IsTownMap(secondMap));
+        }
     }
 }

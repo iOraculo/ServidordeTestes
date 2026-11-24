@@ -37,7 +37,6 @@ namespace _4RTools.Model
             if (this.RefreshKey != Key.None
                 && roClient.IsProcessAlive()
                 && !roClient.ShouldPauseAutomation()
-                && !KeyHelper.IsAltPressed()
                 && !ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther))
             {
                 AutoMount autoMount = ProfileSingleton.GetCurrent() != null ? ProfileSingleton.GetCurrent().AutoMount : null;

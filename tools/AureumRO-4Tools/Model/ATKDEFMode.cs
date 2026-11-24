@@ -62,7 +62,7 @@ namespace _4RTools.Model
             }
 
             Key spammer = this.keySpammer;
-            if (spammer == Key.None || KeyHelper.IsAltPressed() || !KeyHelper.IsKeyDown(spammer))
+            if (spammer == Key.None || !KeyHelper.IsKeyDown(spammer))
             {
                 return;
             }
@@ -109,7 +109,7 @@ namespace _4RTools.Model
 
             if (this.keySpammerWithClick)
             {
-                while (!token.IsCancellationRequested && KeyHelper.IsKeyDown(spammer))
+                while (!token.IsCancellationRequested && !ActionPriorityCoordinator.IsHoldPauseActive() && KeyHelper.IsKeyDown(spammer))
                 {
                     if (ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, null, false))
                     {
@@ -130,7 +130,7 @@ namespace _4RTools.Model
             }
             else
             {
-                while (!token.IsCancellationRequested && KeyHelper.IsKeyDown(spammer))
+                while (!token.IsCancellationRequested && !ActionPriorityCoordinator.IsHoldPauseActive() && KeyHelper.IsKeyDown(spammer))
                 {
                     if (ActionPriorityCoordinator.ShouldYield(ActionPriority.SkillAndOther, null, false))
                     {

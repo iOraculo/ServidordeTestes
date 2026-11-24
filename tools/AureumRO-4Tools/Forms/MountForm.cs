@@ -377,6 +377,7 @@ namespace _4RTools.Forms
                 return;
             }
 
+            bool wasEnabled = this.autoMount.Enabled;
             this.autoMount.Enabled = this.cbMountEnabled.Checked;
             this.autoMount.DismountOnSkill = this.cbDismountOnSkill.Checked;
             this.autoMount.DismountDelayMs = decimal.ToInt32(this.numDismountDelay.Value);
@@ -384,6 +385,11 @@ namespace _4RTools.Forms
             this.autoMount.AutoRemountAfterIdle = this.cbAutoRemount.Checked;
             this.autoMount.RemountDelayMs = decimal.ToInt32(this.numRemountDelay.Value);
             this.autoMount.IncludeOtherTabsSkillKeys = this.cbIncludeOtherTabs.Checked;
+
+            if (!wasEnabled && this.autoMount.Enabled)
+            {
+                this.autoMount.RequestInitialMount();
+            }
 
             ProfileSingleton.SetConfiguration(this.autoMount);
         }
@@ -399,6 +405,10 @@ namespace _4RTools.Forms
             if (KeyHelper.TryParseKey(this.txtMountKey.Text, out parsed))
             {
                 this.autoMount.MountKey = FormUtils.IsValidKey(parsed) ? parsed : Key.None;
+                if (this.autoMount.Enabled && this.autoMount.MountKey != Key.None)
+                {
+                    this.autoMount.RequestInitialMount();
+                }
                 ProfileSingleton.SetConfiguration(this.autoMount);
             }
         }

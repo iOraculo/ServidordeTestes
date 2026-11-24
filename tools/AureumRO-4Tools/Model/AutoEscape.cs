@@ -128,37 +128,45 @@ namespace _4RTools.Model
                     && client.IsProcessAlive()
                     && !client.ShouldPauseForFocus()
                     && !ActionPriorityCoordinator.IsHoldPauseBlockingAutopot()
-                    && !KeyHelper.IsAltPressed()
+                    && !AutoRefreshCommand.IsSendingCommand
                     && !ActionPriorityCoordinator.ShouldYield(ActionPriority.Yggdrasil))
                 {
-                    bool chatBlocked = (ChatPauseState.IsChatting || AutoRefreshCommand.IsSendingCommand)
-                        && ChatPauseState.IsTypingKey(this.EscapeKey);
-                    if (!chatBlocked)
+                    bool inTown = this.PauseInTown && client.IsInTown();
+                    uint currentHp;
+                    uint maxHp;
+                    uint currentSp;
+                    uint maxSp;
+                    if (!inTown && client.TryReadVitals(vitalsBuffer, out currentHp, out maxHp, out currentSp, out maxSp))
                     {
-                        bool inTown = this.PauseInTown && client.IsInTown();
-                        uint currentHp;
-                        uint maxHp;
-                        uint currentSp;
-                        uint maxSp;
-                        if (!inTown && client.TryReadVitals(vitalsBuffer, out currentHp, out maxHp, out currentSp, out maxSp))
+                        long nowMs = this.clock.ElapsedMilliseconds;
+                        if (ShouldTriggerEscape(currentHp, maxHp, nowMs, inTown))
                         {
-                            long nowMs = this.clock.ElapsedMilliseconds;
-                            if (ShouldTriggerEscape(currentHp, maxHp, nowMs, inTown))
+                            IntPtr hWnd = client.GetWindowHandle();
+                            Keys formsKey = KeyHelper.ToFormsKeys(this.EscapeKey);
+                            if (hWnd != IntPtr.Zero && formsKey != Keys.None)
                             {
-                                IntPtr hWnd = client.GetWindowHandle();
-                                Keys formsKey = KeyHelper.ToFormsKeys(this.EscapeKey);
-                                if (hWnd != IntPtr.Zero && formsKey != Keys.None)
+                                if (Autopot.NeedsChatCloseToPot(this.EscapeKey, ChatPauseState.IsChatting))
                                 {
-                                    RecordEscapeTriggered(nowMs);
-                                    ActionPriorityCoordinator.NotifyEmergencyAction();
-                                    Interop.SendKeyPress(hWnd, formsKey);
-
-                                    if (this.ConfirmWithEnter && !ChatPauseState.IsChatting)
+                                    if (ChatPauseState.TryConsumeChatting())
                                     {
-                                        if (_4RThread.Sleep(TELEPORT_ENTER_DELAY_MS, token) && !ChatPauseState.IsChatting)
-                                        {
-                                            Interop.SendKeyPress(hWnd, Keys.Return);
-                                        }
+                                        Interop.SendKeyPress(hWnd, Keys.Return);
+                                    }
+
+                                    if (!_4RThread.Sleep(35, token))
+                                    {
+                                        return;
+                                    }
+                                }
+
+                                RecordEscapeTriggered(nowMs);
+                                ActionPriorityCoordinator.NotifyEmergencyAction();
+                                Interop.SendKeyPress(hWnd, formsKey);
+
+                                if (this.ConfirmWithEnter && !ChatPauseState.IsChatting)
+                                {
+                                    if (_4RThread.Sleep(TELEPORT_ENTER_DELAY_MS, token) && !ChatPauseState.IsChatting)
+                                    {
+                                        Interop.SendKeyPress(hWnd, Keys.Return);
                                     }
                                 }
                             }
