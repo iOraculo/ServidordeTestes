@@ -1,5 +1,11 @@
 # Changelogs
 
+## [v2.39.5] - 2026-11-25 — Correção de Falsa Pausa em Campos, Scanner de Mapa Ampliado (.rsw/.gat + Heap) e Diagnóstico Completo no `Ver Status (IDs)`
+### Fixed
+- **Fim da falsa pausa em campos no `Pausar em cidades` (`Model/Client.cs`)**: candidatos estáticos de mapa não confirmados não são mais tratados como cidade ativa (evitando pausar automações em campos como `prt_fild08` quando o endereço ainda não foi confirmado).
+- **Scanner de mapa ampliado (`Model/Client.cs`)**: filtragem de tabelas Lua/estáticas agora roda **por região** (impedindo que listas de mapas como `mp3nametable`/`fogparametertable` esgotem o limite de varredura), suporte a `.rsw` e `.gat` em todo o espaço gravável (estático + heap, com teto de tempo seguro) e aceite de bytes binários de struct C++ antes do nome do mapa.
+- **Diagnóstico completo de mapa no `Ver Status (IDs)` (`Model/Client.cs`)**: exibe sempre `HP`, `Nome`, `Status`, `MapaAddr` com origem (`config` / `auto` / `pendente`), valor bruto `Raw`, candidatos `.rsw`/`.gat` isolados ao vivo e nomes de mapa sem extensão próximos de `HP` (`±0x80000`).
+
 ## [v2.39.4] - 2026-11-24 — Prioridade Oficial do AureumRO sobre `supported_servers.json` Antigo, Scanner de Mapa Aprimorado e `EFST_RIDING (27)`
 ### Fixed
 - **`supported_servers.json` antigo na pasta não sobrescreve mais o AureumRO (`Forms/ClientUpdaterForm.cs`)**: alterada a ordem de carregamento para priorizar a configuração oficial remota/embutida do AureumRO, evitando que arquivos `supported_servers.json` antigos com `mapAddress` incorreto (ex.: `0x00D2A3BC` preso em `prontera`) travem o `Pausar em cidades`.

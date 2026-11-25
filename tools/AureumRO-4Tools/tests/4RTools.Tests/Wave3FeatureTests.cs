@@ -2317,6 +2317,18 @@ namespace _4RTools.Tests
 
             // EFST_RIDING (27) is defined for Peco Peco / Grand Peco mount.
             Assert.Equal(27u, (uint)EffectStatusIDs.EFST_RIDING);
+
+            // v2.39.5: .gat map detection, binary float/pointer preceding byte (e.g. 0x3F '?'), and bare map scanner near HP.
+            byte[] gatAndFloatBytes = new byte[] { 0x3F, (byte)'p', (byte)'r', (byte)'t', (byte)'_', (byte)'f', (byte)'i', (byte)'l', (byte)'d', (byte)'0', (byte)'8', (byte)'.', (byte)'g', (byte)'a', (byte)'t', 0x00 };
+            List<int> gatOffsets = Client.ScanBufferForMapOffsets(gatAndFloatBytes, gatAndFloatBytes.Length);
+            Assert.Single(gatOffsets);
+            Assert.Equal(1, gatOffsets[0]);
+
+            byte[] bareMem = Encoding.ASCII.GetBytes("\0noise\0prontera\0randomword\0prt_fild08\0");
+            List<int> bareOffsets = Client.ScanBufferForBareMapOffsets(bareMem, bareMem.Length);
+            Assert.Equal(2, bareOffsets.Count);
+            Assert.Equal("prontera", Encoding.ASCII.GetString(bareMem, bareOffsets[0], "prontera".Length));
+            Assert.Equal("prt_fild08", Encoding.ASCII.GetString(bareMem, bareOffsets[1], "prt_fild08".Length));
         }
     }
 }

@@ -457,7 +457,7 @@ namespace _4RTools.Model
             return false;
         }
 
-        private static bool IsRawRswMapString(string raw)
+        private static bool IsRawMapFileString(string raw)
         {
             if (string.IsNullOrWhiteSpace(raw) || raw.Length < 7 || raw.Length > 28)
             {
@@ -465,12 +465,51 @@ namespace _4RTools.Model
             }
 
             string trimmed = raw.Trim();
-            if (!trimmed.EndsWith(".rsw", StringComparison.OrdinalIgnoreCase))
+            bool hasMapExt = trimmed.EndsWith(".rsw", StringComparison.OrdinalIgnoreCase)
+                || trimmed.EndsWith(".gat", StringComparison.OrdinalIgnoreCase);
+            if (!hasMapExt)
             {
                 return false;
             }
 
             return IsLikelyRagnarokMapName(trimmed);
+        }
+
+        private static bool IsDisallowedPrecedingMapByte(byte before)
+        {
+            // Reject alphanumeric/identifier chars (name exceeded max length) and ASCII path/text/quote delimiters
+            // (e.g. "data\prontera.rsw", "load prontera.rsw", "map=prontera.rsw"), while allowing null (0x00)
+            // and arbitrary binary C++ struct field bytes (integers, floats, pointers).
+            if ((before >= (byte)'a' && before <= (byte)'z')
+                || (before >= (byte)'A' && before <= (byte)'Z')
+                || (before >= (byte)'0' && before <= (byte)'9')
+                || before == (byte)'_'
+                || before == (byte)'-')
+            {
+                return true;
+            }
+
+            switch (before)
+            {
+                case (byte)'\\':
+                case (byte)'/':
+                case (byte)':':
+                case (byte)'.':
+                case (byte)' ':
+                case (byte)'\t':
+                case (byte)'"':
+                case (byte)'\'':
+                case (byte)'=':
+                case (byte)',':
+                case (byte)';':
+                case (byte)'(':
+                case (byte)'[':
+                case (byte)'{':
+                case (byte)'|':
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         public static List<int> ScanBufferForMapOffsets(byte[] buffer, int validLength)
@@ -497,7 +536,11 @@ namespace _4RTools.Model
                     && (b2 == (byte)'s' || b2 == (byte)'S')
                     && (b3 == (byte)'w' || b3 == (byte)'W')
                     && b4 == 0;
-                if (!isRsw)
+                bool isGat = (b1 == (byte)'g' || b1 == (byte)'G')
+                    && (b2 == (byte)'a' || b2 == (byte)'A')
+                    && (b3 == (byte)'t' || b3 == (byte)'T')
+                    && b4 == 0;
+                if (!isRsw && !isGat)
                 {
                     continue;
                 }
@@ -525,15 +568,9 @@ namespace _4RTools.Model
                     continue;
                 }
 
-                // Reject printable ASCII path/text characters immediately before the map name (e.g. "data\prontera.rsw" or "load prontera.rsw"),
-                // while allowing null (0x00) and binary C++ struct field bytes (< 0x20 or >= 0x7F).
-                if (start > 0)
+                if (start > 0 && IsDisallowedPrecedingMapByte(buffer[start - 1]))
                 {
-                    byte before = buffer[start - 1];
-                    if (before >= 0x20 && before < 0x7F)
-                    {
-                        continue;
-                    }
+                    continue;
                 }
 
                 string bareName = Encoding.ASCII.GetString(buffer, start, nameLen).ToLowerInvariant();
@@ -541,6 +578,62 @@ namespace _4RTools.Model
                 {
                     offsets.Add(start);
                 }
+            }
+
+            return offsets;
+        }
+
+        /// <summary>
+        /// Scans a small memory buffer near CSession (hpAddress/nameAddress) for null-delimited bare RO map names
+        /// (e.g. "\0prontera\0" or "\0prt_fild08\0") matching the exact known town/catalog map set.
+        /// </summary>
+        public static List<int> ScanBufferForBareMapOffsets(byte[] buffer, int validLength)
+        {
+            List<int> offsets = new List<int>();
+            if (buffer == null || validLength < 6)
+            {
+                return offsets;
+            }
+
+            int limit = Math.Min(validLength, buffer.Length);
+            int i = 0;
+            while (i < limit)
+            {
+                if (buffer[i] != 0)
+                {
+                    i++;
+                    continue;
+                }
+
+                int start = i + 1;
+                int pos = start;
+                int maxEnd = Math.Min(limit, start + 20);
+                while (pos < maxEnd)
+                {
+                    byte b = buffer[pos];
+                    bool validChar = (b >= (byte)'a' && b <= (byte)'z')
+                        || (b >= (byte)'A' && b <= (byte)'Z')
+                        || (b >= (byte)'0' && b <= (byte)'9')
+                        || b == (byte)'_'
+                        || b == (byte)'-';
+                    if (!validChar)
+                    {
+                        break;
+                    }
+                    pos++;
+                }
+
+                int len = pos - start;
+                if (len >= 4 && len <= 20 && pos < limit && buffer[pos] == 0)
+                {
+                    string candidate = Encoding.ASCII.GetString(buffer, start, len).ToLowerInvariant();
+                    if (KnownMapNames.Value.Contains(candidate))
+                    {
+                        offsets.Add(start);
+                    }
+                }
+
+                i = pos > i ? pos : i + 1;
             }
 
             return offsets;
@@ -590,21 +683,30 @@ namespace _4RTools.Model
             return filtered;
         }
 
-        private void TryAutoDetectMapCandidates()
+        private List<KeyValuePair<int, string>> ScanLiveMapCandidates(
+            long minAddr,
+            long maxAddr,
+            long maxBytesToRead,
+            long maxDurationMs,
+            bool includeBareNearHp,
+            out int regionsScanned,
+            out int rawMatchesTotal,
+            out List<KeyValuePair<int, string>> bareNearHpCandidates)
         {
+            regionsScanned = 0;
+            rawMatchesTotal = 0;
+            bareNearHpCandidates = new List<KeyValuePair<int, string>>();
+            List<KeyValuePair<int, string>> isolatedAll = new List<KeyValuePair<int, string>>();
+
             if (this.PMR == null || !this.PMR.IsOpen || this.currentHPBaseAddress <= 0)
             {
-                return;
+                return isolatedAll;
             }
 
             long hpAddr = this.currentHPBaseAddress;
-            long minAddr = 0x00400000L;
-            long maxAddr = hpAddr + 0x400000L;
-
             List<ProcessMemoryReader.MemoryRegion> regions = this.PMR.EnumerateWritableRegions(minAddr, maxAddr);
             if (regions.Count == 0)
             {
-                // Fallback when VirtualQueryEx access is unavailable: scan a tighter window around hpAddress.
                 long fallbackMin = Math.Max(0x00400000L, hpAddr - 0x40000L);
                 long fallbackMax = hpAddr + 0x40000L;
                 regions.Add(new ProcessMemoryReader.MemoryRegion
@@ -614,7 +716,7 @@ namespace _4RTools.Model
                 });
             }
 
-            // Prefer writable regions closest to hpAddress (where Ragexe CSession / CModeMgr live).
+            // Prefer writable regions closest to hpAddress (where Ragexe static CSession / CModeMgr live) before heap.
             regions.Sort((a, b) =>
             {
                 long distA = Math.Abs(a.BaseAddress.ToInt64() - hpAddr);
@@ -624,25 +726,45 @@ namespace _4RTools.Model
 
             const int chunkSize = 65536;
             const int overlap = 32;
-            const int maxCandidates = 128;
+            const int maxIsolatedTotal = 64;
+            const int maxRawPerRegion = 512;
             byte[] buffer = new byte[chunkSize];
             HashSet<int> seenAddrs = new HashSet<int>();
-            List<KeyValuePair<int, string>> found = new List<KeyValuePair<int, string>>();
+            HashSet<int> seenBareAddrs = new HashSet<int>();
+            List<KeyValuePair<int, string>> bareRaw = new List<KeyValuePair<int, string>>();
+            long bytesReadTotal = 0;
+            long bareMin = Math.Max(0x00400000L, hpAddr - 0x80000L);
+            long bareMax = hpAddr + 0x80000L;
+            Stopwatch scanWatch = Stopwatch.StartNew();
 
-            for (int r = 0; r < regions.Count && found.Count < maxCandidates; r++)
+            for (int r = 0; r < regions.Count && isolatedAll.Count < maxIsolatedTotal; r++)
             {
+                if (bytesReadTotal >= maxBytesToRead || scanWatch.ElapsedMilliseconds >= maxDurationMs)
+                {
+                    break;
+                }
+
                 long regStart = regions[r].BaseAddress.ToInt64();
                 long regEnd = regStart + regions[r].RegionSize;
                 long cursor = regStart;
+                regionsScanned++;
 
-                while (cursor < regEnd && found.Count < maxCandidates)
+                List<KeyValuePair<int, string>> regionRaw = new List<KeyValuePair<int, string>>();
+
+                while (cursor < regEnd && regionRaw.Count < maxRawPerRegion)
                 {
+                    if (bytesReadTotal >= maxBytesToRead || scanWatch.ElapsedMilliseconds >= maxDurationMs)
+                    {
+                        break;
+                    }
+
                     int toRead = (int)Math.Min(chunkSize, regEnd - cursor);
                     int bytesRead;
                     if (this.PMR.ReadProcessMemory((IntPtr)cursor, buffer, toRead, out bytesRead) && bytesRead >= 8)
                     {
+                        bytesReadTotal += bytesRead;
                         List<int> matches = ScanBufferForMapOffsets(buffer, bytesRead);
-                        for (int m = 0; m < matches.Count && found.Count < maxCandidates; m++)
+                        for (int m = 0; m < matches.Count && regionRaw.Count < maxRawPerRegion; m++)
                         {
                             long absAddr = cursor + matches[m];
                             if (absAddr > int.MaxValue)
@@ -657,9 +779,36 @@ namespace _4RTools.Model
                             }
 
                             string raw = ReadMemoryAsString(addr32);
-                            if (IsRawRswMapString(raw))
+                            if (IsRawMapFileString(raw))
                             {
-                                found.Add(new KeyValuePair<int, string>(addr32, NormalizeMapName(raw)));
+                                rawMatchesTotal++;
+                                regionRaw.Add(new KeyValuePair<int, string>(addr32, NormalizeMapName(raw)));
+                            }
+                        }
+
+                        if (includeBareNearHp && cursor < bareMax && (cursor + bytesRead) > bareMin)
+                        {
+                            List<int> bareOffsets = ScanBufferForBareMapOffsets(buffer, bytesRead);
+                            for (int b = 0; b < bareOffsets.Count && bareRaw.Count < 128; b++)
+                            {
+                                long absAddr = cursor + bareOffsets[b];
+                                if (absAddr < bareMin || absAddr > bareMax || absAddr > int.MaxValue)
+                                {
+                                    continue;
+                                }
+
+                                int addr32 = (int)absAddr;
+                                if (!seenBareAddrs.Add(addr32))
+                                {
+                                    continue;
+                                }
+
+                                string rawBare = ReadMemoryAsString(addr32);
+                                string normBare = NormalizeMapName(rawBare);
+                                if (!string.IsNullOrEmpty(normBare) && KnownMapNames.Value.Contains(normBare))
+                                {
+                                    bareRaw.Add(new KeyValuePair<int, string>(addr32, normBare));
+                                }
                             }
                         }
                     }
@@ -671,14 +820,65 @@ namespace _4RTools.Model
 
                     cursor += chunkSize - overlap;
                 }
+
+                if (regionRaw.Count > 0)
+                {
+                    // Filter static/Lua map tables per region so a single huge table never crowds out isolated live slots.
+                    List<KeyValuePair<int, string>> regionIsolated = FilterClusteredMapTableCandidates(regionRaw);
+                    for (int k = 0; k < regionIsolated.Count && isolatedAll.Count < maxIsolatedTotal; k++)
+                    {
+                        isolatedAll.Add(regionIsolated[k]);
+                    }
+                }
             }
 
-            List<KeyValuePair<int, string>> isolated = FilterClusteredMapTableCandidates(found);
-            List<KeyValuePair<int, string>> selected = isolated.Count > 0 ? isolated : found;
+            if (isolatedAll.Count > 1)
+            {
+                isolatedAll = FilterClusteredMapTableCandidates(isolatedAll);
+                isolatedAll.Sort((a, b) =>
+                {
+                    bool aStatic = a.Key < 0x03000000;
+                    bool bStatic = b.Key < 0x03000000;
+                    if (aStatic != bStatic)
+                    {
+                        return aStatic ? -1 : 1;
+                    }
+
+                    return Math.Abs((long)a.Key - hpAddr).CompareTo(Math.Abs((long)b.Key - hpAddr));
+                });
+            }
+
+            if (bareRaw.Count > 0)
+            {
+                bareNearHpCandidates = FilterClusteredMapTableCandidates(bareRaw);
+                bareNearHpCandidates.Sort((a, b) => Math.Abs((long)a.Key - hpAddr).CompareTo(Math.Abs((long)b.Key - hpAddr)));
+            }
+
+            return isolatedAll;
+        }
+
+        private void TryAutoDetectMapCandidates()
+        {
+            if (this.PMR == null || !this.PMR.IsOpen || this.currentHPBaseAddress <= 0)
+            {
+                return;
+            }
+
+            int regionsScanned;
+            int rawMatches;
+            List<KeyValuePair<int, string>> bareUnused;
+            List<KeyValuePair<int, string>> selected = ScanLiveMapCandidates(
+                0x00400000L,
+                0x7FFE0000L,
+                64L * 1024L * 1024L,
+                150L,
+                false,
+                out regionsScanned,
+                out rawMatches,
+                out bareUnused);
 
             if (selected.Count > 0)
             {
-                selected.Sort((a, b) => Math.Abs((long)a.Key - hpAddr).CompareTo(Math.Abs((long)b.Key - hpAddr)));
                 this.detectedMapCandidates.Clear();
                 this.detectedMapCandidates.AddRange(selected);
             }
@@ -708,7 +908,7 @@ namespace _4RTools.Model
                 if (this.currentMapAddress != 0)
                 {
                     string raw = ReadMemoryAsString(this.currentMapAddress);
-                    if (this.mapAddressAutoDetected && !IsRawRswMapString(raw))
+                    if (this.mapAddressAutoDetected && !IsRawMapFileString(raw))
                     {
                         this.currentMapAddress = 0;
                         this.mapAddressAutoDetected = false;
@@ -737,17 +937,18 @@ namespace _4RTools.Model
 
                 if (this.detectedMapCandidates.Count > 0)
                 {
-                    string fallbackMap = string.Empty;
+                    bool anyAlive = false;
                     for (int i = 0; i < this.detectedMapCandidates.Count; i++)
                     {
                         int addr = this.detectedMapCandidates[i].Key;
                         string initialMap = this.detectedMapCandidates[i].Value;
                         string raw = ReadMemoryAsString(addr);
-                        if (!IsRawRswMapString(raw))
+                        if (!IsRawMapFileString(raw))
                         {
                             continue;
                         }
 
+                        anyAlive = true;
                         string liveMap = NormalizeMapName(raw);
                         if (!string.Equals(liveMap, initialMap, StringComparison.OrdinalIgnoreCase))
                         {
@@ -759,23 +960,15 @@ namespace _4RTools.Model
                             this.lastMapReadMs = now;
                             return this.cachedMapName;
                         }
-
-                        if (string.IsNullOrEmpty(fallbackMap))
-                        {
-                            fallbackMap = liveMap;
-                        }
                     }
 
-                    if (string.IsNullOrEmpty(fallbackMap))
+                    if (!anyAlive)
                     {
                         this.detectedMapCandidates.Clear();
                     }
-
-                    this.cachedMapName = fallbackMap;
-                    this.lastMapReadMs = now;
-                    return this.cachedMapName;
                 }
 
+                // Never treat an unconfirmed static memory string as the active town map (avoids false pauses in fields).
                 this.cachedMapName = string.Empty;
                 this.lastMapReadMs = now;
                 return this.cachedMapName;
@@ -998,10 +1191,14 @@ namespace _4RTools.Model
             StringBuilder sb = new StringBuilder();
             string charName = ReadCharacterName();
             string mapName = ReadCurrentMap();
+            string mapSourceTag = this.currentMapAddress == 0
+                ? (LocalizationManager.IsPortuguese ? "pendente" : "pending")
+                : (this.mapAddressAutoDetected ? "auto" : "config");
+            string mapRaw = this.currentMapAddress != 0 ? ReadMemoryAsString(this.currentMapAddress) : string.Empty;
             string mapDisplay;
             if (string.IsNullOrWhiteSpace(mapName))
             {
-                mapDisplay = "-";
+                mapDisplay = LocalizationManager.IsPortuguese ? "- [pendente]" : "- [pending]";
             }
             else
             {
@@ -1009,7 +1206,7 @@ namespace _4RTools.Model
                     ? (LocalizationManager.IsPortuguese ? "Cidade" : "Town")
                     : (LocalizationManager.IsPortuguese ? "Campo" : "Field");
                 mapDisplay = this.currentMapAddress != 0
-                    ? string.Format("{0} [{1} · 0x{2:X8}]", mapName, zoneTag, this.currentMapAddress)
+                    ? string.Format("{0} [{1} · 0x{2:X8} · {3}]", mapName, zoneTag, this.currentMapAddress, mapSourceTag)
                     : string.Format("{0} [{1}]", mapName, zoneTag);
             }
             sb.AppendFormat(
@@ -1018,6 +1215,15 @@ namespace _4RTools.Model
                     : "Character: {0}  |  Map: {1}",
                 string.IsNullOrWhiteSpace(charName) ? "-" : charName.Trim(),
                 mapDisplay);
+            sb.AppendLine();
+            sb.AppendFormat(
+                "HP=0x{0:X8} | Nome=0x{1:X8} | Status=0x{2:X8} | MapaAddr=0x{3:X8} ({4}) | Raw=\"{5}\"",
+                this.currentHPBaseAddress,
+                this.currentNameAddress,
+                this.statusBufferAddress,
+                this.currentMapAddress,
+                mapSourceTag,
+                string.IsNullOrEmpty(mapRaw) ? "-" : mapRaw.Trim());
             sb.AppendLine();
             sb.AppendLine(new string('-', 44));
 
@@ -1091,28 +1297,53 @@ namespace _4RTools.Model
                 }
             }
 
-            List<string> mapDiagLines = new List<string>();
-            lock (this.mapDetectLock)
+            int diagRegions;
+            int diagRawMatches;
+            List<KeyValuePair<int, string>> bareNearHp;
+            List<KeyValuePair<int, string>> liveMapCandidates = ScanLiveMapCandidates(
+                0x00400000L,
+                0x7FFE0000L,
+                128L * 1024L * 1024L,
+                400L,
+                true,
+                out diagRegions,
+                out diagRawMatches,
+                out bareNearHp);
+
+            sb.AppendLine();
+            sb.AppendLine(LocalizationManager.IsPortuguese
+                ? string.Format("[Diagnóstico de Mapa — Regiões: {0} | Brutos .rsw/.gat: {1} | Isolados: {2}]", diagRegions, diagRawMatches, liveMapCandidates.Count)
+                : string.Format("[Map Diagnostics — Regions: {0} | Raw .rsw/.gat: {1} | Isolated: {2}]", diagRegions, diagRawMatches, liveMapCandidates.Count));
+
+            if (liveMapCandidates.Count == 0)
             {
-                int limitDiag = Math.Min(this.detectedMapCandidates.Count, 8);
+                sb.AppendLine(LocalizationManager.IsPortuguese
+                    ? "Nenhum candidato .rsw/.gat isolado encontrado."
+                    : "No isolated .rsw/.gat candidates found.");
+            }
+            else
+            {
+                int limitDiag = Math.Min(liveMapCandidates.Count, 15);
                 for (int i = 0; i < limitDiag; i++)
                 {
-                    int addr = this.detectedMapCandidates[i].Key;
+                    int addr = liveMapCandidates[i].Key;
                     string liveRaw = ReadMemoryAsString(addr);
-                    string liveNorm = NormalizeMapName(liveRaw);
-                    mapDiagLines.Add(string.Format("0x{0:X8} -> {1}", addr, string.IsNullOrEmpty(liveNorm) ? "-" : liveNorm));
+                    string scopeTag = addr < 0x03000000 ? "static" : "heap";
+                    sb.AppendFormat("0x{0:X8} ({1}) -> {2}", addr, scopeTag, string.IsNullOrWhiteSpace(liveRaw) ? "-" : liveRaw.Trim());
+                    sb.AppendLine();
                 }
             }
 
-            if (mapDiagLines.Count > 0)
+            if (bareNearHp.Count > 0)
             {
-                sb.AppendLine();
                 sb.AppendLine(LocalizationManager.IsPortuguese
-                    ? "[Candidatos de Mapa (.rsw)]"
-                    : "[Map Candidates (.rsw)]");
-                for (int i = 0; i < mapDiagLines.Count; i++)
+                    ? "[Nomes de Mapa perto de HP (±0x80000)]"
+                    : "[Map Names near HP (±0x80000)]");
+                int limitBare = Math.Min(bareNearHp.Count, 12);
+                for (int i = 0; i < limitBare; i++)
                 {
-                    sb.AppendLine(mapDiagLines[i]);
+                    sb.AppendFormat("0x{0:X8} -> {1}", bareNearHp[i].Key, bareNearHp[i].Value);
+                    sb.AppendLine();
                 }
             }
 
