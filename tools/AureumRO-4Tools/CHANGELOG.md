@@ -1,5 +1,11 @@
 # Changelogs
 
+## [v2.39.4] - 2026-11-24 — Prioridade Oficial do AureumRO sobre `supported_servers.json` Antigo, Scanner de Mapa Aprimorado e `EFST_RIDING (27)`
+### Fixed
+- **`supported_servers.json` antigo na pasta não sobrescreve mais o AureumRO (`Forms/ClientUpdaterForm.cs`)**: alterada a ordem de carregamento para priorizar a configuração oficial remota/embutida do AureumRO, evitando que arquivos `supported_servers.json` antigos com `mapAddress` incorreto (ex.: `0x00D2A3BC` preso em `prontera`) travem o `Pausar em cidades`.
+- **Detecção automática de mapa aprimorada (`Model/Client.cs`)**: ampliada a varredura em páginas graváveis (`0x00400000..hp+0x400000`), suporte a fronteiras binárias de struct C++ antes do nome `.rsw`, filtragem de tabelas estáticas/Lua com múltiplos mapas agrupados (`FilterClusteredMapTableCandidates`), travamento somente quando o candidato atualiza ao trocar de mapa e exibição dos candidatos `.rsw` no **`Ver Status (IDs)`**.
+- **Identificação do Peco Peco no inspetor de status (`Utils/EffectStatusIDs.cs`)**: adicionado `EFST_RIDING = 27` para exibir o nome correto em vez de `(desconhecido)`.
+
 ## [v2.39.3] - 2026-11-24 — Correções de Autopot com Chat, Hold-to-Pause sem Interferência do Alt, Anti-Spam de Gospel, Montaria Automática ao Iniciar e Detecção de Mapa para Pausar em Cidades
 ### Fixed
 - **Autopot & Auto-Fuga com Chat Aberto (`Model/Autopot.cs`, `Model/AutoEscape.cs`, `Utils/ChatPauseState.cs`, `Utils/SessionContext.cs`)**: quando o modo `Chat` está ativo e o HP/SP cai abaixo da % configurada usando teclas alfanuméricas (ex.: `Q`, `1`, `E`), o AureumTools agora fecha automaticamente o chat (`Enter` via transição atômica `TryConsumeChatting()`) e dispara a poção/fuga em seguida (enquanto teclas `F1–F24` continuam potando sem fechar o chat).

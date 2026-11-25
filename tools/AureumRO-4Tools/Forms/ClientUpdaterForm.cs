@@ -29,13 +29,7 @@ namespace _4RTools.Forms
 
             try
             {
-                // 1. Highest priority: local supported_servers.json overrides next to the executable.
-                foreach (ClientDTO localClient in LocalServerManager.GetLocalClients())
-                {
-                    clients.Add(new KeyValuePair<ClientDTO, bool>(localClient, true));
-                }
-
-                // 2. Remote supported_servers.json from the server's repository (allows live address updates).
+                // 1. Highest priority: remote supported_servers.json from the official repository (allows live address updates).
                 try
                 {
                     string remoteServersRaw = await HttpClientProvider.GetStringAsync(AppConfig._4RClientsURL, TimeSpan.FromSeconds(5));
@@ -50,10 +44,10 @@ namespace _4RTools.Forms
                 }
                 catch (Exception remoteEx)
                 {
-                    Logger.Warn("ClientUpdaterForm", "Cannot load remote supported_servers.json; using local and embedded servers", remoteEx);
+                    Logger.Warn("ClientUpdaterForm", "Cannot load remote supported_servers.json; using embedded servers", remoteEx);
                 }
 
-                // 3. Always include embedded servers (AureumRO + built-in Test Server) so standalone .exe works offline too.
+                // 2. Always include embedded servers (AureumRO + built-in Test Server) so standalone .exe works offline and stale local files never override official addresses.
                 try
                 {
                     List<ClientDTO> resourceClients = JsonConvert.DeserializeObject<List<ClientDTO>>(LoadResourceServerFile());
@@ -70,13 +64,19 @@ namespace _4RTools.Forms
                     Logger.Error("ClientUpdaterForm", "Failed to load embedded supported_servers resource", resEx);
                 }
 
-                // 4. Guaranteed built-in fallback for AureumRO Servidor de Testes (FroggoClient / Ragexe 2022-04-06).
+                // 3. Guaranteed built-in fallback for AureumRO Servidor de Testes (FroggoClient / Ragexe 2022-04-06).
                 clients.Add(new KeyValuePair<ClientDTO, bool>(
                     new ClientDTO("FroggoClient", "AureumRO Servidor de Testes (FroggoClient)", "0x01138DDC", "0x0113B7B0", "0x00D2A3BC", "0x480"),
                     false));
                 clients.Add(new KeyValuePair<ClientDTO, bool>(
                     new ClientDTO("Ragexe", "AureumRO Servidor de Testes (Ragexe)", "0x01138DDC", "0x0113B7B0", "0x00D2A3BC", "0x480"),
                     false));
+
+                // 4. Fallback only: local supported_servers.json next to the executable (cannot override official AureumRO or built-in test server entries).
+                foreach (ClientDTO localClient in LocalServerManager.GetLocalClients())
+                {
+                    clients.Add(new KeyValuePair<ClientDTO, bool>(localClient, true));
+                }
             }
             finally
             {

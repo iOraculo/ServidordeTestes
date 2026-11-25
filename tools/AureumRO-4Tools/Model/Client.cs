@@ -525,10 +525,15 @@ namespace _4RTools.Model
                     continue;
                 }
 
-                // Require a null delimiter before the map name so paths like "data\prontera.rsw" or log text are skipped.
-                if (start > 0 && buffer[start - 1] != 0)
+                // Reject printable ASCII path/text characters immediately before the map name (e.g. "data\prontera.rsw" or "load prontera.rsw"),
+                // while allowing null (0x00) and binary C++ struct field bytes (< 0x20 or >= 0x7F).
+                if (start > 0)
                 {
-                    continue;
+                    byte before = buffer[start - 1];
+                    if (before >= 0x20 && before < 0x7F)
+                    {
+                        continue;
+                    }
                 }
 
                 string bareName = Encoding.ASCII.GetString(buffer, start, nameLen).ToLowerInvariant();
@@ -541,6 +546,50 @@ namespace _4RTools.Model
             return offsets;
         }
 
+        /// <summary>
+        /// Filters out candidates that belong to static/Lua map lists in memory (clusters where 3+ distinct
+        /// map names sit within +/-2048 bytes of each other), keeping isolated live CSession/CModeMgr slots.
+        /// </summary>
+        public static List<KeyValuePair<int, string>> FilterClusteredMapTableCandidates(List<KeyValuePair<int, string>> candidates)
+        {
+            List<KeyValuePair<int, string>> filtered = new List<KeyValuePair<int, string>>();
+            if (candidates == null || candidates.Count == 0)
+            {
+                return filtered;
+            }
+
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                int addr = candidates[i].Key;
+                HashSet<string> nearbyDistinctMaps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                nearbyDistinctMaps.Add(candidates[i].Value);
+
+                for (int j = 0; j < candidates.Count; j++)
+                {
+                    if (i == j)
+                    {
+                        continue;
+                    }
+
+                    if (Math.Abs((long)candidates[j].Key - addr) <= 2048L)
+                    {
+                        nearbyDistinctMaps.Add(candidates[j].Value);
+                        if (nearbyDistinctMaps.Count >= 3)
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                if (nearbyDistinctMaps.Count < 3)
+                {
+                    filtered.Add(candidates[i]);
+                }
+            }
+
+            return filtered;
+        }
+
         private void TryAutoDetectMapCandidates()
         {
             if (this.PMR == null || !this.PMR.IsOpen || this.currentHPBaseAddress <= 0)
@@ -549,7 +598,7 @@ namespace _4RTools.Model
             }
 
             long hpAddr = this.currentHPBaseAddress;
-            long minAddr = Math.Max(0x00400000L, hpAddr - 0x400000L);
+            long minAddr = 0x00400000L;
             long maxAddr = hpAddr + 0x400000L;
 
             List<ProcessMemoryReader.MemoryRegion> regions = this.PMR.EnumerateWritableRegions(minAddr, maxAddr);
@@ -575,24 +624,25 @@ namespace _4RTools.Model
 
             const int chunkSize = 65536;
             const int overlap = 32;
+            const int maxCandidates = 128;
             byte[] buffer = new byte[chunkSize];
             HashSet<int> seenAddrs = new HashSet<int>();
             List<KeyValuePair<int, string>> found = new List<KeyValuePair<int, string>>();
 
-            for (int r = 0; r < regions.Count && found.Count < 16; r++)
+            for (int r = 0; r < regions.Count && found.Count < maxCandidates; r++)
             {
                 long regStart = regions[r].BaseAddress.ToInt64();
                 long regEnd = regStart + regions[r].RegionSize;
                 long cursor = regStart;
 
-                while (cursor < regEnd && found.Count < 16)
+                while (cursor < regEnd && found.Count < maxCandidates)
                 {
                     int toRead = (int)Math.Min(chunkSize, regEnd - cursor);
                     int bytesRead;
                     if (this.PMR.ReadProcessMemory((IntPtr)cursor, buffer, toRead, out bytesRead) && bytesRead >= 8)
                     {
                         List<int> matches = ScanBufferForMapOffsets(buffer, bytesRead);
-                        for (int m = 0; m < matches.Count && found.Count < 16; m++)
+                        for (int m = 0; m < matches.Count && found.Count < maxCandidates; m++)
                         {
                             long absAddr = cursor + matches[m];
                             if (absAddr > int.MaxValue)
@@ -623,17 +673,14 @@ namespace _4RTools.Model
                 }
             }
 
-            if (found.Count == 1)
+            List<KeyValuePair<int, string>> isolated = FilterClusteredMapTableCandidates(found);
+            List<KeyValuePair<int, string>> selected = isolated.Count > 0 ? isolated : found;
+
+            if (selected.Count > 0)
             {
-                this.currentMapAddress = found[0].Key;
-                this.mapAddressAutoDetected = true;
+                selected.Sort((a, b) => Math.Abs((long)a.Key - hpAddr).CompareTo(Math.Abs((long)b.Key - hpAddr)));
                 this.detectedMapCandidates.Clear();
-            }
-            else if (found.Count > 1)
-            {
-                found.Sort((a, b) => Math.Abs((long)a.Key - hpAddr).CompareTo(Math.Abs((long)b.Key - hpAddr)));
-                this.detectedMapCandidates.Clear();
-                this.detectedMapCandidates.AddRange(found);
+                this.detectedMapCandidates.AddRange(selected);
             }
         }
 
@@ -1041,6 +1088,31 @@ namespace _4RTools.Model
                 for (int i = 0; i < Math.Min(trailingLines.Count, 12); i++)
                 {
                     sb.AppendLine(trailingLines[i]);
+                }
+            }
+
+            List<string> mapDiagLines = new List<string>();
+            lock (this.mapDetectLock)
+            {
+                int limitDiag = Math.Min(this.detectedMapCandidates.Count, 8);
+                for (int i = 0; i < limitDiag; i++)
+                {
+                    int addr = this.detectedMapCandidates[i].Key;
+                    string liveRaw = ReadMemoryAsString(addr);
+                    string liveNorm = NormalizeMapName(liveRaw);
+                    mapDiagLines.Add(string.Format("0x{0:X8} -> {1}", addr, string.IsNullOrEmpty(liveNorm) ? "-" : liveNorm));
+                }
+            }
+
+            if (mapDiagLines.Count > 0)
+            {
+                sb.AppendLine();
+                sb.AppendLine(LocalizationManager.IsPortuguese
+                    ? "[Candidatos de Mapa (.rsw)]"
+                    : "[Map Candidates (.rsw)]");
+                for (int i = 0; i < mapDiagLines.Count; i++)
+                {
+                    sb.AppendLine(mapDiagLines[i]);
                 }
             }
 

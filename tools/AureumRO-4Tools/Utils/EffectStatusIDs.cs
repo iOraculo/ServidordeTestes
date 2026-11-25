@@ -84,6 +84,7 @@ namespace _4RTools.Utils
         OVERTHRUSTMAX = 188,
         WEAPONPERFECT = 24,
         MAXIMIZE = 26,
+        EFST_RIDING = 27,
         CRAZY_UPROAR = 30,
         CARTBOOST = 118,
         MELTDOWN = 117,

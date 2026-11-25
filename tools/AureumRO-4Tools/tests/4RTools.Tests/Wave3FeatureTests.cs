@@ -2295,6 +2295,28 @@ namespace _4RTools.Tests
             Assert.Equal("prt_fild08.rsw", secondMap);
             Assert.True(Client.IsTownMap(firstMap));
             Assert.False(Client.IsTownMap(secondMap));
+
+            // Binary C++ struct byte (e.g. 0x01 or 0xFF) before map name must be accepted, while printable path/text bytes are rejected.
+            byte[] structBytes = new byte[] { 0xFF, (byte)'p', (byte)'r', (byte)'o', (byte)'n', (byte)'t', (byte)'e', (byte)'r', (byte)'a', (byte)'.', (byte)'r', (byte)'s', (byte)'w', 0x00 };
+            List<int> structOffsets = Client.ScanBufferForMapOffsets(structBytes, structBytes.Length);
+            Assert.Single(structOffsets);
+            Assert.Equal(1, structOffsets[0]);
+
+            // Clustered static/Lua map table (3+ distinct maps within 2KB) must be filtered out while isolated live CSession map stays.
+            List<KeyValuePair<int, string>> rawCandidates = new List<KeyValuePair<int, string>>
+            {
+                new KeyValuePair<int, string>(0x00D2A300, "prontera"),
+                new KeyValuePair<int, string>(0x00D2A340, "geffen"),
+                new KeyValuePair<int, string>(0x00D2A380, "morocc"),
+                new KeyValuePair<int, string>(0x015FD120, "prt_fild08")
+            };
+            List<KeyValuePair<int, string>> isolatedCandidates = Client.FilterClusteredMapTableCandidates(rawCandidates);
+            Assert.Single(isolatedCandidates);
+            Assert.Equal(0x015FD120, isolatedCandidates[0].Key);
+            Assert.Equal("prt_fild08", isolatedCandidates[0].Value);
+
+            // EFST_RIDING (27) is defined for Peco Peco / Grand Peco mount.
+            Assert.Equal(27u, (uint)EffectStatusIDs.EFST_RIDING);
         }
     }
 }

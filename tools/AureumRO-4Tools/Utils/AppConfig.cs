@@ -11,6 +11,6 @@ namespace _4RTools.Utils
         public static string DiscordLink = "https://discord.gg/aureumro";
         public static string _4RClientsURL = "https://raw.githubusercontent.com/iOraculo/AureumTools/main/supported_servers.json";
         public static string _4RLatestVersionURL = "https://api.github.com/repos/iOraculo/AureumTools/releases/latest";
-        public static string Version = "v2.39.3";
+        public static string Version = "v2.39.4";
     }
 }
