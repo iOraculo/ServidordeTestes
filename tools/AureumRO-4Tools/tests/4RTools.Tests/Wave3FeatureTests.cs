@@ -506,7 +506,7 @@ namespace _4RTools.Tests
             Assert.NotNull(froggo);
             Assert.Equal("0x01138DDC", froggo.hpAddress);
             Assert.Equal("0x0113B7B0", froggo.nameAddress);
-            Assert.Equal("0x00D2A3BC", froggo.mapAddress);
+            Assert.True(string.IsNullOrEmpty(froggo.mapAddress));
             Assert.Equal("0x480", froggo.statusOffset);
             Assert.True(ClientUpdaterForm.IsBuiltInTestServer(froggo));
             Assert.True(ClientUpdaterForm.IsAllowedServer(froggo, isLocalOverride: false));
