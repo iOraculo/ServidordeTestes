@@ -65,12 +65,12 @@ namespace _4RTools.Forms
                 }
 
                 // 3. Guaranteed built-in fallback for AureumRO Servidor de Testes (FroggoClient / Ragexe 2022-04-06).
-                // Leave mapAddress null so v2.39.5 runtime scanner discovers the live map slot (0x00D2A3BC is static "prontera").
+                // Verified live mapAddress: 0x00E8E330 (transitions prontera.rsw <-> prt_fild08.rsw on warp).
                 clients.Add(new KeyValuePair<ClientDTO, bool>(
-                    new ClientDTO("FroggoClient", "AureumRO Servidor de Testes (FroggoClient)", "0x01138DDC", "0x0113B7B0", null, "0x480"),
+                    new ClientDTO("FroggoClient", "AureumRO Servidor de Testes (FroggoClient)", "0x01138DDC", "0x0113B7B0", "0x00E8E330", "0x480"),
                     false));
                 clients.Add(new KeyValuePair<ClientDTO, bool>(
-                    new ClientDTO("Ragexe", "AureumRO Servidor de Testes (Ragexe)", "0x01138DDC", "0x0113B7B0", null, "0x480"),
+                    new ClientDTO("Ragexe", "AureumRO Servidor de Testes (Ragexe)", "0x01138DDC", "0x0113B7B0", "0x00E8E330", "0x480"),
                     false));
 
                 // 4. Fallback only: local supported_servers.json next to the executable (cannot override official AureumRO or built-in test server entries).
