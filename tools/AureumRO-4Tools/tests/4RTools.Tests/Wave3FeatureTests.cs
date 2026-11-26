@@ -1660,21 +1660,21 @@ namespace _4RTools.Tests
 
                 reloaded.AutoRefreshSpammer1.RefreshKey = Key.Tab;
                 List<KeybindConflict> conflicts = KeybindConflictDetector.DetectConflicts(reloaded);
-                Assert.Contains(conflicts, c => c.Key == Key.Tab);
+                // Hold-to-Pause UI was removed; legacy holdPauseKey must not produce false keybind conflicts.
+                Assert.DoesNotContain(conflicts, c => c.Key == Key.Tab);
 
                 Subject subject = new Subject();
                 using (AHKForm ahkForm = new AHKForm(subject))
                 {
                     subject.Notify(new _4RTools.Utils.Message(MessageCode.PROFILE_CHANGED, null));
                     System.Windows.Forms.Control gbPriority = Assert.Single(ahkForm.Controls.Find("gbPlayerPriority", true));
-                    System.Windows.Forms.Control txtHold = Assert.Single(ahkForm.Controls.Find("txtHoldPauseKey", true));
-                    System.Windows.Forms.CheckBox chkHoldPot = (System.Windows.Forms.CheckBox)Assert.Single(ahkForm.Controls.Find("chkHoldPauseAutopot", true));
-                    Assert.Same(gbPriority, txtHold.Parent);
-                    Assert.Same(gbPriority, chkHoldPot.Parent);
-                    Assert.Equal("Tab", txtHold.Text);
-                    Assert.True(chkHoldPot.Checked);
-                    Assert.Equal(Key.Tab, ActionPriorityCoordinator.HoldPauseKey);
-                    Assert.True(ActionPriorityCoordinator.HoldPauseIncludeAutopot);
+                    Assert.NotNull(gbPriority);
+                    Assert.Empty(ahkForm.Controls.Find("lblHoldPause", true));
+                    Assert.Empty(ahkForm.Controls.Find("txtHoldPauseKey", true));
+                    Assert.Empty(ahkForm.Controls.Find("chkHoldPauseAutopot", true));
+                    // Loading an old profile with a legacy holdPauseKey clears HoldPauseKey so it never pauses silently.
+                    Assert.Equal(Key.None, ActionPriorityCoordinator.HoldPauseKey);
+                    Assert.False(ActionPriorityCoordinator.HoldPauseIncludeAutopot);
                 }
             }
             finally

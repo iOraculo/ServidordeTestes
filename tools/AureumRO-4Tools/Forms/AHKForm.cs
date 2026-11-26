@@ -17,9 +17,6 @@ namespace _4RTools.Forms
         private Label lblPlayerYieldTitle;
         private NumericUpDown numPlayerYield;
         private Label lblPlayerYieldMs;
-        private Label lblHoldPause;
-        private TextBox txtHoldPauseKey;
-        private CheckBox chkHoldPauseAutopot;
         private Label lblPriorityOrder;
         private Font priorityOrderFont;
 
@@ -136,41 +133,6 @@ namespace _4RTools.Forms
                 Text = "ms"
             };
 
-            this.lblHoldPause = new Label
-            {
-                AutoSize = true,
-                Location = new Point(196, 19),
-                Name = "lblHoldPause",
-                Text = "Hold pause:"
-            };
-            this.lblHoldPause.SizeChanged += (s, e) => AlignPriorityControls();
-
-            this.txtHoldPauseKey = new TextBox
-            {
-                Location = new Point(286, 16),
-                Name = "txtHoldPauseKey",
-                Size = new Size(64, 20),
-                Text = Key.None.ToString(),
-                TextAlign = HorizontalAlignment.Center,
-                Tag = FormUtils.SKIP_RESET_TAG
-            };
-            this.txtHoldPauseKey.PreviewKeyDown += OnHoldPausePreviewKeyDown;
-            this.txtHoldPauseKey.KeyDown += FormUtils.OnKeyDown;
-            this.txtHoldPauseKey.KeyPress += FormUtils.OnKeyPress;
-            this.txtHoldPauseKey.TextChanged += OnHoldPauseKeyChanged;
-
-            this.chkHoldPauseAutopot = new CheckBox
-            {
-                AutoSize = true,
-                Cursor = System.Windows.Forms.Cursors.Hand,
-                Location = new Point(358, 18),
-                Name = "chkHoldPauseAutopot",
-                Text = "Pause Autopot",
-                UseVisualStyleBackColor = true,
-                Tag = FormUtils.SKIP_RESET_TAG
-            };
-            this.chkHoldPauseAutopot.CheckedChanged += OnHoldPauseAutopotChanged;
-
             this.lblPriorityOrder = new Label
             {
                 AutoSize = false,
@@ -185,9 +147,6 @@ namespace _4RTools.Forms
             this.gbPlayerPriority.Controls.Add(this.lblPlayerYieldTitle);
             this.gbPlayerPriority.Controls.Add(this.numPlayerYield);
             this.gbPlayerPriority.Controls.Add(this.lblPlayerYieldMs);
-            this.gbPlayerPriority.Controls.Add(this.lblHoldPause);
-            this.gbPlayerPriority.Controls.Add(this.txtHoldPauseKey);
-            this.gbPlayerPriority.Controls.Add(this.chkHoldPauseAutopot);
             this.gbPlayerPriority.Controls.Add(this.lblPriorityOrder);
 
             this.Controls.Add(this.gbPlayerPriority);
@@ -204,64 +163,6 @@ namespace _4RTools.Forms
             int titleRight = this.lblPlayerYieldTitle.Left + Math.Max(this.lblPlayerYieldTitle.Width, this.lblPlayerYieldTitle.PreferredWidth);
             this.numPlayerYield.Location = new Point(titleRight + 5, 16);
             this.lblPlayerYieldMs.Location = new Point(this.numPlayerYield.Right + 3, 19);
-
-            if (this.lblHoldPause != null && this.txtHoldPauseKey != null && this.chkHoldPauseAutopot != null)
-            {
-                int msRight = this.lblPlayerYieldMs.Left + Math.Max(this.lblPlayerYieldMs.Width, this.lblPlayerYieldMs.PreferredWidth);
-                this.lblHoldPause.Location = new Point(msRight + 16, 19);
-                int holdRight = this.lblHoldPause.Left + Math.Max(this.lblHoldPause.Width, this.lblHoldPause.PreferredWidth);
-                this.txtHoldPauseKey.Location = new Point(holdRight + 5, 16);
-                this.chkHoldPauseAutopot.Location = new Point(this.txtHoldPauseKey.Right + 10, 18);
-            }
-        }
-
-        private void OnHoldPausePreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
-        {
-            if (e.KeyCode == Keys.Tab)
-            {
-                e.IsInputKey = true;
-            }
-        }
-
-        private void OnHoldPauseKeyChanged(object sender, EventArgs e)
-        {
-            Key key;
-            if (!KeyHelper.TryParseKey(this.txtHoldPauseKey.Text, out key))
-            {
-                return;
-            }
-
-            ActionPriorityCoordinator.HoldPauseKey = key;
-
-            if (this.isUpdatingUi || ProfileSingleton.IsSaveSuppressed)
-            {
-                return;
-            }
-
-            Profile current = ProfileSingleton.GetCurrent();
-            if (current != null && current.UserPreferences != null)
-            {
-                current.UserPreferences.holdPauseKey = key;
-                ProfileSingleton.SetConfiguration(current.UserPreferences);
-            }
-        }
-
-        private void OnHoldPauseAutopotChanged(object sender, EventArgs e)
-        {
-            bool includeAutopot = this.chkHoldPauseAutopot.Checked;
-            ActionPriorityCoordinator.HoldPauseIncludeAutopot = includeAutopot;
-
-            if (this.isUpdatingUi || ProfileSingleton.IsSaveSuppressed)
-            {
-                return;
-            }
-
-            Profile current = ProfileSingleton.GetCurrent();
-            if (current != null && current.UserPreferences != null)
-            {
-                current.UserPreferences.holdPauseIncludeAutopot = includeAutopot;
-                ProfileSingleton.SetConfiguration(current.UserPreferences);
-            }
         }
 
         private void OnPlayerYieldChanged(object sender, EventArgs e)
@@ -324,16 +225,6 @@ namespace _4RTools.Forms
                 }
                 this.helpToolTip.SetToolTip(this.numPlayerYield, yieldTip);
                 this.helpToolTip.SetToolTip(this.lblPlayerYieldMs, yieldTip);
-            }
-            if (this.txtHoldPauseKey != null)
-            {
-                string holdTip = LocalizationManager.T("tooltip.hold_pause_key");
-                this.helpToolTip.SetToolTip(this.lblHoldPause, holdTip);
-                this.helpToolTip.SetToolTip(this.txtHoldPauseKey, holdTip);
-            }
-            if (this.chkHoldPauseAutopot != null)
-            {
-                this.helpToolTip.SetToolTip(this.chkHoldPauseAutopot, LocalizationManager.T("tooltip.hold_pause_autopot"));
             }
             if (this.lblPriorityOrder != null)
             {
@@ -432,21 +323,9 @@ namespace _4RTools.Forms
                             FormUtils.SetNumericValue(this.numPlayerYield, ActionPriorityCoordinator.PlayerInputYieldMs);
                         }
 
-                        Key holdKey = currentProfile != null && currentProfile.UserPreferences != null
-                            ? currentProfile.UserPreferences.holdPauseKey
-                            : Key.None;
-                        bool holdIncludeAutopot = currentProfile != null && currentProfile.UserPreferences != null
-                            && currentProfile.UserPreferences.holdPauseIncludeAutopot;
-                        ActionPriorityCoordinator.HoldPauseKey = holdKey;
-                        ActionPriorityCoordinator.HoldPauseIncludeAutopot = holdIncludeAutopot;
-                        if (this.txtHoldPauseKey != null)
-                        {
-                            this.txtHoldPauseKey.Text = holdKey.ToString();
-                        }
-                        if (this.chkHoldPauseAutopot != null)
-                        {
-                            this.chkHoldPauseAutopot.Checked = holdIncludeAutopot;
-                        }
+                        // Hold-to-Pause UI was removed; always clear any legacy holdPauseKey from older profiles.
+                        ActionPriorityCoordinator.HoldPauseKey = Key.None;
+                        ActionPriorityCoordinator.HoldPauseIncludeAutopot = false;
 
                         Dictionary<string, KeyConfig> ahkClones = ahk.GetEntriesSnapshot();
                         foreach (KeyValuePair<string, KeyConfig> config in ahkClones)

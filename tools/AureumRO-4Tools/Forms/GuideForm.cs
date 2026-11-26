@@ -427,10 +427,10 @@ namespace _4RTools.Forms
                     AccentColor = Color.FromArgb(245, 158, 11),
                     TitlePt = "3. Spammer & Prioridade de Ações",
                     TaglinePt = "Disparo rápido de skills respeitando seus comandos manuais",
-                    TipPt = "★ Dica: use 'Segurar pausa' (ex.: Shift ou Ctrl) quando quiser pausar as automações por 1 segundo para lootear ou digitar sem desligar o app!",
+                    TipPt = "★ Dica: ajuste 'Pausa jogador' (em ms) para controlar por quanto tempo o AureumTools cede prioridade sempre que você pressiona uma tecla manual!",
                     TitleEn = "3. Skill Spammer & Action Priority",
                     TaglineEn = "Rapid skill casting that always respects your manual inputs",
-                    TipEn = "★ Tip: bind a 'Hold pause' key (e.g., Shift or Ctrl) to momentarily pause automations while held without turning the app off!",
+                    TipEn = "★ Tip: tune 'Player pause' (ms) to control how long AureumTools yields priority whenever you press a manual key!",
                     Steps = new List<GuideStepData>
                     {
                         new GuideStepData

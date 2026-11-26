@@ -1,5 +1,9 @@
 # Changelogs
 
+## [v2.39.6] - 2026-11-25 — Remoção da Opção `Segurar pausa` na Aba `Spammer`
+### Changed
+- **Aba `Spammer` (`Forms/AHKForm.cs`, `Forms/GuideForm.cs`, `Utils/KeybindConflictDetector.cs`)**: removidos os controles `Segurar pausa` e `Pausar Autopot` do card `Prioridade de Ações` (evitando confusão com o comportamento nativo de `Alt`/`Ctrl`/`Shift` no cliente Ragexe); perfis antigos com tecla salva em `holdPauseKey` são limpos automaticamente ao carregar para nunca pausar silenciosamente.
+
 ## [v2.39.5] - 2026-11-25 — Correção de Falsa Pausa em Campos, Scanner de Mapa Ampliado (.rsw/.gat + Heap) e Diagnóstico Completo no `Ver Status (IDs)`
 ### Fixed
 - **Fim da falsa pausa em campos no `Pausar em cidades` (`Model/Client.cs`)**: candidatos estáticos de mapa não confirmados não são mais tratados como cidade ativa (evitando pausar automações em campos como `prt_fild08` quando o endereço ainda não foi confirmado).
